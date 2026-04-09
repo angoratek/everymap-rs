@@ -1,0 +1,188 @@
+pub mod types;
+
+use async_trait::async_trait;
+use everymap_core::domains::tour::{TourPlanner, TourRequest, TourResponse};
+use everymap_core::error::EveryMapResult;
+use crate::client::HereClient;
+use std::sync::Arc;
+
+pub use types::*;
+
+const TOUR_BASE_URL: &str = "https://tourplanning.hereapi.com/v3";
+
+/// Exhaustive options for HERE Tour Planning API v3.
+/// Wraps the full `TourProblem` for the POST body.
+#[derive(Debug, Clone, Default)]
+pub struct HereTourOptions {
+    pub problem: TourProblem,
+}
+
+/// Implementation of TourPlanner for HERE Technologies.
+pub struct HereTourPlanner {
+    client: Arc<HereClient>,
+    base_url: String,
+}
+
+impl HereTourPlanner {
+    pub fn new(client: Arc<HereClient>) -> Self {
+        Self {
+            client,
+            base_url: TOUR_BASE_URL.to_string(),
+        }
+    }
+
+    pub fn with_base_url(client: Arc<HereClient>, base_url: String) -> Self {
+        Self { client, base_url }
+    }
+
+    /// Solve a tour planning problem synchronously (POST /problems).
+    /// Returns the full rich response.
+    pub async fn solve(&self, problem: TourProblem) -> EveryMapResult<TourSolution> {
+        let url = format!("{}/problems", self.base_url);
+        let builder = self.client.build_request(reqwest::Method::POST, &url)
+            .json(&problem);
+
+        let response = self.client.request(builder).await?;
+        let solution: TourSolution = response.json().await?;
+        Ok(solution)
+    }
+
+    /// Submit a tour planning problem asynchronously (POST /problems/async).
+    /// Returns the async submission result with status ID.
+    pub async fn solve_async(&self, problem: TourProblem) -> EveryMapResult<AsyncSubmissionResult> {
+        let url = format!("{}/problems/async", self.base_url);
+        let builder = self.client.build_request(reqwest::Method::POST, &url)
+            .json(&problem);
+
+        let response = self.client.request(builder).await?;
+        let result: AsyncSubmissionResult = response.json().await?;
+        Ok(result)
+    }
+
+    /// Get async job status (GET /status/{statusId}).
+    pub async fn get_async_status(&self, status_id: &str) -> EveryMapResult<AsyncJobStatus> {
+        let url = format!("{}/status/{}", self.base_url, status_id);
+        let builder = self.client.build_request(reqwest::Method::GET, &url);
+
+        let response = self.client.request(builder).await?;
+        let status: AsyncJobStatus = response.json().await?;
+        Ok(status)
+    }
+
+    /// Get solution for an async problem (GET /problems/{problemId}/solution).
+    pub async fn get_solution(&self, problem_id: &str) -> EveryMapResult<TourSolution> {
+        let url = format!("{}/problems/{}/solution", self.base_url, problem_id);
+        let builder = self.client.build_request(reqwest::Method::GET, &url);
+
+        let response = self.client.request(builder).await?;
+        let solution: TourSolution = response.json().await?;
+        Ok(solution)
+    }
+
+    /// Cancel an async problem (PUT /problems/{problemId}/cancel).
+    pub async fn cancel(&self, problem_id: &str) -> EveryMapResult<CancellationStatus> {
+        let url = format!("{}/problems/{}/cancel", self.base_url, problem_id);
+        let builder = self.client.build_request(reqwest::Method::PUT, &url);
+
+        let response = self.client.request(builder).await?;
+        let status: CancellationStatus = response.json().await?;
+        Ok(status)
+    }
+
+    /// Get API version (GET /version).
+    pub async fn version(&self) -> EveryMapResult<VersionResponse> {
+        let url = format!("{}/version", self.base_url);
+        let builder = self.client.build_request(reqwest::Method::GET, &url);
+
+        let response = self.client.request(builder).await?;
+        let version: VersionResponse = response.json().await?;
+        Ok(version)
+    }
+
+    /// Health check (GET /health).
+    pub async fn health(&self) -> EveryMapResult<HealthResponse> {
+        let url = format!("{}/health", self.base_url);
+        let builder = self.client.build_request(reqwest::Method::GET, &url);
+
+        let response = self.client.request(builder).await?;
+        let health: HealthResponse = response.json().await?;
+        Ok(health)
+    }
+}
+
+#[async_trait]
+impl TourPlanner for HereTourPlanner {
+    type Options = HereTourOptions;
+    type Response = TourResponse;
+
+    async fn optimize_tour(&self, req: TourRequest<Self::Options>) -> EveryMapResult<Self::Response> {
+        let mut problem = req.options.problem;
+
+        // If the plan has no jobs but stops were provided, create simple delivery jobs
+        if problem.plan.jobs.is_empty() && !req.stops.is_empty() {
+            problem.plan.jobs = req.stops.iter().enumerate().map(|(i, coord)| {
+                Job {
+                    id: format!("stop_{}", i),
+                    tasks: JobTasks {
+                        deliveries: Some(vec![JobTask {
+                            places: vec![JobPlace {
+                                location: TourLocation { lat: coord.lat, lng: coord.lng },
+                                duration: 60,
+                                ..Default::default()
+                            }],
+                            demand: vec![1],
+                            ..Default::default()
+                        }]),
+                        ..Default::default()
+                    },
+                    ..Default::default()
+                }
+            }).collect();
+        }
+
+        // Ensure fleet has at least one vehicle type if not provided
+        if problem.fleet.types.is_empty() {
+            problem.fleet.types = vec![VehicleType {
+                id: "vehicle_1".to_string(),
+                profile: "car_profile".to_string(),
+                costs: VehicleCosts { fixed: Some(0.0), distance: Some(1.0), time: Some(0.0), job: None },
+                shifts: vec![VehicleShift {
+                    start: ShiftStart { earliest: None, location: None },
+                    ..Default::default()
+                }],
+                amount: Some(1),
+                ..Default::default()
+            }];
+        }
+
+        if problem.fleet.profiles.is_empty() {
+            problem.fleet.profiles = vec![Profile::Car {
+                name: "car_profile".to_string(),
+                departure_time: None,
+                traffic: None,
+            }];
+        }
+
+        let solution = self.solve(problem).await?;
+
+        // Extract the first tour's stops as simplified response
+        let optimized_stops = solution.tours.first()
+            .map(|tour| {
+                let mut stops = tour.stops.iter()
+                    .filter_map(|s| s.location.as_ref())
+                    .map(|loc| everymap_core::types::Coordinate::new(loc.lat, loc.lng).unwrap())
+                    .collect::<Vec<_>>();
+                // Remove first (departure) and last (arrival) if they're just start/end points
+                if stops.len() > 2 {
+                    stops.remove(0);
+                    stops.pop();
+                }
+                stops
+            })
+            .unwrap_or_default();
+
+        Ok(TourResponse {
+            optimized_stops,
+        })
+    }
+}
