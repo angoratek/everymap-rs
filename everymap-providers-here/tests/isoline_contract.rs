@@ -40,7 +40,7 @@ async fn test_isoline_contract() {
     };
 
     let res = isoline_provider.get_isoline(req).await.unwrap();
-    assert!(!res.polygon.is_empty());
+    assert!(!res.isolines[0].polygon.is_empty());
 }
 
 #[tokio::test]
@@ -78,5 +78,5 @@ async fn test_isoline_with_routing_mode() {
     };
 
     let res = isoline_provider.get_isoline(req).await.unwrap();
-    assert!(!res.polygon.is_empty());
+    assert!(!res.isolines[0].polygon.is_empty());
 }

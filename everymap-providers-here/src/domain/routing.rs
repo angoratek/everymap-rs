@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::routing::{Router, RouteRequest, RouteResponse};
+use everymap_core::domains::routing::{Router, RouteRequest, RouteResponse, RouteResult};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Polyline;
 use crate::client::HereClient;
@@ -318,25 +318,34 @@ impl Router for HereRouter {
         let response = self.client.request(builder).await?;
         let here_res: HereRouteApiResponse = response.json().await?;
 
-        let route = here_res.routes.into_iter().next()
-            .ok_or_else(|| everymap_core::error::EveryMapError::ProviderError("No routes found".to_string()))?;
+        let routes: Vec<RouteResult> = here_res.routes.into_iter().map(|route| {
+            let section = route.sections.into_iter().next();
+            let (distance, duration, geometry) = match &section {
+                Some(s) => (
+                    s.summary.length.unwrap_or(0.0),
+                    s.summary.duration.unwrap_or(0.0),
+                    s.polyline.as_ref()
+                        .and_then(|p| p.polyline.as_ref())
+                        .map(|encoded| {
+                            everymap_core::types::FlexiblePolyline::decode(encoded)
+                                .map(Polyline::new)
+                                .unwrap_or_else(|_| Polyline::new(vec![]))
+                        })
+                        .unwrap_or_else(|| Polyline::new(vec![])),
+                ),
+                None => (0.0, 0.0, Polyline::new(vec![])),
+            };
+            RouteResult {
+                distance,
+                duration,
+                geometry,
+                transport_mode: None,
+                steps: vec![],
+                bounding_box: None,
+                raw: None,
+            }
+        }).collect();
 
-        let section = route.sections.into_iter().next()
-            .ok_or_else(|| everymap_core::error::EveryMapError::ProviderError("No route sections found".to_string()))?;
-
-        let geometry = section.polyline
-            .and_then(|p| p.polyline)
-            .map(|encoded| {
-                everymap_core::types::FlexiblePolyline::decode(&encoded)
-                    .map(Polyline::new)
-                    .unwrap_or_else(|_| Polyline::new(vec![]))
-            })
-            .unwrap_or_else(|| Polyline::new(vec![]));
-
-        Ok(RouteResponse {
-            distance: section.summary.length.unwrap_or(0.0),
-            duration: section.summary.duration.unwrap_or(0.0),
-            geometry,
-        })
+        Ok(RouteResponse { routes })
     }
 }

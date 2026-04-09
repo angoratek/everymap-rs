@@ -48,7 +48,8 @@ async fn test_traffic_contract() {
 
     let res = traffic_provider.get_traffic(req).await.unwrap();
 
-    assert_eq!(res.jam_factor, 2.5);
+    assert_eq!(res.flows.len(), 1);
+    assert_eq!(res.flows[0].jam_factor.unwrap(), 2.5);
     assert!(res.incidents.is_empty());
 }
 

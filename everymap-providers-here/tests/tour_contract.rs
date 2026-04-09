@@ -91,8 +91,10 @@ async fn test_tour_contract() {
 
     let res = planner.optimize_tour(req).await.unwrap();
 
-    // Core trait returns just the delivery stops (not departure/arrival)
-    assert_eq!(res.optimized_stops.len(), 2);
+    // Core trait returns the tour stops
+    assert!(!res.stops.is_empty());
+    assert_eq!(res.total_distance, Some(5000.0));
+    assert_eq!(res.total_duration, Some(600.0));
 }
 
 #[tokio::test]

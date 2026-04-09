@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::traffic::{TrafficProvider, TrafficRequest, TrafficResponse};
+use everymap_core::domains::traffic::{TrafficProvider, TrafficRequest, TrafficResponse, TrafficFlow};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use crate::client::HereClient;
@@ -170,13 +170,20 @@ impl TrafficProvider for HereTraffic {
         // Use the rich flow API and extract simplified data
         let flow_res = self.get_flow(req.location, &req.options).await?;
 
-        let jam_factor = flow_res.results.first()
-            .and_then(|item| item.current_flow.jam_factor)
-            .unwrap_or(0.0);
+        let flows: Vec<TrafficFlow> = flow_res.results.into_iter().map(|item| {
+            TrafficFlow {
+                speed: item.current_flow.speed,
+                free_flow_speed: item.current_flow.free_flow,
+                jam_factor: item.current_flow.jam_factor,
+                confidence: item.current_flow.confidence,
+                road_name: item.road_info.and_then(|ri| ri.road_name),
+            }
+        }).collect();
 
         Ok(TrafficResponse {
-            jam_factor,
+            flows,
             incidents: vec![],
+            raw: None,
         })
     }
 }

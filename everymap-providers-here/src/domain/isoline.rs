@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::isoline::{IsolineProvider, IsolineRequest, IsolineResponse};
+use everymap_core::domains::isoline::{IsolineProvider, IsolineRequest, IsolineResponse, IsolineResult};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use serde::{Deserialize, Serialize};
@@ -113,6 +113,8 @@ struct HereIsolineLegacyResponse {
 
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacy {
+    #[serde(default, rename = "rangeValue")]
+    range_value: Option<f64>,
     #[serde(default)]
     polyline: Option<HereIsolinePolyline>,
 }
@@ -190,23 +192,23 @@ impl IsolineProvider for HereIsoline {
         let response = self.client.request(builder).await?;
         let here_res: HereIsolineLegacyResponse = response.json().await?;
 
-        let mut all_points = Vec::new();
-        for iso in &here_res.isolines {
-            if let Some(poly) = &iso.polyline {
-                if let Some(encoded) = &poly.outer {
-                    let points = everymap_core::types::FlexiblePolyline::decode(encoded)
-                        .map_err(everymap_core::error::EveryMapError::ProviderError)?;
-                    all_points.extend(points);
-                }
+        let isolines: Vec<IsolineResult> = here_res.isolines.into_iter().map(|iso| {
+            let polygon = iso.polyline
+                .and_then(|p| p.outer)
+                .map(|encoded| {
+                    everymap_core::types::FlexiblePolyline::decode(&encoded)
+                        .unwrap_or_else(|_| vec![])
+                })
+                .unwrap_or_else(Vec::new);
+            IsolineResult {
+                range: iso.range_value,
+                polygon,
             }
-        }
-
-        if all_points.is_empty() && !here_res.isolines.is_empty() {
-            all_points.push(req.center);
-        }
+        }).collect();
 
         Ok(IsolineResponse {
-            polygon: all_points,
+            isolines,
+            raw: None,
         })
     }
 }

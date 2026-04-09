@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::tour::{TourPlanner, TourRequest, TourResponse};
+use everymap_core::domains::tour::{TourPlanner, TourRequest, TourResponse, TourStop as CoreTourStop};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use std::sync::Arc;
@@ -166,23 +166,34 @@ impl TourPlanner for HereTourPlanner {
         let solution = self.solve(problem).await?;
 
         // Extract the first tour's stops as simplified response
-        let optimized_stops = solution.tours.first()
+        let tour_stops: Vec<CoreTourStop> = solution.tours.first()
             .map(|tour| {
-                let mut stops = tour.stops.iter()
-                    .filter_map(|s| s.location.as_ref())
-                    .map(|loc| everymap_core::types::Coordinate::new(loc.lat, loc.lng).unwrap())
-                    .collect::<Vec<_>>();
-                // Remove first (departure) and last (arrival) if they're just start/end points
-                if stops.len() > 2 {
-                    stops.remove(0);
-                    stops.pop();
-                }
-                stops
+                tour.stops.iter()
+                    .filter_map(|s| {
+                        s.location.as_ref().map(|loc| {
+                            everymap_core::types::Coordinate::new(loc.lat, loc.lng).unwrap()
+                        }).map(|coord| CoreTourStop {
+                            coordinate: coord,
+                            arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
+                            departure_time: None,
+                            duration: None,
+                            distance_from_previous: None,
+                        })
+                    })
+                    .collect()
             })
             .unwrap_or_default();
 
+        let total_distance = Some(solution.statistic.distance);
+        let total_duration = Some(solution.statistic.duration);
+        let unassigned_count = Some(solution.unassigned.len() as u32);
+
         Ok(TourResponse {
-            optimized_stops,
+            stops: tour_stops,
+            total_distance,
+            total_duration,
+            unassigned_count,
+            raw: None,
         })
     }
 }

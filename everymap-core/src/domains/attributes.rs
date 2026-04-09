@@ -11,6 +11,7 @@ pub struct AttributeRequest<O> {
 /// Simplified attribute response from the core trait.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttributeResponse {
+    /// The attribute data as JSON
     pub data: serde_json::Value,
 }
 

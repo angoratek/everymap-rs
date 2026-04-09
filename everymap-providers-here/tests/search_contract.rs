@@ -44,7 +44,7 @@ async fn test_geocode_contract() {
 
     assert_eq!(res.items.len(), 1);
     assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
-    assert_eq!(res.items[0].address, "Berlin, Germany");
+    assert_eq!(res.items[0].address.label.as_deref(), Some("Berlin, Germany"));
     assert_eq!(res.items[0].title.as_ref().unwrap(), "Berlin");
 }
 
@@ -88,7 +88,7 @@ async fn test_geocode_with_options() {
     let res = geocoder.geocode(req).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].address, "Paris, France");
+    assert_eq!(res.items[0].address.label.as_deref(), Some("Paris, France"));
 }
 
 #[tokio::test]
@@ -123,7 +123,7 @@ async fn test_reverse_geocode_contract() {
 
     assert_eq!(res.items.len(), 1);
     assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
-    assert_eq!(res.items[0].address, "Berlin, Germany");
+    assert_eq!(res.items[0].address.label.as_deref(), Some("Berlin, Germany"));
 }
 
 #[tokio::test]

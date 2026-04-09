@@ -40,13 +40,12 @@ async fn test_positioning_contract() {
 
     let res = positioner.get_position(req).await.unwrap();
 
-    assert_eq!(res.location.lat, 52.5201);
-    assert_eq!(res.location.lng, 13.4051);
-    assert_eq!(res.location.accuracy, Some(50.0));
+    assert_eq!(res.coordinate.lat, 52.5201);
+    assert_eq!(res.coordinate.lng, 13.4051);
+    assert_eq!(res.accuracy, Some(50.0));
     assert!(res.altitude.is_some());
-    let alt = res.altitude.as_ref().unwrap();
-    assert_eq!(alt.value, Some(34.0));
-    assert_eq!(alt.accuracy, Some(10.0));
+    assert_eq!(res.altitude, Some(34.0));
+    assert_eq!(res.altitude_accuracy, Some(10.0));
 }
 
 #[tokio::test]
@@ -89,9 +88,9 @@ async fn test_positioning_with_wlan() {
 
     let res = positioner.get_position(req).await.unwrap();
 
-    assert_eq!(res.location.lat, 52.52);
-    assert_eq!(res.location.lng, 13.41);
-    assert_eq!(res.location.accuracy, Some(25.0));
+    assert_eq!(res.coordinate.lat, 52.52);
+    assert_eq!(res.coordinate.lng, 13.41);
+    assert_eq!(res.accuracy, Some(25.0));
     assert!(res.altitude.is_none());
 }
 

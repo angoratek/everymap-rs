@@ -1,4 +1,6 @@
 use everymap_core::types::Coordinate;
+use everymap_core::domains::search::{SearchResult, SearchResultType};
+use crate::domain::geo::HereLatLng;
 use serde::{Deserialize, Serialize};
 
 // --- Shared enums used across multiple search endpoints ---
@@ -162,16 +164,43 @@ pub struct HereSearchItem {
     pub geojson: Option<serde_json::Value>,
 }
 
-/// Geographic coordinate pair from HERE API responses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HereLatLng {
-    pub lat: f64,
-    pub lng: f64,
-}
-
-impl From<HereLatLng> for Coordinate {
-    fn from(val: HereLatLng) -> Self {
-        Coordinate::new(val.lat, val.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap())
+impl From<HereSearchItem> for SearchResult {
+    fn from(item: HereSearchItem) -> Self {
+        let coordinate = item.position
+            .map(Coordinate::from)
+            .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
+        let address = item.address
+            .map(everymap_core::types::Address::from)
+            .unwrap_or_default();
+        let result_type = match item.result_type.as_deref() {
+            Some("place") | Some("exactMatch") => SearchResultType::ExactMatch,
+            Some("approximate") => SearchResultType::Approximate,
+            Some("interpolated") => SearchResultType::Interpolated,
+            _ => SearchResultType::Unknown,
+        };
+        let bounding_box = item.map_view.and_then(|mv| {
+            match (mv.west, mv.south, mv.east, mv.north) {
+                (Some(w), Some(s), Some(e), Some(n)) => {
+                    everymap_core::types::BoundingBox::new(
+                        Coordinate::new(n, e).ok()?,
+                        Coordinate::new(s, w).ok()?,
+                    ).into()
+                }
+                _ => None,
+            }
+        });
+        SearchResult {
+            id: item.id,
+            coordinate,
+            address,
+            title: item.title,
+            result_type,
+            distance: item.distance,
+            confidence: None,
+            categories: item.categories.into_iter().filter_map(|c| c.name).collect(),
+            bounding_box,
+            raw: None,
+        }
     }
 }
 
@@ -210,6 +239,28 @@ pub struct HereAddress {
     pub block: Option<String>,
     #[serde(default)]
     pub unit: Option<String>,
+}
+
+impl From<HereAddress> for everymap_core::types::Address {
+    fn from(addr: HereAddress) -> Self {
+        everymap_core::types::Address {
+            label: addr.label,
+            street: addr.street,
+            house_number: addr.house_number,
+            city: addr.city,
+            district: addr.district,
+            sub_district: addr.sub_district,
+            state: addr.state,
+            state_code: addr.state_code,
+            postal_code: addr.postal_code,
+            country: addr.country_name,
+            country_code: addr.country_code,
+            county: addr.county,
+            building: addr.building,
+            block: addr.block,
+            unit: addr.unit,
+        }
+    }
 }
 
 /// A category for a search result.

@@ -11,10 +11,23 @@ pub struct IsolineRequest<O> {
     pub options: O,
 }
 
-/// Simplified isoline response from the core trait.
+/// A unified isoline result from the core trait.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IsolineResult {
+    /// The polygon points defining the isoline boundary
+    pub polygon: Vec<Coordinate>,
+    /// The range value (in meters or seconds, depending on range type)
+    pub range: Option<f64>,
+}
+
+/// A unified isoline response from the core trait.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IsolineResponse {
-    pub polygon: Vec<Coordinate>,
+    /// The isoline results (may contain multiple ranges)
+    pub isolines: Vec<IsolineResult>,
+    /// Provider-specific raw data for advanced use cases
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub raw: Option<serde_json::Value>,
 }
 
 #[async_trait]

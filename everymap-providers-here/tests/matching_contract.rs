@@ -41,8 +41,8 @@ async fn test_matching_contract() {
     let res = matcher.match_route(req).await.unwrap();
 
     assert_eq!(res.distance, 120.0);
-    assert_eq!(res.snapped_points.len(), 2);
-    assert_eq!(res.snapped_points[0], Coordinate::new(52.5201, 13.4051).unwrap());
+    assert_eq!(res.matched_points.len(), 2);
+    assert_eq!(res.matched_points[0].coordinate, Coordinate::new(52.5201, 13.4051).unwrap());
 }
 
 #[tokio::test]
@@ -85,5 +85,5 @@ async fn test_matching_with_options() {
     let res = matcher.match_route(req).await.unwrap();
 
     assert_eq!(res.distance, 250.0);
-    assert_eq!(res.snapped_points.len(), 2);
+    assert_eq!(res.matched_points.len(), 2);
 }

@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::positioning::{NetworkPositioner as NetworkPositionerTrait, PositioningRequest};
+use everymap_core::domains::positioning::{NetworkPositioner as NetworkPositionerTrait, PositioningRequest, PositioningResponse as CorePositioningResponse};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use serde::Serialize;
@@ -70,9 +70,21 @@ impl HerePositioner {
 #[async_trait]
 impl NetworkPositionerTrait for HerePositioner {
     type Options = HerePositioningOptions;
-    type Response = PositioningResponse;
+    type Response = CorePositioningResponse;
 
     async fn get_position(&self, req: PositioningRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        self.locate(req.options).await
+        let result = self.locate(req.options).await?;
+        let coordinate = everymap_core::types::Coordinate::new(
+            result.location.lat,
+            result.location.lng,
+        ).map_err(|e| everymap_core::error::EveryMapError::ValidationError(e.to_string()))?;
+
+        Ok(CorePositioningResponse {
+            coordinate,
+            accuracy: result.location.accuracy,
+            altitude: result.altitude.as_ref().and_then(|a| a.value),
+            altitude_accuracy: result.altitude.as_ref().and_then(|a| a.accuracy),
+            raw: None,
+        })
     }
 }

@@ -46,6 +46,6 @@ async fn test_routing_contract() {
 
     let res = router.calculate_route(req).await.unwrap();
 
-    assert_eq!(res.distance, 1500.0);
-    assert_eq!(res.duration, 300.0);
+    assert_eq!(res.routes[0].distance, 1500.0);
+    assert_eq!(res.routes[0].duration, 300.0);
 }

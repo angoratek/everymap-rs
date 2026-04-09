@@ -10,15 +10,22 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 ### 1. Crate Strategy: Modular Workspace
 
 - **`everymap-core`**: The bedrock. Zero-dependency where possible.
-    - Shared Types: `Coordinate`, `BoundingBox`, `Point`, `Polyline`, `FlexiblePolyline`.
+    - Shared Types: `Coordinate`, `BoundingBox`, `Address`, `Polyline`, `FlexiblePolyline`.
     - Domain Traits: Interfaces for all 10 domains, each with associated `Options` and `Response` types.
+    - Enriched Response Types: `SearchResult`, `RouteResult`, `TrafficFlow`, `TrafficIncident`, `IsolineResult`, `MatchedPoint`, `TourStop`, etc.
     - Auth Traits: `AuthProvider` interface (`ApiKeyProvider`, future `OAuth2Provider`).
-    - Error System: Unified `EveryMapError` using `thiserror`.
+    - Error System: Structured `EveryMapError` with `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, etc.
 - **`everymap-providers-here`**: The HERE Technologies implementation.
     - Maps OpenAPI specs to Rust types with full coverage.
     - Implements `everymap-core` traits.
     - Each domain has its own module with rich provider-specific types.
+    - Shared `HereLatLng` in `domain/geo.rs` (eliminates duplication).
+    - `From<HereX> for CoreX` conversions for type-safe provider → core mapping.
 - **`everymap-providers-mapbox` / `tomtom` / `google`**: (Future) Implementation crates.
+- **`everymap-cli`**: CLI tool for interacting with providers.
+    - `clap` derive macros, `tokio` runtime, JSON output.
+    - Commands: `geocode`, `reverse-geocode`, `route`, `traffic`, `position`, `isoline`.
+    - Auth via `--api-key` or `EVERYMAP_API_KEY` env var.
 
 ### 2. Domain Abstraction (Middleware)
 Each API is treated as a "Provider" of a "Domain".
@@ -43,7 +50,7 @@ Each API is treated as a "Provider" of a "Domain".
 
 ---
 
-## Implementation Status: ALL 10 DOMAINS COMPLETE
+## Implementation Status
 
 ### Phase 0: Architecture Foundations ✅
 - Per-domain base URLs (HereClient simplified, each domain has const BASE_URL)
@@ -51,86 +58,42 @@ Each API is treated as a "Provider" of a "Domain".
 - Core trait redesign (all traits have associated Response + Options types)
 - Domain mod.rs reorganized to avoid glob conflicts
 
-### Phase 1: Search Domain ✅
-- Geocode + reverseGeocode with full params (18+ query params)
-- Discover endpoint with full options
-- Autosuggest endpoint with full options
-- Rich response types (HereSearchItem, HereAddress, HereCategory, etc.)
-- 5 contract tests passing
+### Phase 1-10: All 10 HERE Domains ✅
+- All domains implemented with full parameter coverage
+- 31 contract tests passing
+- Rich HERE-specific types alongside core trait impls
 
-### Phase 2: Routing Domain ✅
-- Full parameter set (transport_mode, routing_mode, alternatives, via, avoid, exclude, etc.)
-- Rich response types (HereRouteApiResponse, HereRouteSection, HereRouteAction, etc.)
-- Truck/EV/Scooter/Taxi parameter structs
-- 1 contract test passing
-
-### Phase 3: Isoline Domain ✅
-- Full parameter set (range_type, transport_mode, routing_mode, optimize_for, avoid, etc.)
-- Rich response types (HereIsolineApiResponse, HereIsoline, HerePolygon, etc.)
-- Correct polyline format (outer/holes structure)
-- 2 contract tests passing
-
-### Phase 4: Traffic Domain ✅
-- Flow endpoint with full params (in, locationReferencing, minJamFactor, etc.)
-- Incidents endpoint with full params (criticality, type, lang, units, etc.)
-- Rich response types (HereFlowResponse, HereCurrentFlow, HereIncidentsResponse, etc.)
-- Core trait delegates to rich `get_flow()` method
-- 3 contract tests passing
-
-### Phase 5: Matching Domain ✅
-- Full 60+ parameters organized into groups (match mode, matching params, vehicle, emission, restrictions, commercial, time, response attrs, toll, advanced)
-- Rich response types (HereMatchApiResponse, HereMatchedPoint, HereMatchedRoute, HereMatchedLeg, etc.)
-- Parameter enums (MatchMode, LegalConstraint, TrailerType, EmissionType, etc.)
-- 2 contract tests passing
-
-### Phase 6: Tour Planning Domain ✅
-- Full typed request/response (TourProblem, Fleet, VehicleType, Plan, Job, etc.)
-- Async endpoints (solve_async, get_async_status, get_solution, cancel)
-- Rich response types (TourSolution, TourStatistic, TourTour, TourStop, etc.)
-- All enum types (Profile, Objective, RelationType, ActivityType, etc.)
-- 4 contract tests passing
-
-### Phase 7: Tiling Domain ✅
-- Vector Tile API v2 with layer selection (Mapbox, Base, Core, Hybrid)
-- Binary tile response with content-type handling
-- Format selection (OmnichannelVector, Protobuf)
-- Political view parameter
-- 3 contract tests passing
-
-### Phase 8: Positioning Domain ✅
-- Network Positioning API v2 with WLAN, cell, Bluetooth observations
-- Rich request types (WlanAccessPoint, CellTower, BluetoothBeacon, RadioType)
-- Rich response types (PositioningResponse, PositionLocation, PositionAltitude)
-- Fallback behavior support
-- 3 contract tests passing
-
-### Phase 9: Attributes Domain ✅
-- Map Attributes API v8 with layer selection (Roads, AdminAreas, Buildings, etc.)
-- Query by bbox, IDs, include/exclude fields
-- Format selection (Json, GeoJson, Protobuf)
-- Language and political view parameters
-- 2 contract tests passing
-
-### Phase 10: Imaging Domain ✅
-- Map Image API v3 with center/zoom/size
-- Format selection (PNG, JPG, GIF, BMP, SVG, PNG8, PNG32)
-- Style selection, language, POI, overlay, background color
-- Binary image response with content-type handling
-- 2 contract tests passing
+### Phase 11: Multi-Provider Architecture Improvements ✅
+- **Enriched core response types**: `SearchResult` now has structured `Address`, `SearchResultType` enum, `confidence`, `categories`, `bounding_box`, `raw` escape hatch
+- **RouteResponse** now has `routes: Vec<RouteResult>` with `transport_mode`, `steps`, `bounding_box`
+- **TrafficResponse** now has `flows: Vec<TrafficFlow>` and `incidents: Vec<TrafficIncident>`
+- **IsolineResponse** now has `isolines: Vec<IsolineResult>` with `range` field
+- **TraceResponse** now has `matched_points: Vec<MatchedPoint>` with `confidence` and `road_name`
+- **TourResponse** now has `stops: Vec<TourStop>`, `total_distance`, `total_duration`, `unassigned_count`
+- **Response type consistency**: Positioning now returns core `PositioningResponse` (not HERE-specific type)
+- **`From` trait conversions**: `From<HereAddress> for Address`, `From<HereSearchItem> for SearchResult`
+- **Shared geo types**: `HereLatLng` extracted to `domain/geo.rs` (no more duplication across search/routing)
+- **Enriched error types**: `EveryMapError` now has `HttpError { status, message, body }`, `AuthError { provider, message }`, `ProviderError { provider, code, message }`, `RateLimited { provider, retry_after_secs }`, plus helper methods `is_rate_limited()`, `is_auth_error()`, `is_status()`
+- **`everymap-cli` Phase 1**: `clap`-based CLI with `geocode`, `reverse-geocode`, `route`, `traffic`, `position`, `isoline` commands
 
 ---
 
 ## Verification & Quality Gates
-
 - **TDD**: 31 contract tests using `wiremock`, all passing
 - **SOLID**: `everymap-core` has zero knowledge of `everymap-providers-here`
 - **Lightweight**: No unnecessary dependencies leaked into core
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
 
-### Remaining Work (Phase 3 from original plan)
+### Remaining Work
+- [ ] Injectable HTTP client trait (for custom timeout/pool/proxy configuration)
+- [ ] Reduce parameter serialization boilerplate (helper trait or derive macro)
+- [ ] everymap-cli Phase 2 (config file, table output, all domains)
+- [ ] Extension traits for provider-specific methods (e.g., `HereGeocoderExt`)
+- [ ] everymap-providers-google (search + routing)
+- [ ] OAuth2 auth provider implementation
+- [ ] Dynamic provider registry for runtime dispatch
+- [ ] Future provider crates (MapBox, TomTom, Google Maps)
 - [ ] Benchmarking with `criterion` for large response deserialization
 - [ ] Comprehensive `rustdoc` examples for each domain
 - [ ] CI/CD pipeline (GitHub Actions with clippy, fmt, nextest)
-- [ ] OAuth2 auth provider implementation
-- [ ] Future provider crates (MapBox, TomTom, Google)

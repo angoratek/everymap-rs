@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, TraceRequest, TraceResponse};
+use everymap_core::domains::matching::{RouteMatcher, TraceRequest, TraceResponse, MatchedPoint};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use crate::client::HereClient;
@@ -290,13 +290,19 @@ impl RouteMatcher for HereRouteMatcher {
         let response = self.client.request(builder).await?;
         let here_res: HereLegacyMatchResponse = response.json().await?;
 
-        let snapped_points = here_res.trace.into_iter()
-            .map(|p| Coordinate::new(p.lat, p.lng).unwrap())
+        let matched_points = here_res.trace.into_iter()
+            .map(|p| MatchedPoint {
+                coordinate: Coordinate::new(p.lat, p.lng).unwrap(),
+                confidence: None,
+                road_name: None,
+            })
             .collect();
 
         Ok(TraceResponse {
-            snapped_points,
+            matched_points,
             distance: here_res.summary.length,
+            duration: None,
+            raw: None,
         })
     }
 }

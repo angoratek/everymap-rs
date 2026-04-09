@@ -18,6 +18,13 @@ pub struct TileResponse {
     pub content_type: Option<String>,
 }
 
+impl TileResponse {
+    /// Create a new tile response from raw bytes.
+    pub fn new(data: Vec<u8>, content_type: Option<String>) -> Self {
+        Self { data, content_type }
+    }
+}
+
 #[async_trait]
 pub trait TileProvider: Send + Sync {
     type Options: Send + Sync;

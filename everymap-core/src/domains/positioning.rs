@@ -9,13 +9,20 @@ pub struct PositioningRequest<O> {
     pub options: O,
 }
 
-/// Simplified positioning response from the core trait.
+/// A unified positioning response from the core trait.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PositioningResponse {
+    /// The estimated position
     pub coordinate: Coordinate,
+    /// Accuracy of the position estimate in meters
     pub accuracy: Option<f64>,
+    /// Altitude in meters above sea level (if available)
     pub altitude: Option<f64>,
+    /// Accuracy of the altitude estimate in meters
     pub altitude_accuracy: Option<f64>,
+    /// Provider-specific raw data for advanced use cases
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub raw: Option<serde_json::Value>,
 }
 
 #[async_trait]

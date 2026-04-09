@@ -4,11 +4,12 @@ use async_trait::async_trait;
 use everymap_core::domains::search::{
     Geocoder, GeocodeRequest, ReverseGeocodeRequest,
     DiscoverRequest, AutosuggestRequest,
-    SearchResponse, SearchResult,
+    SearchResponse, SearchResult, SearchResultType,
 };
 use everymap_core::error::EveryMapResult;
-use everymap_core::types::Coordinate;
+use everymap_core::types::{Coordinate, Address};
 use crate::client::HereClient;
+use crate::domain::geo::HereLatLng;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -335,15 +336,41 @@ fn convert_geocode_item(item: HereGeocodeItem) -> SearchResult {
         .map(Coordinate::from)
         .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
     let address = item.address
-        .and_then(|a| a.label)
+        .map(|a| Address {
+            label: a.label,
+            street: a.street,
+            house_number: a.house_number,
+            city: a.city,
+            district: a.district,
+            sub_district: a.sub_district,
+            state: a.state,
+            state_code: a.state_code,
+            postal_code: a.postal_code,
+            country: a.country_name,
+            country_code: a.country_code,
+            county: a.county,
+            building: a.building,
+            block: a.block,
+            unit: a.unit,
+        })
         .unwrap_or_default();
+    let result_type = match item.result_type.as_deref() {
+        Some("place") | Some("exactMatch") => SearchResultType::ExactMatch,
+        Some("approximate") => SearchResultType::Approximate,
+        Some("interpolated") => SearchResultType::Interpolated,
+        _ => SearchResultType::Unknown,
+    };
     SearchResult {
+        id: item.id,
         coordinate,
         address,
         title: item.title,
-        result_type: item.result_type,
-        id: item.id,
+        result_type,
         distance: item.distance,
+        confidence: None,
+        categories: vec![],
+        bounding_box: None,
+        raw: None,
     }
 }
 

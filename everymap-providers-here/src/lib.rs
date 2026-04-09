@@ -10,8 +10,9 @@ pub use domain::search::{
     SearchType, AddressNamesMode, PostalCodeMode, WithFeature, ShowFeature,
     ShowMapReference, ShowNavAttribute, ShowRelated, ShowTranslation,
     DiscoverWithFeature, MobilityMode, RankingMode, HereFuelStationFilter,
-    HereEvStationFilter, HereEvSupplyType, HereRouteFilter, HereLatLng,
+    HereEvStationFilter, HereEvSupplyType, HereRouteFilter,
 };
+pub use domain::geo::HereLatLng;
 pub use domain::routing::{
     HereRouter, HereRouteOptions, TransportMode, RoutingMode, Units,
     ReturnField, ConsumptionModel, TrafficMode, ScooterParams, TruckParams,

@@ -1,3 +1,4 @@
+pub mod geo;
 pub mod search;
 pub mod routing;
 pub mod isoline;
@@ -9,8 +10,10 @@ pub mod positioning;
 pub mod attributes;
 pub mod imaging;
 
+// Shared HERE types
+pub use geo::HereLatLng;
+
 // Explicit re-exports to avoid ambiguous glob conflicts
-// (search and routing both define `types` module and `HereLatLng`)
 pub use search::{
     HereGeocoder, HereGeocodeOptions, HereDiscoverOptions, HereAutosuggestOptions,
     HereDiscoverResponse, HereAutosuggestResponse, HereSearchItem, HereAddress,
@@ -19,7 +22,7 @@ pub use search::{
     SearchType, AddressNamesMode, PostalCodeMode, WithFeature, ShowFeature,
     ShowMapReference, ShowNavAttribute, ShowRelated, ShowTranslation,
     DiscoverWithFeature, MobilityMode, RankingMode, HereFuelStationFilter,
-    HereEvStationFilter, HereEvSupplyType, HereRouteFilter, HereLatLng as SearchLatLng,
+    HereEvStationFilter, HereEvSupplyType, HereRouteFilter,
 };
 pub use routing::{
     HereRouter, HereRouteOptions, TransportMode, RoutingMode, Units,
@@ -27,7 +30,6 @@ pub use routing::{
     EvParams, FuelParams, DriverParams, TaxiParams, TollsParams, MaxSpeedOnSegment,
     HereRouteApiResponse, HereRoute, HereRouteSection, HereRouteSummary,
     HerePlace, HereRouteAction, HereTurnAction, HereNotice, HereSpan,
-    HereLatLng as RouteLatLng,
 };
 pub use isoline::{HereIsoline, HereIsolineOptions};
 pub use matching::{HereRouteMatcher, HereMatchingOptions};
