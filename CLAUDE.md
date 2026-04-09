@@ -57,6 +57,10 @@ src/domain/
 - Tests use `with_base_url()` to point at the mock server.
 - Auth: `Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()))`
 
+## Git Rules
+- **Never commit without explicit user approval.** Always ask before committing. Do not assume the user wants a commit after making changes.
+- Do not push to remote unless explicitly asked.
+
 ## What NOT to Do
 - Don't add `dyn` dispatch where generics suffice (zero-cost abstractions).
 - Don't leak HERE-specific types into `everymap-core`.
