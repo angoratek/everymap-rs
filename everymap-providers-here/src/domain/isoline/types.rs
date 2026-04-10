@@ -66,23 +66,11 @@ pub struct HereIsolinePlace {
     #[serde(default, rename = "type")]
     pub place_type: Option<String>,
     #[serde(default)]
-    pub location: Option<HereIsolineLatLng>,
+    pub location: Option<crate::domain::geo::HereLatLng>,
     #[serde(default, rename = "originalLocation")]
-    pub original_location: Option<HereIsolineLatLng>,
+    pub original_location: Option<crate::domain::geo::HereLatLng>,
     #[serde(default, rename = "sideOfStreet")]
     pub side_of_street: Option<String>,
 }
 
-/// Lat/lng for isoline responses.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct HereIsolineLatLng {
-    pub lat: f64,
-    pub lng: f64,
-}
-
-impl From<HereIsolineLatLng> for everymap_core::types::Coordinate {
-    fn from(val: HereIsolineLatLng) -> Self {
-        everymap_core::types::Coordinate::new(val.lat, val.lng)
-            .unwrap_or_else(|_| everymap_core::types::Coordinate::new(0.0, 0.0).unwrap())
-    }
-}
+// HereIsolineLatLng has been consolidated into crate::domain::geo::HereLatLng

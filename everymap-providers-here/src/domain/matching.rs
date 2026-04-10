@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, TraceRequest, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse, MatchedPoint};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use crate::client::HereClient;
@@ -146,6 +146,19 @@ struct HereLegacySummary {
     length: f64,
 }
 
+impl From<HereMatchedPoint> for MatchedPoint {
+    fn from(p: HereMatchedPoint) -> Self {
+        Self {
+            coordinate: Coordinate::new(
+                p.lat.unwrap_or(0.0),
+                p.lng.unwrap_or(0.0),
+            ).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+            confidence: p.point_match_probability,
+            road_name: None,
+        }
+    }
+}
+
 fn add_option(params: &mut Vec<(String, String)>, key: &str, val: Option<impl std::fmt::Display>) {
     if let Some(v) = val {
         params.push((key.to_string(), v.to_string()));
@@ -158,20 +171,267 @@ fn add_option_ref(params: &mut Vec<(String, String)>, key: &str, val: Option<&St
     }
 }
 
+/// Convert core `MatchingOptions` to HERE-specific `HereMatchingOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
+    let mut here_opts = HereMatchingOptions {
+        heading: opts.heading,
+        departure: opts.departure_time.clone(),
+        ..Default::default()
+    };
+
+    // Convert avoid types
+    if !opts.avoid.is_empty() {
+        here_opts.avoid_features = Some(opts.avoid.iter().map(|a| match a {
+            everymap_core::domains::routing::AvoidType::Tolls => AvoidFeature::TollRoad,
+            everymap_core::domains::routing::AvoidType::Ferries => AvoidFeature::Ferry,
+            everymap_core::domains::routing::AvoidType::Tunnels => AvoidFeature::Tunnel,
+            everymap_core::domains::routing::AvoidType::Highways => AvoidFeature::ControlledAccessHighway,
+            everymap_core::domains::routing::AvoidType::DirtRoads => AvoidFeature::DirtRoad,
+        }).collect());
+    }
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            if let Some(v) = obj.get("route_match").and_then(|v| v.as_u64()) {
+                here_opts.route_match = Some(v as u8);
+            }
+            if let Some(v) = obj.get("mode") {
+                here_opts.mode = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("legal") {
+                here_opts.legal = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("traverse_gates").and_then(|v| v.as_bool()) {
+                here_opts.traverse_gates = Some(v);
+            }
+            if let Some(v) = obj.get("oneway").and_then(|v| v.as_bool()) {
+                here_opts.oneway = Some(v);
+            }
+            if let Some(v) = obj.get("map_match_radius").and_then(|v| v.as_u64()) {
+                here_opts.map_match_radius = Some(v as u32);
+            }
+            if let Some(v) = obj.get("align_to_gps_time").and_then(|v| v.as_bool()) {
+                here_opts.align_to_gps_time = Some(v);
+            }
+            if let Some(v) = obj.get("ignore_zero_speed_points").and_then(|v| v.as_bool()) {
+                here_opts.ignore_zero_speed_points = Some(v);
+            }
+            if let Some(v) = obj.get("wp_dist").and_then(|v| v.as_u64()) {
+                here_opts.wp_dist = Some(v as u32);
+            }
+            if let Some(v) = obj.get("speed_fc_cat").and_then(|v| v.as_str()) {
+                here_opts.speed_fc_cat = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("map_match_tolerance").and_then(|v| v.as_u64()) {
+                here_opts.map_match_tolerance = Some(v as u32);
+            }
+            if let Some(v) = obj.get("limited_weight").and_then(|v| v.as_u64()) {
+                here_opts.limited_weight = Some(v as u32);
+            }
+            if let Some(v) = obj.get("height").and_then(|v| v.as_u64()) {
+                here_opts.height = Some(v as u32);
+            }
+            if let Some(v) = obj.get("length").and_then(|v| v.as_u64()) {
+                here_opts.length = Some(v as u32);
+            }
+            if let Some(v) = obj.get("width").and_then(|v| v.as_u64()) {
+                here_opts.width = Some(v as u32);
+            }
+            if let Some(v) = obj.get("vehicle_number_axles").and_then(|v| v.as_u64()) {
+                here_opts.vehicle_number_axles = Some(v as u32);
+            }
+            if let Some(v) = obj.get("trailer_number_axles").and_then(|v| v.as_u64()) {
+                here_opts.trailer_number_axles = Some(v as u32);
+            }
+            if let Some(v) = obj.get("trailer_type") {
+                here_opts.trailer_type = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("vehicle_weight").and_then(|v| v.as_u64()) {
+                here_opts.vehicle_weight = Some(v as u32);
+            }
+            if let Some(v) = obj.get("trailer_weight").and_then(|v| v.as_u64()) {
+                here_opts.trailer_weight = Some(v as u32);
+            }
+            if let Some(v) = obj.get("weight_per_axle").and_then(|v| v.as_u64()) {
+                here_opts.weight_per_axle = Some(v as u32);
+            }
+            if let Some(v) = obj.get("height_above_1st_axle").and_then(|v| v.as_u64()) {
+                here_opts.height_above_1st_axle = Some(v as u32);
+            }
+            if let Some(v) = obj.get("trailers_count").and_then(|v| v.as_u64()) {
+                here_opts.trailers_count = Some(v as u32);
+            }
+            if let Some(v) = obj.get("emission_type") {
+                here_opts.emission_type = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("co2_emission_class").and_then(|v| v.as_u64()) {
+                here_opts.co2_emission_class = Some(v as u32);
+            }
+            if let Some(v) = obj.get("fuel_type") {
+                here_opts.fuel_type = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("hybrid").and_then(|v| v.as_bool()) {
+                here_opts.hybrid = Some(v);
+            }
+            if let Some(v) = obj.get("avoid_links").and_then(|v| v.as_array()) {
+                here_opts.avoid_links = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("avoid_areas").and_then(|v| v.as_array()) {
+                here_opts.avoid_areas = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("avoid_turns").and_then(|v| v.as_array()) {
+                here_opts.avoid_turns = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("avoid_private").and_then(|v| v.as_bool()) {
+                here_opts.avoid_private = Some(v);
+            }
+            if let Some(v) = obj.get("avoid_country_change").and_then(|v| v.as_bool()) {
+                here_opts.avoid_country_change = Some(v);
+            }
+            if let Some(v) = obj.get("shipped_hazardous_goods").and_then(|v| v.as_array()) {
+                here_opts.shipped_hazardous_goods = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+            }
+            if let Some(v) = obj.get("tunnel_category") {
+                here_opts.tunnel_category = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("commercial").and_then(|v| v.as_bool()) {
+                here_opts.commercial = Some(v);
+            }
+            if let Some(v) = obj.get("passengers_count").and_then(|v| v.as_u64()) {
+                here_opts.passengers_count = Some(v as u32);
+            }
+            if let Some(v) = obj.get("tires_count").and_then(|v| v.as_u64()) {
+                here_opts.tires_count = Some(v as u32);
+            }
+            if let Some(v) = obj.get("disabled_equipped").and_then(|v| v.as_bool()) {
+                here_opts.disabled_equipped = Some(v);
+            }
+            if let Some(v) = obj.get("license_plate").and_then(|v| v.as_str()) {
+                here_opts.license_plate = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("arrival").and_then(|v| v.as_str()) {
+                here_opts.arrival = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("leg_attributes").and_then(|v| v.as_str()) {
+                here_opts.leg_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("link_attributes").and_then(|v| v.as_str()) {
+                here_opts.link_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("response_attributes").and_then(|v| v.as_str()) {
+                here_opts.response_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("route_attributes").and_then(|v| v.as_str()) {
+                here_opts.route_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("meta_attributes").and_then(|v| v.as_str()) {
+                here_opts.meta_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("maneuver_attributes").and_then(|v| v.as_str()) {
+                here_opts.maneuver_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("instruction_format") {
+                here_opts.instruction_format = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("toll_vehicle_type").and_then(|v| v.as_u64()) {
+                here_opts.toll_vehicle_type = Some(v as u32);
+            }
+            if let Some(v) = obj.get("toll_pass").and_then(|v| v.as_str()) {
+                here_opts.toll_pass = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("currency").and_then(|v| v.as_str()) {
+                here_opts.currency = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("driver_cost").and_then(|v| v.as_str()) {
+                here_opts.driver_cost = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("vehicle_cost").and_then(|v| v.as_str()) {
+                here_opts.vehicle_cost = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("vehicle_cost_on_ferry").and_then(|v| v.as_str()) {
+                here_opts.vehicle_cost_on_ferry = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("cost_per_consumption_unit").and_then(|v| v.as_str()) {
+                here_opts.cost_per_consumption_unit = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("max_speed").and_then(|v| v.as_u64()) {
+                here_opts.max_speed = Some(v as u32);
+            }
+            if let Some(v) = obj.get("alternatives").and_then(|v| v.as_u64()) {
+                here_opts.alternatives = Some(v as u32);
+            }
+            if let Some(v) = obj.get("truck_verified").and_then(|v| v.as_bool()) {
+                here_opts.truck_verified = Some(v);
+            }
+            if let Some(v) = obj.get("ignore_waypoint_vehicle_restriction").and_then(|v| v.as_bool()) {
+                here_opts.ignore_waypoint_vehicle_restriction = Some(v);
+            }
+            if let Some(v) = obj.get("admin_truck_restrictions").and_then(|v| v.as_bool()) {
+                here_opts.admin_truck_restrictions = Some(v);
+            }
+            if let Some(v) = obj.get("ignore_preferred_routes").and_then(|v| v.as_bool()) {
+                here_opts.ignore_preferred_routes = Some(v);
+            }
+            if let Some(v) = obj.get("exclude_zone_types").and_then(|v| v.as_str()) {
+                here_opts.exclude_zone_types = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("overlays").and_then(|v| v.as_str()) {
+                here_opts.overlays = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("custom_restrict_limit").and_then(|v| v.as_str()) {
+                here_opts.custom_restrict_limit = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("custom_attributes").and_then(|v| v.as_str()) {
+                here_opts.custom_attributes = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("custom_consumption_details").and_then(|v| v.as_str()) {
+                here_opts.custom_consumption_details = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("timeout").and_then(|v| v.as_u64()) {
+                here_opts.timeout = Some(v as u32);
+            }
+            if let Some(v) = obj.get("driving_report").and_then(|v| v.as_bool()) {
+                here_opts.driving_report = Some(v);
+            }
+            if let Some(v) = obj.get("ehorizon_limits").and_then(|v| v.as_str()) {
+                here_opts.ehorizon_limits = Some(v.to_string());
+            }
+            // Convert transport_mode from core
+            if let Some(v) = obj.get("transport_mode") {
+                if let Ok(tm) = serde_json::from_value::<everymap_core::domains::routing::TransportMode>(v.clone()) {
+                    here_opts.mode = match tm {
+                        everymap_core::domains::routing::TransportMode::Car => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Truck => Some(MatchMode::Truck),
+                        everymap_core::domains::routing::TransportMode::Pedestrian => Some(MatchMode::Pedestrian),
+                        everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
+                        everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Scooter => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Taxi => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Unknown => Some(MatchMode::Car),
+                    };
+                }
+            }
+        }
+    }
+
+    here_opts
+}
+
 #[async_trait]
 impl RouteMatcher for HereRouteMatcher {
-    type Options = HereMatchingOptions;
-    type Response = TraceResponse;
+    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+        let opts = matching_options_from_core(options);
 
-    async fn match_route(&self, req: TraceRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let points_str = req.points.iter()
+        let points_str = points.iter()
             .map(|p| format!("{},{}", p.lat, p.lng))
             .collect::<Vec<_>>()
             .join(";");
 
         let mut params: Vec<(String, String)> = vec![("trace".to_string(), points_str)];
 
-        let opts = &req.options;
+        let opts = &opts;
 
         // Match mode
         add_option(&mut params, "routeMatch", opts.route_match);
@@ -292,7 +552,7 @@ impl RouteMatcher for HereRouteMatcher {
 
         let matched_points = here_res.trace.into_iter()
             .map(|p| MatchedPoint {
-                coordinate: Coordinate::new(p.lat, p.lng).unwrap(),
+                coordinate: Coordinate::new(p.lat, p.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
                 confidence: None,
                 road_name: None,
             })

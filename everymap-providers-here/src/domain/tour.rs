@@ -1,14 +1,46 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::tour::{TourPlanner, TourRequest, TourResponse, TourStop as CoreTourStop};
+use everymap_core::domains::tour::{TourPlanner, TourOptions, TourResponse, TourStop as CoreTourStop};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use std::sync::Arc;
 
 pub use types::*;
 
+use everymap_core::types::Coordinate;
+
 const TOUR_BASE_URL: &str = "https://tourplanning.hereapi.com/v3";
+
+impl From<TourSolution> for TourResponse {
+    fn from(solution: TourSolution) -> Self {
+        let tour_stops: Vec<CoreTourStop> = solution.tours.first()
+            .map(|tour| {
+                tour.stops.iter()
+                    .filter_map(|s| {
+                        s.location.as_ref().map(|loc| {
+                            Coordinate::new(loc.lat, loc.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap())
+                        }).map(|coord| CoreTourStop {
+                            coordinate: coord,
+                            arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
+                            departure_time: None,
+                            duration: None,
+                            distance_from_previous: None,
+                        })
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+
+        Self {
+            stops: tour_stops,
+            total_distance: Some(solution.statistic.distance),
+            total_duration: Some(solution.statistic.duration),
+            unassigned_count: Some(solution.unassigned.len() as u32),
+            raw: None,
+        }
+    }
+}
 
 /// Exhaustive options for HERE Tour Planning API v3.
 /// Wraps the full `TourProblem` for the POST body.
@@ -112,15 +144,15 @@ impl HereTourPlanner {
 
 #[async_trait]
 impl TourPlanner for HereTourPlanner {
-    type Options = HereTourOptions;
-    type Response = TourResponse;
-
-    async fn optimize_tour(&self, req: TourRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let mut problem = req.options.problem;
+    async fn optimize_tour(&self, stops: &[everymap_core::types::Coordinate], options: &TourOptions) -> EveryMapResult<TourResponse> {
+        // Extract problem from provider_extra or create a default one
+        let mut problem = options.provider_extra.as_ref()
+            .and_then(|extra| serde_json::from_value::<TourProblem>(extra.clone()).ok())
+            .unwrap_or_default();
 
         // If the plan has no jobs but stops were provided, create simple delivery jobs
-        if problem.plan.jobs.is_empty() && !req.stops.is_empty() {
-            problem.plan.jobs = req.stops.iter().enumerate().map(|(i, coord)| {
+        if problem.plan.jobs.is_empty() && !stops.is_empty() {
+            problem.plan.jobs = stops.iter().enumerate().map(|(i, coord)| {
                 Job {
                     id: format!("stop_{}", i),
                     tasks: JobTasks {
@@ -165,35 +197,6 @@ impl TourPlanner for HereTourPlanner {
 
         let solution = self.solve(problem).await?;
 
-        // Extract the first tour's stops as simplified response
-        let tour_stops: Vec<CoreTourStop> = solution.tours.first()
-            .map(|tour| {
-                tour.stops.iter()
-                    .filter_map(|s| {
-                        s.location.as_ref().map(|loc| {
-                            everymap_core::types::Coordinate::new(loc.lat, loc.lng).unwrap()
-                        }).map(|coord| CoreTourStop {
-                            coordinate: coord,
-                            arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
-                            departure_time: None,
-                            duration: None,
-                            distance_from_previous: None,
-                        })
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        let total_distance = Some(solution.statistic.distance);
-        let total_duration = Some(solution.statistic.duration);
-        let unassigned_count = Some(solution.unassigned.len() as u32);
-
-        Ok(TourResponse {
-            stops: tour_stops,
-            total_distance,
-            total_duration,
-            unassigned_count,
-            raw: None,
-        })
+        Ok(solution.into())
     }
 }

@@ -1,9 +1,9 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::tour::{TourRequest, TourPlanner};
+use everymap_core::domains::tour::{TourPlanner, TourOptions};
 use everymap_providers_here::domain::tour::{
-    HereTourPlanner, HereTourOptions,
+    HereTourPlanner,
     TourProblem, Fleet, FleetTraffic, Profile, VehicleType, VehicleCosts,
     VehicleShift, ShiftStart, Plan, Job, JobTasks, JobTask, JobPlace,
     TourLocation, Objective,
@@ -79,17 +79,13 @@ async fn test_tour_contract() {
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
-    let req = TourRequest {
-        stops: vec![
-            Coordinate::new(52.53, 13.41).unwrap(),
-            Coordinate::new(52.54, 13.42).unwrap(),
-        ],
-        options: HereTourOptions {
-            problem: TourProblem::default(),
-        },
-    };
+    let stops = vec![
+        Coordinate::new(52.53, 13.41).unwrap(),
+        Coordinate::new(52.54, 13.42).unwrap(),
+    ];
+    let opts = TourOptions::default();
 
-    let res = planner.optimize_tour(req).await.unwrap();
+    let res = planner.optimize_tour(&stops, &opts).await.unwrap();
 
     // Core trait returns the tour stops
     assert!(!res.stops.is_empty());

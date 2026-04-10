@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::tiling::{TileProvider, TileRequest, TileResponse};
+use everymap_core::domains::tiling::{TileProvider, TileOptions, TileResponse};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use std::sync::Arc;
@@ -40,32 +40,65 @@ impl HereTileProvider {
     }
 }
 
+/// Convert core `TileOptions` to HERE-specific `HereTileOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn tile_options_from_core(opts: &TileOptions) -> HereTileOptions {
+    let mut here_opts = HereTileOptions::default();
+
+    // Common fields
+    if let Some(format) = &opts.format {
+        here_opts.format = match format.as_str() {
+            "omv" | "protobuf" => TileFormat::OmnichannelVector,
+            "pbf" => TileFormat::Protobuf,
+            _ => TileFormat::OmnichannelVector,
+        };
+    }
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            if let Some(v) = obj.get("layer").and_then(|v| v.as_str()) {
+                here_opts.layer = match v {
+                    "base" => TileLayer::Base,
+                    "core" => TileLayer::Core,
+                    "hybrid" => TileLayer::Hybrid,
+                    _ => TileLayer::Mapbox,
+                };
+            }
+            if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
+                here_opts.political_view = Some(v.to_string());
+            }
+        }
+    }
+
+    here_opts
+}
+
 #[async_trait]
 impl TileProvider for HereTileProvider {
-    type Options = HereTileOptions;
-    type Response = TileResponse;
+    async fn get_tile(&self, z: u32, x: u32, y: u32, options: &TileOptions) -> EveryMapResult<TileResponse> {
+        let here_opts = tile_options_from_core(options);
 
-    async fn get_tile(&self, req: TileRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let layer = match &req.options.layer {
+        let layer = match &here_opts.layer {
             TileLayer::Mapbox => "mapbox",
             TileLayer::Base => "base",
             TileLayer::Core => "core",
             TileLayer::Hybrid => "hybrid",
         };
 
-        let format_ext = match &req.options.format {
+        let format_ext = match &here_opts.format {
             TileFormat::OmnichannelVector => "omv",
             TileFormat::Protobuf => "pbf",
         };
 
         let url = format!(
             "{}/vectortiles/{}/{}/{}/{}.{}",
-            self.base_url, layer, req.z, req.x, req.y, format_ext
+            self.base_url, layer, z, x, y, format_ext
         );
 
         let mut builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        if let Some(pv) = &req.options.political_view {
+        if let Some(pv) = &here_opts.political_view {
             builder = builder.query(&[("politicalView", pv)]);
         }
 

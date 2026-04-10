@@ -15,7 +15,9 @@ pub use geo::HereLatLng;
 
 // Explicit re-exports to avoid ambiguous glob conflicts
 pub use search::{
-    HereGeocoder, HereGeocodeOptions, HereDiscoverOptions, HereAutosuggestOptions,
+    HereGeocoder, HereGeocodeOptions,
+    DiscoverRequest, AutosuggestRequest,
+    HereDiscoverOptions, HereAutosuggestOptions,
     HereDiscoverResponse, HereAutosuggestResponse, HereSearchItem, HereAddress,
     HereCategory, HereContact, HereFood, HereRating, HereMapView, HereChain,
     HereHighlights, HereHighlightSection, HereReference, HereAutosuggestItem, HereQueryTerm,

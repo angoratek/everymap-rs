@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::imaging::{MapImageProvider, ImageRequest, ImageResponse};
+use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use std::sync::Arc;
@@ -50,13 +50,58 @@ impl HereMapImageProvider {
     }
 }
 
+/// Convert core `ImageOptions` to HERE-specific `HereImageOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn image_options_from_core(opts: &ImageOptions) -> HereImageOptions {
+    let mut here_opts = HereImageOptions {
+        lang: opts.language.clone(),
+        ..Default::default()
+    };
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            if let Some(v) = obj.get("format").and_then(|v| v.as_str()) {
+                here_opts.format = match v {
+                    "jpg" => ImageFormat::Jpg,
+                    "gif" => ImageFormat::Gif,
+                    "bmp" => ImageFormat::Bmp,
+                    "svg" => ImageFormat::Svg,
+                    "png8" => ImageFormat::Png8,
+                    "png32" => ImageFormat::Png32,
+                    _ => ImageFormat::Png,
+                };
+            }
+            if let Some(v) = obj.get("style").and_then(|v| v.as_str()) {
+                here_opts.style = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
+                here_opts.political_view = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("poi").and_then(|v| v.as_str()) {
+                here_opts.poi = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("bg").and_then(|v| v.as_str()) {
+                here_opts.bg = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("center_marker").and_then(|v| v.as_bool()) {
+                here_opts.center_marker = Some(v);
+            }
+            if let Some(v) = obj.get("overlay").and_then(|v| v.as_str()) {
+                here_opts.overlay = Some(v.to_string());
+            }
+        }
+    }
+
+    here_opts
+}
+
 #[async_trait]
 impl MapImageProvider for HereMapImageProvider {
-    type Options = HereImageOptions;
-    type Response = ImageResponse;
+    async fn get_image(&self, center: &everymap_core::types::Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
+        let here_opts = image_options_from_core(options);
 
-    async fn get_image(&self, req: ImageRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let format_ext = match &req.options.format {
+        let format_ext = match &here_opts.format {
             ImageFormat::Png => "png",
             ImageFormat::Jpg => "jpg",
             ImageFormat::Gif => "gif",
@@ -69,34 +114,34 @@ impl MapImageProvider for HereMapImageProvider {
         let url = format!(
             "{}/maptile/{}/center/{},{}/{}",
             self.base_url,
-            req.zoom,
-            req.center.lat,
-            req.center.lng,
-            req.size.0
+            zoom,
+            center.lat,
+            center.lng,
+            size.0
         );
 
         let mut params: Vec<(String, String)> = vec![
             ("format".to_string(), format_ext.to_string()),
-            ("w".to_string(), req.size.0.to_string()),
-            ("h".to_string(), req.size.1.to_string()),
+            ("w".to_string(), size.0.to_string()),
+            ("h".to_string(), size.1.to_string()),
         ];
 
-        if let Some(style) = &req.options.style {
+        if let Some(style) = &here_opts.style {
             params.push(("style".to_string(), style.clone()));
         }
-        if let Some(lang) = &req.options.lang {
+        if let Some(lang) = &here_opts.lang {
             params.push(("lang".to_string(), lang.clone()));
         }
-        if let Some(pv) = &req.options.political_view {
+        if let Some(pv) = &here_opts.political_view {
             params.push(("politicalView".to_string(), pv.clone()));
         }
-        if let Some(poi) = &req.options.poi {
+        if let Some(poi) = &here_opts.poi {
             params.push(("poi".to_string(), poi.clone()));
         }
-        if let Some(bg) = &req.options.bg {
+        if let Some(bg) = &here_opts.bg {
             params.push(("bg".to_string(), bg.clone()));
         }
-        if let Some(overlay) = &req.options.overlay {
+        if let Some(overlay) = &here_opts.overlay {
             params.push(("overlay".to_string(), overlay.clone()));
         }
 

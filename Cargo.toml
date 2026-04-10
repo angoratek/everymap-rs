@@ -2,6 +2,7 @@
 members = [
     "everymap-core",
     "everymap-providers-here",
+    "everymap-providers-google",
     "everymap-cli",
 ]
 resolver = "2"

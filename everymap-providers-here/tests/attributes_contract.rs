@@ -1,9 +1,7 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
-use everymap_core::domains::attributes::{AttributeRequest, AttributeProvider};
-use everymap_providers_here::domain::attributes::{
-    HereAttributeProvider, HereAttributeOptions, AttributeLayer,
-};
+use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
+use everymap_providers_here::domain::attributes::HereAttributeProvider;
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
 use std::sync::Arc;
@@ -39,15 +37,15 @@ async fn test_attributes_contract() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let req = AttributeRequest {
-        options: HereAttributeOptions {
-            layer: AttributeLayer::Roads,
-            bbox: Some("52.5,13.4;52.6,13.5".to_string()),
-            ..Default::default()
-        },
+    let opts = AttributeOptions {
+        bbox: Some("52.5,13.4;52.6,13.5".to_string()),
+        provider_extra: Some(serde_json::json!({
+            "layer": "roads"
+        })),
+        ..Default::default()
     };
 
-    let res = provider.get_attributes(req).await.unwrap();
+    let res = provider.get_attributes(&opts).await.unwrap();
 
     assert!(res.data.as_object().unwrap().contains_key("features"));
 }
@@ -82,14 +80,14 @@ async fn test_attributes_with_ids() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let req = AttributeRequest {
-        options: HereAttributeOptions {
-            layer: AttributeLayer::Roads,
-            ids: Some(vec!["789012".to_string()]),
-            ..Default::default()
-        },
+    let opts = AttributeOptions {
+        provider_extra: Some(serde_json::json!({
+            "layer": "roads",
+            "ids": ["789012"]
+        })),
+        ..Default::default()
     };
 
-    let res = provider.get_attributes(req).await.unwrap();
+    let res = provider.get_attributes(&opts).await.unwrap();
     assert!(res.data.as_object().unwrap().contains_key("features"));
 }

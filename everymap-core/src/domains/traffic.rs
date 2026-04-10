@@ -3,11 +3,18 @@ use crate::types::Coordinate;
 use crate::error::EveryMapResult;
 use serde::{Deserialize, Serialize};
 
-/// Request for traffic data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TrafficRequest<O> {
-    pub location: Coordinate,
-    pub options: O,
+/// Options for traffic data retrieval.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TrafficOptions {
+    /// Search radius in meters from the location
+    pub radius: Option<f64>,
+    /// Preferred response language (BCP 47 language tag)
+    pub language: Option<String>,
+    /// Whether to include traffic incidents in the response
+    pub include_incidents: Option<bool>,
+    /// Provider-specific options (HERE: min_jam_factor, functional_classes; TomTom: thickness)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_extra: Option<serde_json::Value>,
 }
 
 /// Severity of a traffic incident.
@@ -68,8 +75,60 @@ pub struct TrafficResponse {
 
 #[async_trait]
 pub trait TrafficProvider: Send + Sync {
-    type Options: Send + Sync;
-    type Response: Send + Sync;
+    async fn get_traffic(&self, location: &Coordinate, options: &TrafficOptions) -> EveryMapResult<TrafficResponse>;
+}
 
-    async fn get_traffic(&self, req: TrafficRequest<Self::Options>) -> EveryMapResult<Self::Response>;
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_traffic_options_default() {
+        let opts = TrafficOptions::default();
+        assert!(opts.radius.is_none());
+        assert!(opts.language.is_none());
+        assert!(opts.include_incidents.is_none());
+        assert!(opts.provider_extra.is_none());
+    }
+
+    #[test]
+    fn test_incident_severity_serialization() {
+        assert_eq!(
+            serde_json::to_string(&IncidentSeverity::Critical).unwrap(),
+            "\"Critical\""
+        );
+        let sev: IncidentSeverity = serde_json::from_str("\"Minor\"").unwrap();
+        assert_eq!(sev, IncidentSeverity::Minor);
+    }
+
+    #[test]
+    fn test_traffic_flow_construction() {
+        let flow = TrafficFlow {
+            speed: Some(80.0),
+            free_flow_speed: Some(100.0),
+            jam_factor: Some(3.5),
+            confidence: Some(0.9),
+            road_name: Some("A100".to_string()),
+        };
+        assert_eq!(flow.speed, Some(80.0));
+        assert_eq!(flow.jam_factor, Some(3.5));
+        assert_eq!(flow.road_name.as_deref(), Some("A100"));
+    }
+
+    #[test]
+    fn test_traffic_response_construction() {
+        let response = TrafficResponse {
+            flows: vec![TrafficFlow {
+                speed: Some(60.0),
+                free_flow_speed: Some(100.0),
+                jam_factor: Some(5.0),
+                confidence: Some(0.85),
+                road_name: None,
+            }],
+            incidents: vec![],
+            raw: None,
+        };
+        assert_eq!(response.flows.len(), 1);
+        assert!(response.incidents.is_empty());
+    }
 }

@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::traffic::{TrafficProvider, TrafficRequest, TrafficResponse, TrafficFlow};
+use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions, TrafficResponse, TrafficFlow};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use crate::client::HereClient;
@@ -161,24 +161,56 @@ impl HereTraffic {
     }
 }
 
+/// Convert core `TrafficOptions` to HERE-specific `HereFlowOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn flow_options_from_core(opts: &TrafficOptions) -> HereFlowOptions {
+    let mut here_opts = HereFlowOptions {
+        ..Default::default()
+    };
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
+                here_opts.in_filter = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("location_referencing").and_then(|v| v.as_array()) {
+                here_opts.location_referencing = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+            }
+            if let Some(v) = obj.get("min_jam_factor").and_then(|v| v.as_f64()) {
+                here_opts.min_jam_factor = Some(v);
+            }
+            if let Some(v) = obj.get("max_jam_factor").and_then(|v| v.as_f64()) {
+                here_opts.max_jam_factor = Some(v);
+            }
+            if let Some(v) = obj.get("functional_classes").and_then(|v| v.as_array()) {
+                here_opts.functional_classes = Some(v.iter().filter_map(|i| i.as_u64().map(|n| n as u32)).collect());
+            }
+            if let Some(v) = obj.get("advanced_features").and_then(|v| v.as_array()) {
+                here_opts.advanced_features = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+            }
+            if let Some(v) = obj.get("use_ref_replacements").and_then(|v| v.as_bool()) {
+                here_opts.use_ref_replacements = Some(v);
+            }
+            if let Some(v) = obj.get("exact_segment_ref_matching").and_then(|v| v.as_bool()) {
+                here_opts.exact_segment_ref_matching = Some(v);
+            }
+        }
+    }
+
+    here_opts
+}
+
 #[async_trait]
 impl TrafficProvider for HereTraffic {
-    type Options = HereFlowOptions;
-    type Response = TrafficResponse;
+    async fn get_traffic(&self, location: &Coordinate, options: &TrafficOptions) -> EveryMapResult<TrafficResponse> {
+        // Convert core options to HERE-specific options
+        let here_opts = flow_options_from_core(options);
 
-    async fn get_traffic(&self, req: TrafficRequest<Self::Options>) -> EveryMapResult<Self::Response> {
         // Use the rich flow API and extract simplified data
-        let flow_res = self.get_flow(req.location, &req.options).await?;
+        let flow_res = self.get_flow(*location, &here_opts).await?;
 
-        let flows: Vec<TrafficFlow> = flow_res.results.into_iter().map(|item| {
-            TrafficFlow {
-                speed: item.current_flow.speed,
-                free_flow_speed: item.current_flow.free_flow,
-                jam_factor: item.current_flow.jam_factor,
-                confidence: item.current_flow.confidence,
-                road_name: item.road_info.and_then(|ri| ri.road_name),
-            }
-        }).collect();
+        let flows: Vec<TrafficFlow> = flow_res.results.into_iter().map(Into::into).collect();
 
         Ok(TrafficResponse {
             flows,

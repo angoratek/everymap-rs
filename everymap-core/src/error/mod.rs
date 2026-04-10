@@ -50,6 +50,13 @@ pub enum EveryMapError {
     #[error("HTTP client error: {0}")]
     ClientError(#[from] reqwest::Error),
 
+    /// The requested domain is not supported by this provider.
+    #[error("{provider} does not support {domain}")]
+    UnsupportedDomain {
+        provider: String,
+        domain: String,
+    },
+
     /// An unknown or unexpected error occurred.
     #[error("Unknown error occurred")]
     Unknown,
@@ -115,6 +122,84 @@ impl EveryMapError {
     /// Check if this is an authentication error (HTTP 401 or 403).
     pub fn is_auth_error(&self) -> bool {
         matches!(self, Self::AuthError { .. }) || self.is_status(401) || self.is_status(403)
+    }
+
+    /// Create an unsupported domain error.
+    pub fn unsupported_domain(provider: impl Into<String>, domain: impl Into<String>) -> Self {
+        Self::UnsupportedDomain {
+            provider: provider.into(),
+            domain: domain.into(),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_http_error_construction() {
+        let err = EveryMapError::http(404, "Not Found");
+        assert!(err.is_status(404));
+        assert!(!err.is_status(200));
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_http_error_with_body() {
+        let err = EveryMapError::http_with_body(500, "Internal Error", "details");
+        assert!(err.is_status(500));
+    }
+
+    #[test]
+    fn test_auth_error() {
+        let err = EveryMapError::auth("here", "Invalid API key");
+        assert!(err.is_auth_error());
+    }
+
+    #[test]
+    fn test_rate_limited_error() {
+        let err = EveryMapError::rate_limited("here", Some(60));
+        assert!(err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_unsupported_domain_error() {
+        let err = EveryMapError::unsupported_domain("google", "traffic");
+        match &err {
+            EveryMapError::UnsupportedDomain { provider, domain } => {
+                assert_eq!(provider, "google");
+                assert_eq!(domain, "traffic");
+            }
+            _ => panic!("Expected UnsupportedDomain error"),
+        }
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_provider_error() {
+        let err = EveryMapError::provider("here", "E400", "Bad request");
+        match &err {
+            EveryMapError::ProviderError { provider, code, message } => {
+                assert_eq!(provider, "here");
+                assert_eq!(code, "E400");
+                assert_eq!(message, "Bad request");
+            }
+            _ => panic!("Expected ProviderError"),
+        }
+    }
+
+    #[test]
+    fn test_status_401_is_auth_error() {
+        let err = EveryMapError::http(401, "Unauthorized");
+        assert!(err.is_auth_error());
+    }
+
+    #[test]
+    fn test_status_429_is_rate_limited() {
+        let err = EveryMapError::http(429, "Too Many Requests");
+        assert!(err.is_rate_limited());
     }
 }
 

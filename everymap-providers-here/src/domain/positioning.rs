@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::positioning::{NetworkPositioner as NetworkPositionerTrait, PositioningRequest, PositioningResponse as CorePositioningResponse};
+use everymap_core::domains::positioning::{NetworkPositioner as NetworkPositionerTrait, PositioningOptions, PositioningResponse as CorePositioningResponse};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use serde::Serialize;
@@ -67,24 +67,41 @@ impl HerePositioner {
     }
 }
 
+/// Convert core `PositioningOptions` to HERE-specific `HerePositioningOptions`,
+/// extracting fields from `provider_extra`.
+fn positioning_options_from_core(opts: &PositioningOptions) -> HerePositioningOptions {
+    let mut here_opts = HerePositioningOptions::default();
+
+    if let Some(extra) = &opts.provider_extra {
+        if let Ok(parsed) = serde_json::from_value::<HerePositioningOptions>(extra.clone()) {
+            here_opts = parsed;
+        }
+    }
+
+    here_opts
+}
+
+impl From<PositioningResponse> for CorePositioningResponse {
+    fn from(res: PositioningResponse) -> Self {
+        let coordinate = everymap_core::types::Coordinate::new(
+            res.location.lat,
+            res.location.lng,
+        ).unwrap_or_else(|_| everymap_core::types::Coordinate::new(0.0, 0.0).unwrap());
+        Self {
+            coordinate,
+            accuracy: res.location.accuracy,
+            altitude: res.altitude.as_ref().and_then(|a| a.value),
+            altitude_accuracy: res.altitude.as_ref().and_then(|a| a.accuracy),
+            raw: None,
+        }
+    }
+}
+
 #[async_trait]
 impl NetworkPositionerTrait for HerePositioner {
-    type Options = HerePositioningOptions;
-    type Response = CorePositioningResponse;
-
-    async fn get_position(&self, req: PositioningRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let result = self.locate(req.options).await?;
-        let coordinate = everymap_core::types::Coordinate::new(
-            result.location.lat,
-            result.location.lng,
-        ).map_err(|e| everymap_core::error::EveryMapError::ValidationError(e.to_string()))?;
-
-        Ok(CorePositioningResponse {
-            coordinate,
-            accuracy: result.location.accuracy,
-            altitude: result.altitude.as_ref().and_then(|a| a.value),
-            altitude_accuracy: result.altitude.as_ref().and_then(|a| a.accuracy),
-            raw: None,
-        })
+    async fn get_position(&self, options: &PositioningOptions) -> EveryMapResult<CorePositioningResponse> {
+        let here_opts = positioning_options_from_core(options);
+        let result = self.locate(here_opts).await?;
+        Ok(result.into())
     }
 }

@@ -1,8 +1,8 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path, query_param};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::routing::{RouteRequest, Router};
-use everymap_providers_here::domain::routing::{HereRouter, HereRouteOptions, TransportMode};
+use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
+use everymap_providers_here::domain::routing::HereRouter;
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
 use std::sync::Arc;
@@ -35,16 +35,14 @@ async fn test_routing_contract() {
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 
-    let req = RouteRequest {
-        start: Coordinate::new(52.52, 13.405).unwrap(),
-        end: Coordinate::new(52.53, 13.41).unwrap(),
-        options: HereRouteOptions {
-            transport_mode: TransportMode::Car,
-            ..Default::default()
-        },
+    let start = Coordinate::new(52.52, 13.405).unwrap();
+    let end = Coordinate::new(52.53, 13.41).unwrap();
+    let opts = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        ..Default::default()
     };
 
-    let res = router.calculate_route(req).await.unwrap();
+    let res = router.calculate_route(&start, &end, &opts).await.unwrap();
 
     assert_eq!(res.routes[0].distance, 1500.0);
     assert_eq!(res.routes[0].duration, 300.0);

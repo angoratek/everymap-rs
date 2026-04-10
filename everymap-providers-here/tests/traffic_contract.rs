@@ -1,7 +1,7 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::traffic::{TrafficRequest, TrafficProvider};
+use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
 use everymap_providers_here::domain::traffic::{HereTraffic, HereFlowOptions};
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
@@ -41,12 +41,10 @@ async fn test_traffic_contract() {
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
-    let req = TrafficRequest {
-        location: Coordinate::new(52.52, 13.405).unwrap(),
-        options: HereFlowOptions::default(),
-    };
+    let coord = Coordinate::new(52.52, 13.405).unwrap();
+    let opts = TrafficOptions::default();
 
-    let res = traffic_provider.get_traffic(req).await.unwrap();
+    let res = traffic_provider.get_traffic(&coord, &opts).await.unwrap();
 
     assert_eq!(res.flows.len(), 1);
     assert_eq!(res.flows[0].jam_factor.unwrap(), 2.5);

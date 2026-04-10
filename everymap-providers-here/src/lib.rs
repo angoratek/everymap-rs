@@ -1,5 +1,6 @@
 pub mod client;
 pub mod domain;
+pub mod ext;
 
 pub use client::HereClient;
 pub use domain::search::{
@@ -58,4 +59,9 @@ pub use domain::attributes::{
 };
 pub use domain::imaging::{
     HereMapImageProvider, HereImageOptions, ImageFormat, MapStyle,
+};
+
+// Extension traits for HERE-specific capabilities
+pub use ext::{
+    HereGeocoderExt, HereTrafficExt, HerePositionerExt, HereTourPlannerExt,
 };

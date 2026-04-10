@@ -231,3 +231,40 @@ pub enum TrafficUnits {
     Metric,
     Imperial,
 }
+
+// --- From conversions to core types ---
+
+impl From<HereFlowItem> for everymap_core::domains::traffic::TrafficFlow {
+    fn from(item: HereFlowItem) -> Self {
+        Self {
+            speed: item.current_flow.speed,
+            free_flow_speed: item.current_flow.free_flow,
+            jam_factor: item.current_flow.jam_factor,
+            confidence: item.current_flow.confidence,
+            road_name: item.road_info.and_then(|ri| ri.road_name),
+        }
+    }
+}
+
+impl From<HereIncident> for everymap_core::domains::traffic::TrafficIncident {
+    fn from(incident: HereIncident) -> Self {
+        use everymap_core::domains::traffic::IncidentSeverity;
+        let severity = incident.criticality.as_deref().map(|c| match c {
+            "low" => IncidentSeverity::Low,
+            "minor" => IncidentSeverity::Minor,
+            "major" => IncidentSeverity::Major,
+            "critical" => IncidentSeverity::Critical,
+            _ => IncidentSeverity::Unknown,
+        });
+        let description = incident.description.and_then(|d| d.value);
+        Self {
+            id: incident.id,
+            incident_type: incident.incident_type,
+            severity,
+            description,
+            road_name: None, // Not directly available on HereIncident
+            start_time: incident.start_time,
+            end_time: incident.end_time,
+        }
+    }
+}

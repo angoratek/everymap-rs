@@ -1,9 +1,10 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path, query_param};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::search::{GeocodeRequest, ReverseGeocodeRequest, Geocoder};
+use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
 use everymap_providers_here::domain::search::{
-    HereGeocoder, HereGeocodeOptions, HereDiscoverOptions, HereAutosuggestOptions,
+    HereGeocoder, HereDiscoverOptions, HereAutosuggestOptions,
+    DiscoverRequest, AutosuggestRequest,
 };
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
@@ -36,11 +37,8 @@ async fn test_geocode_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let req = GeocodeRequest {
-        query: "Berlin".to_string(),
-        options: HereGeocodeOptions::default(),
-    };
-    let res = geocoder.geocode(req).await.unwrap();
+    let opts = GeocodeOptions::default();
+    let res = geocoder.geocode("Berlin", &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
     assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
@@ -77,15 +75,12 @@ async fn test_geocode_with_options() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let req = GeocodeRequest {
-        query: "Paris".to_string(),
-        options: HereGeocodeOptions {
-            limit: Some(5),
-            lang: Some("en".to_string()),
-            ..Default::default()
-        },
+    let opts = GeocodeOptions {
+        limit: Some(5),
+        language: Some("en".to_string()),
+        ..Default::default()
     };
-    let res = geocoder.geocode(req).await.unwrap();
+    let res = geocoder.geocode("Paris", &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
     assert_eq!(res.items[0].address.label.as_deref(), Some("Paris, France"));
@@ -115,11 +110,9 @@ async fn test_reverse_geocode_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let req = ReverseGeocodeRequest {
-        coordinate: Coordinate::new(52.52, 13.405).unwrap(),
-        options: HereGeocodeOptions::default(),
-    };
-    let res = geocoder.reverse_geocode(req).await.unwrap();
+    let coord = Coordinate::new(52.52, 13.405).unwrap();
+    let opts = ReverseGeocodeOptions::default();
+    let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
     assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
@@ -164,7 +157,7 @@ async fn test_discover_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let req = everymap_core::domains::search::DiscoverRequest {
+    let req = DiscoverRequest {
         query: "Brandenburg Gate".to_string(),
         options: HereDiscoverOptions {
             at: Some(Coordinate::new(52.52, 13.405).unwrap()),
@@ -223,7 +216,7 @@ async fn test_autosuggest_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let req = everymap_core::domains::search::AutosuggestRequest {
+    let req = AutosuggestRequest {
         query: "Berl".to_string(),
         options: HereAutosuggestOptions {
             limit: Some(5),

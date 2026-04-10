@@ -2,15 +2,12 @@ pub mod types;
 
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    Geocoder, GeocodeRequest, ReverseGeocodeRequest,
-    DiscoverRequest, AutosuggestRequest,
-    SearchResponse, SearchResult, SearchResultType,
+    Geocoder, GeocodeOptions, ReverseGeocodeOptions,
+    SearchResponse, SearchResult,
 };
 use everymap_core::error::EveryMapResult;
-use everymap_core::types::{Coordinate, Address};
+use everymap_core::types::Coordinate;
 use crate::client::HereClient;
-use crate::domain::geo::HereLatLng;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 // Re-export all public types from the types module
@@ -21,7 +18,7 @@ const DISCOVER_BASE_URL: &str = "https://discover.search.hereapi.com/v1";
 const AUTOSUGGEST_BASE_URL: &str = "https://autosuggest.search.hereapi.com/v1";
 
 /// Exhaustive options for HERE Geocoding & Search API v7 geocode/reverseGeocode.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct HereGeocodeOptions {
     pub at: Option<Coordinate>,
     pub in_filter: Option<String>,
@@ -40,6 +37,18 @@ pub struct HereGeocodeOptions {
     pub show_related: Option<Vec<ShowRelated>>,
     pub show_translations: Option<Vec<ShowTranslation>>,
     pub request_id: Option<String>,
+}
+
+/// Request wrapper for the HERE-specific discover endpoint.
+pub struct DiscoverRequest {
+    pub query: String,
+    pub options: HereDiscoverOptions,
+}
+
+/// Request wrapper for the HERE-specific autosuggest endpoint.
+pub struct AutosuggestRequest {
+    pub query: String,
+    pub options: HereAutosuggestOptions,
 }
 
 /// Implementation of Geocoder for HERE Technologies.
@@ -75,7 +84,7 @@ impl HereGeocoder {
     /// Discover places/POIs matching a query.
     pub async fn discover(
         &self,
-        req: DiscoverRequest<HereDiscoverOptions>,
+        req: DiscoverRequest,
     ) -> EveryMapResult<HereDiscoverResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
         params.push(("q", req.query));
@@ -94,7 +103,7 @@ impl HereGeocoder {
     /// Get autosuggest results for a partial query (type-ahead).
     pub async fn autosuggest(
         &self,
-        req: AutosuggestRequest<HereAutosuggestOptions>,
+        req: AutosuggestRequest,
     ) -> EveryMapResult<HereAutosuggestResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
         params.push(("q", req.query));
@@ -111,27 +120,169 @@ impl HereGeocoder {
     }
 }
 
-// --- Internal deserialization types for geocode/reverseGeocode ---
+/// Convert core `GeocodeOptions` to HERE-specific `HereGeocodeOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
+    let mut here_opts = HereGeocodeOptions {
+        limit: opts.limit,
+        lang: opts.language.clone(),
+        ..Default::default()
+    };
 
-#[derive(Debug, Deserialize)]
-struct HereGeocodeApiResponse {
-    items: Vec<HereGeocodeItem>,
+    // Convert bounding_box to HERE's `at` + `in_filter` convention if present
+    if let Some(bb) = &opts.bounding_box {
+        // Use center of bounding box as `at`
+        if let Ok(center) = Coordinate::new(
+            (bb.north_east.lat + bb.south_west.lat) / 2.0,
+            (bb.north_east.lng + bb.south_west.lng) / 2.0,
+        ) {
+            here_opts.at = Some(center);
+        }
+        // Use bounding box as `in` filter
+        here_opts.in_filter = Some(format!(
+            "bbox:{},{},{},{}",
+            bb.south_west.lng, bb.south_west.lat,
+            bb.north_east.lng, bb.north_east.lat
+        ));
+    }
+
+    // Convert country_codes to HERE's `in_filter` if not already set
+    if !opts.country_codes.is_empty() {
+        let countries = opts.country_codes.join(",");
+        if let Some(existing) = &mut here_opts.in_filter {
+            // Append country filter to existing in_filter
+            *existing = format!("{}+countryCode:{}", existing, countries);
+        } else {
+            here_opts.in_filter = Some(format!("countryCode:{}", countries));
+        }
+    }
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            extract_here_geocode_extra(obj, &mut here_opts);
+        }
+    }
+
+    here_opts
 }
 
-#[derive(Debug, Deserialize)]
-struct HereGeocodeItem {
-    #[serde(default)]
-    position: Option<HereLatLng>,
-    #[serde(default)]
-    address: Option<HereAddress>,
-    #[serde(default)]
-    title: Option<String>,
-    #[serde(default, rename = "resultType")]
-    result_type: Option<String>,
-    #[serde(default)]
-    id: Option<String>,
-    #[serde(default)]
-    distance: Option<f64>,
+/// Convert core `ReverseGeocodeOptions` to HERE-specific `HereGeocodeOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn reverse_geocode_options_from_core(opts: &ReverseGeocodeOptions) -> HereGeocodeOptions {
+    let mut here_opts = HereGeocodeOptions {
+        limit: opts.limit,
+        lang: opts.language.clone(),
+        ..Default::default()
+    };
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            extract_here_geocode_extra(obj, &mut here_opts);
+        }
+    }
+
+    here_opts
+}
+
+/// Extract HERE-specific fields from a JSON object into `HereGeocodeOptions`.
+fn extract_here_geocode_extra(
+    obj: &serde_json::Map<String, serde_json::Value>,
+    here_opts: &mut HereGeocodeOptions,
+) {
+    if let Some(v) = obj.get("at") {
+        if let Ok(coord) = serde_json::from_value::<Coordinate>(v.clone()) {
+            here_opts.at = Some(coord);
+        }
+    }
+    if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
+        here_opts.in_filter = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("qq").and_then(|v| v.as_str()) {
+        here_opts.qq = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("lang").and_then(|v| v.as_str()) {
+        here_opts.lang = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("limit").and_then(|v| v.as_u64()) {
+        here_opts.limit = Some(v as u32);
+    }
+    if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
+        here_opts.political_view = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("address_names_variant").and_then(|v| v.as_str()) {
+        here_opts.address_names_variant = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("request_id").and_then(|v| v.as_str()) {
+        here_opts.request_id = Some(v.to_string());
+    }
+    if let Some(v) = obj.get("address_names_mode") {
+        if let Ok(parsed) = serde_json::from_value::<AddressNamesMode>(v.clone()) {
+            here_opts.address_names_mode = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("postal_code_mode") {
+        if let Ok(parsed) = serde_json::from_value::<PostalCodeMode>(v.clone()) {
+            here_opts.postal_code_mode = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("types").and_then(|v| v.as_array()) {
+        let parsed: Vec<SearchType> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.types = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("with").and_then(|v| v.as_array()) {
+        let parsed: Vec<WithFeature> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.with = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("show").and_then(|v| v.as_array()) {
+        let parsed: Vec<ShowFeature> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.show = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("show_map_references").and_then(|v| v.as_array()) {
+        let parsed: Vec<ShowMapReference> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.show_map_references = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("show_nav_attributes").and_then(|v| v.as_array()) {
+        let parsed: Vec<ShowNavAttribute> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.show_nav_attributes = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("show_related").and_then(|v| v.as_array()) {
+        let parsed: Vec<ShowRelated> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.show_related = Some(parsed);
+        }
+    }
+    if let Some(v) = obj.get("show_translations").and_then(|v| v.as_array()) {
+        let parsed: Vec<ShowTranslation> = v.iter()
+            .filter_map(|item| serde_json::from_value(item.clone()).ok())
+            .collect();
+        if !parsed.is_empty() {
+            here_opts.show_translations = Some(parsed);
+        }
+    }
 }
 
 /// Helper to apply geocode options to query params.
@@ -331,90 +482,46 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
     }
 }
 
-fn convert_geocode_item(item: HereGeocodeItem) -> SearchResult {
-    let coordinate = item.position
-        .map(Coordinate::from)
-        .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
-    let address = item.address
-        .map(|a| Address {
-            label: a.label,
-            street: a.street,
-            house_number: a.house_number,
-            city: a.city,
-            district: a.district,
-            sub_district: a.sub_district,
-            state: a.state,
-            state_code: a.state_code,
-            postal_code: a.postal_code,
-            country: a.country_name,
-            country_code: a.country_code,
-            county: a.county,
-            building: a.building,
-            block: a.block,
-            unit: a.unit,
-        })
-        .unwrap_or_default();
-    let result_type = match item.result_type.as_deref() {
-        Some("place") | Some("exactMatch") => SearchResultType::ExactMatch,
-        Some("approximate") => SearchResultType::Approximate,
-        Some("interpolated") => SearchResultType::Interpolated,
-        _ => SearchResultType::Unknown,
-    };
-    SearchResult {
-        id: item.id,
-        coordinate,
-        address,
-        title: item.title,
-        result_type,
-        distance: item.distance,
-        confidence: None,
-        categories: vec![],
-        bounding_box: None,
-        raw: None,
-    }
-}
-
 #[async_trait]
 impl Geocoder for HereGeocoder {
-    type Options = HereGeocodeOptions;
-    type Response = SearchResponse;
-
-    async fn geocode(&self, req: GeocodeRequest<Self::Options>) -> EveryMapResult<Self::Response> {
+    async fn geocode(&self, query: &str, options: &GeocodeOptions) -> EveryMapResult<SearchResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
 
-        if !req.query.is_empty() {
-            params.push(("q", req.query));
+        if !query.is_empty() {
+            params.push(("q", query.to_string()));
         }
 
-        apply_geocode_options(&req.options, &mut params);
+        let here_opts = geocode_options_from_core(options);
+        apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/geocode", self.geocode_base_url);
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
-        let here_res: HereGeocodeApiResponse = response.json().await?;
+        let here_res: HereSearchResponse = response.json().await?;
 
-        let items = here_res.items.into_iter().map(convert_geocode_item).collect();
+        let items = here_res.items.into_iter().map(SearchResult::from).collect();
 
         Ok(SearchResponse { items })
     }
 
-    async fn reverse_geocode(&self, req: ReverseGeocodeRequest<Self::Options>) -> EveryMapResult<Self::Response> {
+    async fn reverse_geocode(&self, coordinate: &Coordinate, options: &ReverseGeocodeOptions) -> EveryMapResult<SearchResponse> {
         let mut params: Vec<(&str, String)> = vec![
-            ("at", format!("{},{}", req.coordinate.lat, req.coordinate.lng)),
+            ("at", format!("{},{}", coordinate.lat, coordinate.lng)),
         ];
 
-        apply_geocode_options(&req.options, &mut params);
+        let here_opts = reverse_geocode_options_from_core(options);
+        apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/reverseGeocode", self.geocode_base_url);
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
-        let here_res: HereGeocodeApiResponse = response.json().await?;
+        let here_res: HereSearchResponse = response.json().await?;
 
-        let items = here_res.items.into_iter().map(convert_geocode_item).collect();
+        let items = here_res.items.into_iter().map(SearchResult::from).collect();
 
         Ok(SearchResponse { items })
     }

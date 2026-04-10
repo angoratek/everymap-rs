@@ -1,24 +1,25 @@
 use everymap_core::auth::AuthProvider;
-use everymap_core::client::HttpClient;
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use reqwest::Client;
 use std::sync::Arc;
 
-/// The shared HTTP client for HERE Technologies APIs.
+/// The shared HTTP client for Google Maps APIs.
 ///
-/// This client is a thin wrapper around `reqwest::Client` that handles
-/// authentication. Each domain module constructs its own base URL per the
-/// HERE API specification.
+/// Handles authentication via API key injection. Each domain module
+/// constructs its own base URL per the Google Maps API specification.
 ///
-/// For testing, use `with_http_client()` to inject a custom `HttpClient`
-/// implementation. For production, use `new()` with the default client.
-pub struct HereClient {
+/// Supported APIs:
+/// - Geocoding API (geocoding, reverse geocoding)
+/// - Directions API (routing)
+/// - Roads API (route matching) — planned
+/// - Static Maps API (map images) — planned
+pub struct GoogleClient {
     http_client: Client,
     auth_provider: Arc<dyn AuthProvider>,
 }
 
-impl HereClient {
-    /// Creates a new `HereClient` with the given authentication provider.
+impl GoogleClient {
+    /// Creates a new `GoogleClient` with the given authentication provider.
     pub fn new(auth_provider: Arc<dyn AuthProvider>) -> Self {
         Self {
             http_client: Client::new(),
@@ -26,7 +27,7 @@ impl HereClient {
         }
     }
 
-    /// Creates a `HereClient` with a custom `reqwest::Client` configuration.
+    /// Creates a `GoogleClient` with a custom `reqwest::Client` configuration.
     pub fn with_client_builder(
         builder: reqwest::ClientBuilder,
         auth_provider: Arc<dyn AuthProvider>,
@@ -55,7 +56,6 @@ impl HereClient {
         } else {
             let status_code = status.as_u16();
             let status_text = status.canonical_reason().unwrap_or("Unknown").to_string();
-            // Extract retry-after header before consuming the response body
             let retry_after = if status_code == 429 {
                 response.headers()
                     .get("retry-after")
@@ -66,9 +66,9 @@ impl HereClient {
             };
             let body = response.text().await.unwrap_or_default();
             if status_code == 429 {
-                Err(everymap_core::error::EveryMapError::rate_limited("here", retry_after))
+                Err(EveryMapError::rate_limited("google", retry_after))
             } else {
-                Err(everymap_core::error::EveryMapError::http_with_body(
+                Err(EveryMapError::http_with_body(
                     status_code,
                     format!("HTTP error: {}", status_text),
                     body,
@@ -76,15 +76,4 @@ impl HereClient {
             }
         }
     }
-}
-
-/// Sends a request using a custom `HttpClient` implementation, applying auth first.
-/// This is useful for testing with mock HTTP clients.
-pub async fn send_with_auth(
-    http_client: &dyn HttpClient,
-    auth_provider: &Arc<dyn AuthProvider>,
-    builder: reqwest::RequestBuilder,
-) -> EveryMapResult<reqwest::Response> {
-    let builder = auth_provider.apply(builder).await?;
-    http_client.send(builder).await
 }

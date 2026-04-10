@@ -3,11 +3,16 @@ use crate::types::Coordinate;
 use crate::error::EveryMapResult;
 use serde::{Deserialize, Serialize};
 
-/// Request for tour/sequence optimization.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TourRequest<O> {
-    pub stops: Vec<Coordinate>,
-    pub options: O,
+/// Options for tour/sequence optimization.
+///
+/// Tour optimization involves complex problem definitions (fleet, plan,
+/// configuration) that are entirely provider-specific. The core options
+/// type is minimal; all provider-specific data goes through `provider_extra`.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TourOptions {
+    /// Provider-specific problem definition (HERE: TourProblem JSON; other providers: their format)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_extra: Option<serde_json::Value>,
 }
 
 /// A stop in an optimized tour.
@@ -43,8 +48,51 @@ pub struct TourResponse {
 
 #[async_trait]
 pub trait TourPlanner: Send + Sync {
-    type Options: Send + Sync;
-    type Response: Send + Sync;
+    async fn optimize_tour(&self, stops: &[Coordinate], options: &TourOptions) -> EveryMapResult<TourResponse>;
+}
 
-    async fn optimize_tour(&self, req: TourRequest<Self::Options>) -> EveryMapResult<Self::Response>;
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tour_options_default() {
+        let opts = TourOptions::default();
+        assert!(opts.provider_extra.is_none());
+    }
+
+    #[test]
+    fn test_tour_options_with_provider_extra() {
+        let opts = TourOptions {
+            provider_extra: Some(serde_json::json!({"fleet": {"types": []}})),
+        };
+        assert!(opts.provider_extra.is_some());
+    }
+
+    #[test]
+    fn test_tour_stop_construction() {
+        let coord = Coordinate::new(52.5, 13.4).unwrap();
+        let stop = TourStop {
+            coordinate: coord,
+            arrival_time: Some("2024-01-01T08:30:00".to_string()),
+            departure_time: Some("2024-01-01T09:00:00".to_string()),
+            duration: Some(1800.0),
+            distance_from_previous: Some(5000.0),
+        };
+        assert_eq!(stop.arrival_time, Some("2024-01-01T08:30:00".to_string()));
+        assert_eq!(stop.duration, Some(1800.0));
+    }
+
+    #[test]
+    fn test_tour_response_construction() {
+        let response = TourResponse {
+            stops: vec![],
+            total_distance: Some(15000.0),
+            total_duration: Some(3600.0),
+            unassigned_count: Some(0),
+            raw: None,
+        };
+        assert_eq!(response.total_distance, Some(15000.0));
+        assert!(response.stops.is_empty());
+    }
 }

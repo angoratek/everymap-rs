@@ -1,7 +1,7 @@
 pub mod types;
 
 use async_trait::async_trait;
-use everymap_core::domains::isoline::{IsolineProvider, IsolineRequest, IsolineResponse, IsolineResult};
+use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineResponse, IsolineResult};
 use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
 use serde::{Deserialize, Serialize};
@@ -125,19 +125,123 @@ struct HereIsolinePolyline {
     outer: Option<String>,
 }
 
+impl From<HereIsolineLegacy> for IsolineResult {
+    fn from(iso: HereIsolineLegacy) -> Self {
+        let polygon = iso.polyline
+            .and_then(|p| p.outer)
+            .map(|encoded| {
+                everymap_core::types::FlexiblePolyline::decode(&encoded)
+                    .unwrap_or_else(|_| vec![])
+            })
+            .unwrap_or_default();
+        Self {
+            range: iso.range_value,
+            polygon,
+        }
+    }
+}
+
+/// Convert core `IsolineOptions` to HERE-specific `HereIsolineOptions`,
+/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
+fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
+    let range_type = match opts.range_type {
+        Some(everymap_core::domains::isoline::RangeType::Distance) | None => RangeType::Distance,
+        Some(everymap_core::domains::isoline::RangeType::Time) => RangeType::Time,
+        Some(everymap_core::domains::isoline::RangeType::Consumption) => RangeType::Consumption,
+    };
+
+    let transport_mode = match opts.transport_mode {
+        Some(everymap_core::domains::routing::TransportMode::Car) | None => IsolineTransportMode::Car,
+        Some(everymap_core::domains::routing::TransportMode::Truck) => IsolineTransportMode::Truck,
+        Some(everymap_core::domains::routing::TransportMode::Pedestrian) => IsolineTransportMode::Pedestrian,
+        Some(everymap_core::domains::routing::TransportMode::Bicycle) => IsolineTransportMode::Bicycle,
+        Some(everymap_core::domains::routing::TransportMode::Bus) => IsolineTransportMode::Bus,
+        Some(everymap_core::domains::routing::TransportMode::Scooter) => IsolineTransportMode::Scooter,
+        Some(everymap_core::domains::routing::TransportMode::Taxi) => IsolineTransportMode::Taxi,
+        Some(everymap_core::domains::routing::TransportMode::Unknown) => IsolineTransportMode::Car,
+    };
+
+    let mut here_opts = HereIsolineOptions {
+        range_type,
+        transport_mode,
+        departure_time: opts.departure_time.clone(),
+        ..Default::default()
+    };
+
+    // Convert avoid types
+    if !opts.avoid.is_empty() {
+        here_opts.avoid = Some(opts.avoid.iter().map(|a| match a {
+            everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
+            everymap_core::domains::routing::AvoidType::Ferries => "ferries".to_string(),
+            everymap_core::domains::routing::AvoidType::Tunnels => "tunnels".to_string(),
+            everymap_core::domains::routing::AvoidType::Highways => "highways".to_string(),
+            everymap_core::domains::routing::AvoidType::DirtRoads => "dirtRoads".to_string(),
+        }).collect());
+    }
+
+    // Extract HERE-specific options from provider_extra
+    if let Some(extra) = &opts.provider_extra {
+        if let Some(obj) = extra.as_object() {
+            if let Some(v) = obj.get("routing_mode").and_then(|v| v.as_str()) {
+                here_opts.routing_mode = match v {
+                    "short" => IsolineRoutingMode::Short,
+                    _ => IsolineRoutingMode::Fast,
+                };
+            }
+            if let Some(v) = obj.get("optimize_for") {
+                here_opts.optimize_for = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("arrival_time").and_then(|v| v.as_str()) {
+                here_opts.arrival_time = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("exclude").and_then(|v| v.as_array()) {
+                here_opts.exclude = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("shape").and_then(|v| v.as_str()) {
+                here_opts.shape = Some(v.to_string());
+            }
+            if let Some(v) = obj.get("vehicle").and_then(|v| v.as_array()) {
+                here_opts.vehicle = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("consumption_model") {
+                here_opts.consumption_model = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("ev").and_then(|v| v.as_array()) {
+                here_opts.ev = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("fuel").and_then(|v| v.as_array()) {
+                here_opts.fuel = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("max_speed_on_segment").and_then(|v| v.as_array()) {
+                here_opts.max_speed_on_segment = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("taxi").and_then(|v| v.as_array()) {
+                here_opts.taxi = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+            }
+            if let Some(v) = obj.get("traffic").and_then(|v| v.as_str()) {
+                here_opts.traffic = serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
+            }
+            if let Some(v) = obj.get("billing_tag").and_then(|v| v.as_str()) {
+                here_opts.billing_tag = Some(v.to_string());
+            }
+        }
+    }
+
+    here_opts
+}
+
 #[async_trait]
 impl IsolineProvider for HereIsoline {
-    type Options = HereIsolineOptions;
-    type Response = IsolineResponse;
+    async fn get_isoline(&self, center: &everymap_core::types::Coordinate, range: f64, options: &IsolineOptions) -> EveryMapResult<IsolineResponse> {
+        let here_opts = isoline_options_from_core(options);
 
-    async fn get_isoline(&self, req: IsolineRequest<Self::Options>) -> EveryMapResult<Self::Response> {
-        let range_type = match req.options.range_type {
+        let range_type = match here_opts.range_type {
             RangeType::Time => "time",
             RangeType::Distance => "distance",
             RangeType::Consumption => "consumption",
         };
 
-        let transport = match req.options.transport_mode {
+        let transport = match here_opts.transport_mode {
             IsolineTransportMode::Car => "car",
             IsolineTransportMode::Truck => "truck",
             IsolineTransportMode::Pedestrian => "pedestrian",
@@ -148,40 +252,40 @@ impl IsolineProvider for HereIsoline {
             IsolineTransportMode::Taxi => "taxi",
         };
 
-        let routing_mode = match req.options.routing_mode {
+        let routing_mode = match here_opts.routing_mode {
             IsolineRoutingMode::Fast => "fast",
             IsolineRoutingMode::Short => "short",
         };
 
         let mut params: Vec<(&str, String)> = vec![
-            ("location", format!("{},{}", req.center.lat, req.center.lng)),
+            ("location", format!("{},{}", center.lat, center.lng)),
             ("range[type]", range_type.to_string()),
-            ("range[values]", req.range.to_string()),
+            ("range[values]", range.to_string()),
             ("transportMode", transport.to_string()),
             ("routingMode", routing_mode.to_string()),
             ("return", "polyline".to_string()),
         ];
 
-        if let Some(opt) = &req.options.optimize_for {
+        if let Some(opt) = &here_opts.optimize_for {
             let val = serde_json::to_value(opt).unwrap().as_str().unwrap().to_string();
             params.push(("optimizeFor", val));
         }
-        if let Some(dt) = &req.options.departure_time {
+        if let Some(dt) = &here_opts.departure_time {
             params.push(("departureTime", dt.clone()));
         }
-        if let Some(at) = &req.options.arrival_time {
+        if let Some(at) = &here_opts.arrival_time {
             params.push(("arrivalTime", at.clone()));
         }
-        if let Some(avoid) = &req.options.avoid {
+        if let Some(avoid) = &here_opts.avoid {
             params.push(("avoid", avoid.join(",")));
         }
-        if let Some(exclude) = &req.options.exclude {
+        if let Some(exclude) = &here_opts.exclude {
             params.push(("exclude", exclude.join(",")));
         }
-        if let Some(traffic) = &req.options.traffic {
+        if let Some(traffic) = &here_opts.traffic {
             params.push(("traffic", serde_json::to_value(traffic).unwrap().as_str().unwrap().to_string()));
         }
-        if let Some(bt) = &req.options.billing_tag {
+        if let Some(bt) = &here_opts.billing_tag {
             params.push(("billingTag", bt.clone()));
         }
 
@@ -192,19 +296,9 @@ impl IsolineProvider for HereIsoline {
         let response = self.client.request(builder).await?;
         let here_res: HereIsolineLegacyResponse = response.json().await?;
 
-        let isolines: Vec<IsolineResult> = here_res.isolines.into_iter().map(|iso| {
-            let polygon = iso.polyline
-                .and_then(|p| p.outer)
-                .map(|encoded| {
-                    everymap_core::types::FlexiblePolyline::decode(&encoded)
-                        .unwrap_or_else(|_| vec![])
-                })
-                .unwrap_or_else(Vec::new);
-            IsolineResult {
-                range: iso.range_value,
-                polygon,
-            }
-        }).collect();
+        let isolines: Vec<IsolineResult> = here_res.isolines.into_iter()
+            .map(IsolineResult::from)
+            .collect();
 
         Ok(IsolineResponse {
             isolines,

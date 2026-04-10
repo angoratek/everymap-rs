@@ -1,6 +1,6 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
-use everymap_core::domains::positioning::{PositioningRequest, NetworkPositioner};
+use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
 use everymap_providers_here::domain::positioning::{
     HerePositioner, HerePositioningOptions, WlanAccessPoint,
 };
@@ -34,11 +34,9 @@ async fn test_positioning_contract() {
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
-    let req = PositioningRequest {
-        options: HerePositioningOptions::default(),
-    };
+    let opts = PositioningOptions::default();
 
-    let res = positioner.get_position(req).await.unwrap();
+    let res = positioner.get_position(&opts).await.unwrap();
 
     assert_eq!(res.coordinate.lat, 52.5201);
     assert_eq!(res.coordinate.lng, 13.4051);
@@ -70,23 +68,24 @@ async fn test_positioning_with_wlan() {
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
-    let req = PositioningRequest {
-        options: HerePositioningOptions {
-            wlan: Some(vec![WlanAccessPoint {
-                mac: "00:11:22:33:44:55".to_string(),
-                signal_strength: Some(-70),
-                age: Some(5000),
-                channel: Some(6),
-                ssid: None,
-                signal_to_noise_ratio: None,
-            }]),
-            cell: None,
-            bluetooth: None,
-            fallback: None,
-        },
+    let wlan_opts = HerePositioningOptions {
+        wlan: Some(vec![WlanAccessPoint {
+            mac: "00:11:22:33:44:55".to_string(),
+            signal_strength: Some(-70),
+            age: Some(5000),
+            channel: Some(6),
+            ssid: None,
+            signal_to_noise_ratio: None,
+        }]),
+        cell: None,
+        bluetooth: None,
+        fallback: None,
+    };
+    let opts = PositioningOptions {
+        provider_extra: Some(serde_json::to_value(wlan_opts).unwrap()),
     };
 
-    let res = positioner.get_position(req).await.unwrap();
+    let res = positioner.get_position(&opts).await.unwrap();
 
     assert_eq!(res.coordinate.lat, 52.52);
     assert_eq!(res.coordinate.lng, 13.41);

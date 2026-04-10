@@ -1,5 +1,5 @@
 [package]
-name = "everymap-providers-here"
+name = "everymap-providers-google"
 version = "0.2.0"
 edition = "2021"
 
@@ -11,4 +11,3 @@ tokio = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 thiserror = { workspace = true }
-wiremock = "0.6"

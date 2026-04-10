@@ -1,8 +1,8 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path, query_param};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::matching::{TraceRequest, RouteMatcher};
-use everymap_providers_here::domain::matching::{HereRouteMatcher, HereMatchingOptions, MatchMode};
+use everymap_core::domains::matching::{RouteMatcher, MatchingOptions};
+use everymap_providers_here::domain::matching::HereRouteMatcher;
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
 use std::sync::Arc;
@@ -30,15 +30,13 @@ async fn test_matching_contract() {
     let client = Arc::new(HereClient::new(auth));
     let matcher = HereRouteMatcher::with_base_url(client, server.uri());
 
-    let req = TraceRequest {
-        points: vec![
-            Coordinate::new(52.52, 13.405).unwrap(),
-            Coordinate::new(52.53, 13.41).unwrap(),
-        ],
-        options: HereMatchingOptions::default(),
-    };
+    let points = vec![
+        Coordinate::new(52.52, 13.405).unwrap(),
+        Coordinate::new(52.53, 13.41).unwrap(),
+    ];
+    let opts = MatchingOptions::default();
 
-    let res = matcher.match_route(req).await.unwrap();
+    let res = matcher.match_route(&points, &opts).await.unwrap();
 
     assert_eq!(res.distance, 120.0);
     assert_eq!(res.matched_points.len(), 2);
@@ -70,19 +68,19 @@ async fn test_matching_with_options() {
     let client = Arc::new(HereClient::new(auth));
     let matcher = HereRouteMatcher::with_base_url(client, server.uri());
 
-    let req = TraceRequest {
-        points: vec![
-            Coordinate::new(52.52, 13.405).unwrap(),
-            Coordinate::new(52.53, 13.41).unwrap(),
-        ],
-        options: HereMatchingOptions {
-            mode: Some(MatchMode::Car),
-            map_match_radius: Some(50),
-            ..Default::default()
-        },
+    let points = vec![
+        Coordinate::new(52.52, 13.405).unwrap(),
+        Coordinate::new(52.53, 13.41).unwrap(),
+    ];
+    let opts = MatchingOptions {
+        provider_extra: Some(serde_json::json!({
+            "mode": "car",
+            "map_match_radius": 50
+        })),
+        ..Default::default()
     };
 
-    let res = matcher.match_route(req).await.unwrap();
+    let res = matcher.match_route(&points, &opts).await.unwrap();
 
     assert_eq!(res.distance, 250.0);
     assert_eq!(res.matched_points.len(), 2);

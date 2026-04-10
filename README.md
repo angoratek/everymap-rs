@@ -4,65 +4,68 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
 
-EveryMap-RS provides a unified interface for geospatial services across multiple providers. Currently implementing **HERE Technologies** APIs with plans for MapBox, TomTom, and Google Maps.
+EveryMap-RS provides a unified interface for geospatial services across multiple providers. Currently supports **HERE Technologies** and **Google Maps** APIs with plans for MapBox and TomTom.
 
-The architecture uses **domain-driven design** — each geospatial capability (routing, search, traffic, etc.) is defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. This allows switching providers without changing business logic.
+The architecture uses **domain-driven design** — each geospatial capability (routing, search, traffic, etc.) is defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
 
 ## Architecture
 
 ```
 everymap-rs/
-├── everymap-core/           # Core traits, types, auth, error
+├── everymap-core/              # Core traits, types, auth, error
 │   └── src/
-│       ├── domains/         # 10 domain traits + enriched response types
-│       ├── types/           # Coordinate, BoundingBox, Address, Polyline, FlexiblePolyline
-│       ├── auth/            # AuthProvider, ApiKeyProvider
-│       └── error/           # EveryMapError (structured HTTP/auth/provider/rate-limit errors)
-├── everymap-providers-here/ # HERE Technologies implementation
+│       ├── domains/            # 10 domain traits + concrete Options/Response types
+│       ├── types/              # Coordinate, BoundingBox, Address, Polyline
+│       ├── auth/               # AuthProvider, ApiKeyProvider
+│       ├── client/             # HttpClient trait + DefaultHttpClient
+│       └── error/              # EveryMapError (structured errors)
+├── everymap-providers-here/    # HERE Technologies implementation
 │   └── src/
-│       ├── client/          # HereClient (HTTP + auth)
-│       └── domain/          # 10 domain implementations
-│           ├── geo.rs       # Shared HereLatLng type
-│           ├── search/      # Geocode, Discover, Autosuggest + From conversions
-│           ├── routing/     # Route calculation
-│           ├── isoline/     # Reachability polygons
-│           ├── matching/    # GPS trace matching
-│           ├── tour/        # Tour optimization
-│           ├── traffic/     # Flow & incidents
-│           ├── tiling/      # Vector tiles
-│           ├── positioning/ # Cell/Wi-Fi positioning
-│           ├── attributes/  # Map attributes
-│           └── imaging/     # Static map images
-└── everymap-cli/            # CLI for interacting with providers
+│       ├── client/             # HereClient (HTTP + auth)
+│       ├── ext.rs              # Extension traits (discover, autosuggest, etc.)
+│       └── domain/             # 10 domain implementations + From conversions
+├── everymap-providers-google/  # Google Maps implementation
+│   └── src/
+│       ├── client.rs           # GoogleClient (HTTP + auth)
+│       └── domain/
+│           ├── search/         # GoogleGeocoder (Geocoding API)
+│           ├── routing/        # GoogleRouter (Directions API)
+│           └── unsupported.rs  # Stubs for unsupported domains
+└── everymap-cli/               # CLI for interacting with providers
     └── src/
-        └── main.rs          # clap-based CLI (geocode, route, traffic, isoline, position)
+        ├── main.rs             # clap-based CLI with --provider flag
+        ├── config.rs           # ~/.everymap/config.toml support
+        └── output.rs           # JSON/Pretty/Summary output formats
 ```
 
-## Supported HERE APIs
+## Provider Support
 
-| Domain | API | Endpoint | Tests |
-|--------|-----|----------|-------|
-| Search | Geocoding & Search v7 | `geocode.search.hereapi.com/v1` | 5 |
-| Routing | Routing v8 | `router.hereapi.com/v8` | 1 |
-| Isoline | Isoline Routing v8 | `isoline.router.hereapi.com/v8` | 2 |
-| Matching | Route Matching v8 | `routematching.hereapi.com/v8` | 2 |
-| Tour | Tour Planning v3 | `tourplanning.hereapi.com/v3` | 4 |
-| Traffic | Traffic v7 | `data.traffic.hereapi.com/v7` | 3 |
-| Tiling | Vector Tile v2 | `vector.hereapi.com/v2` | 3 |
-| Positioning | Positioning v2 | `positioning.hereapi.com/v2` | 3 |
-| Attributes | Map Attributes v8 | `smap.hereapi.com/v8` | 2 |
-| Imaging | Map Image v3 | `image.maps.hereapi.com/mia/v3` | 2 |
+| Domain | Core Trait | HERE | Google |
+|--------|-----------|------|--------|
+| Search | `Geocoder` | Geocoding API | Geocoding API |
+| Routing | `Router` | Routing v8 | Directions API |
+| Isoline | `IsolineProvider` | Isoline Routing v8 | *Unsupported* |
+| Matching | `RouteMatcher` | Route Matching v8 | *Unsupported* |
+| Tour | `TourPlanner` | Tour Planning v3 | *Unsupported* |
+| Traffic | `TrafficProvider` | Traffic v7 | *Unsupported* |
+| Tiling | `TileProvider` | Vector Tile v2 | *Unsupported* |
+| Positioning | `NetworkPositioner` | Positioning v2 | *Unsupported* |
+| Attributes | `AttributeProvider` | Map Attributes v8 | *Unsupported* |
+| Imaging | `MapImageProvider` | Map Image v3 | *Unsupported* |
 
-**31 total contract tests, all passing.**
+Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
 ## Quick Start
 
 ### Library Usage
 
 ```rust
-use everymap_core::domains::routing::{Router, RouteRequest, RouteResult};
+use everymap_core::domains::search::{Geocoder, GeocodeOptions};
+use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
 use everymap_core::auth::ApiKeyProvider;
-use everymap_providers_here::domain::routing::{HereRouter, HereRouteOptions, TransportMode};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::search::HereGeocoder;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -70,54 +73,74 @@ async fn main() {
     let auth = Arc::new(ApiKeyProvider::new("YOUR_API_KEY".to_string(), "apiKey".to_string()));
     let client = Arc::new(HereClient::new(auth));
 
-    let router = HereRouter::new(client);
+    // Use the trait for provider-agnostic code
+    let geocoder: Box<dyn Geocoder> = Box::new(HereGeocoder::new(client));
+    let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await.unwrap();
 
-    let request = RouteRequest {
-        start: everymap_core::types::Coordinate::new(52.52, 13.405).unwrap(),
-        end: everymap_core::types::Coordinate::new(52.54, 13.42).unwrap(),
-        options: HereRouteOptions {
-            transport_mode: TransportMode::Car,
-            ..Default::default()
-        },
-    };
-
-    let response = router.calculate_route(request).await.unwrap();
-    for route in &response.routes {
-        println!("Distance: {}m, Duration: {}s", route.distance, route.duration);
+    for item in &result.items {
+        println!("{}: ({}, {})", item.title.as_deref().unwrap_or("?"),
+            item.coordinate.lat, item.coordinate.lng);
     }
 }
+```
+
+Switch to Google by changing the provider:
+
+```rust
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleGeocoder;
+
+let auth = Arc::new(ApiKeyProvider::new("YOUR_API_KEY".to_string(), "key".to_string()));
+let client = Arc::new(GoogleClient::new(auth));
+let geocoder: Box<dyn Geocoder> = Box::new(GoogleGeocoder::new(client));
+// Same trait, same response types — drop-in replacement
 ```
 
 ### CLI Usage
 
 ```bash
-# Geocode an address
-everymap-cli --api-key $HERE_KEY geocode "Brandenburg Gate, Berlin"
+# HERE provider (default)
+everymap --api-key $HERE_KEY geocode "Brandenburg Gate, Berlin"
+everymap --api-key $HERE_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
 
-# Reverse geocode
-everymap-cli --api-key $HERE_KEY reverse-geocode --lat 52.5163 --lng 13.3777
+# Google provider
+everymap --provider google --api-key $GOOGLE_KEY geocode "Brandenburg Gate, Berlin"
+everymap --provider google --api-key $GOOGLE_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
 
-# Calculate a route
-everymap-cli --api-key $HERE_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
+# Config file (~/.everymap/config.toml)
+# [providers.here]
+# api_key = "your-here-key"
+# [providers.google]
+# api_key = "your-google-key"
 
-# Get traffic data
-everymap-cli --api-key $HERE_KEY traffic --lat 52.52 --lng 13.405
+# Output formats
+everymap geocode "Paris" --output json      # compact JSON
+everymap geocode "Paris" --output pretty     # formatted JSON
+everymap geocode "Paris" --output summary    # condensed human-readable
 
-# Set API key via environment variable
-export EVERYMAP_API_KEY=your_key_here
-everymap-cli geocode "Paris, France"
+# All 11 commands
+everymap geocode "Berlin"
+everymap reverse-geocode --lat 52.52 --lng 13.40
+everymap route --origin "52.52,13.40" --destination "52.54,13.42" --transport car
+everymap traffic --lat 52.52 --lng 13.40
+everymap position
+everymap isoline --lat 52.52 --lng 13.40 --range 1000
+everymap match-route --trace "52.5,13.3;52.6,13.4"
+everymap tour --stops "52.5,13.3" "52.6,13.4"
+everymap tile --z 14 --x 8800 --y 5374
+everymap attributes --bbox "52.0,13.0,52.5,13.5"
+everymap map-image --lat 52.52 --lng 13.40 --zoom 14
 ```
 
 ## Core Response Types
 
-EveryMap-RS provides enriched core types that work across all providers:
+Enriched types that work across all providers:
 
 ```rust
-// SearchResult — rich enough for most use cases
 pub struct SearchResult {
     pub id: Option<String>,
     pub coordinate: Coordinate,
-    pub address: Address,           // structured: street, city, country, etc.
+    pub address: Address,              // structured: street, city, country, etc.
     pub title: Option<String>,
     pub result_type: SearchResultType, // ExactMatch, Approximate, etc.
     pub distance: Option<f64>,
@@ -127,7 +150,6 @@ pub struct SearchResult {
     pub raw: Option<serde_json::Value>, // provider-specific escape hatch
 }
 
-// RouteResult — with steps, transport mode, bounding box
 pub struct RouteResult {
     pub distance: f64,
     pub duration: f64,
@@ -139,45 +161,43 @@ pub struct RouteResult {
 }
 ```
 
-Provider-specific rich types are still accessible via inherent methods (e.g., `HereGeocoder::discover()`).
+Provider-specific methods are available via extension traits (e.g., `HereGeocoderExt::discover()`) or inherent methods.
 
 ## Design Principles
 
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
-- **Zero-cost**: Traits use associated types, not `dyn` dispatch.
-- **TDD**: Contract tests using `wiremock` for every domain.
+- **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
+- **TDD**: 88 tests (52 unit + 31 contract + 5 error cases), all passing.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
-- **From conversions**: `From<HereAddress> for Address`, `From<HereSearchItem> for SearchResult`.
+- **From conversions**: All providers implement `From<ProviderType> for CoreType`.
 
 ## Build & Test
 
 ```bash
-# Build
-cargo build
-
-# Run all tests
-cargo test
-
-# Lint
-cargo clippy -- -D warnings
-
-# Run CLI
-cargo run -p everymap-cli -- --help
+cargo build                              # Build all crates
+cargo test                               # Run 88 tests
+cargo clippy -- -D warnings              # Lint (must pass clean)
+cargo run -p everymap-cli -- --help      # Run CLI
 ```
+
+## Adding a New Provider
+
+1. Create `everymap-providers-{name}/` with `Cargo.toml` depending on `everymap-core`
+2. Implement `Client` (thin HTTP + auth wrapper — copy `GoogleClient` as template)
+3. Implement supported domain traits (start with `Geocoder` + `Router`)
+4. Add `From<ProviderType> for CoreType` conversions
+5. Add stubs for unsupported domains returning `UnsupportedDomain`
+6. Add factory functions + dispatch in CLI `main.rs`
+7. Add provider section in CLI `config.rs`
 
 ## Future Work
 
-- Injectable HTTP client trait (custom timeout/pool/proxy)
-- everymap-cli Phase 2 (config file, table output, all domains)
-- Extension traits for provider-specific methods
-- everymap-providers-google (search + routing)
 - OAuth2 authentication provider
-- Dynamic provider registry for runtime dispatch
-- Additional provider crates (MapBox, TomTom, Google Maps)
+- MapBox and TomTom provider crates
+- Google Roads API (route matching), Static Maps API (imaging)
 - Criterion benchmarks for large response deserialization
-- Comprehensive rustdoc examples
 - CI/CD pipeline with GitHub Actions
 
 ## License

@@ -1,12 +1,19 @@
 [package]
 name = "everymap-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+
+[[bin]]
+name = "everymap"
+path = "src/main.rs"
 
 [dependencies]
 everymap-core = { path = "../everymap-core" }
 everymap-providers-here = { path = "../everymap-providers-here" }
+everymap-providers-google = { path = "../everymap-providers-google" }
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+toml = "0.8"
+directories = "5"

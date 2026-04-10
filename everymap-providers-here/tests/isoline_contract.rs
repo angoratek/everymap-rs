@@ -1,8 +1,9 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
 use wiremock::matchers::{method, path};
 use everymap_core::types::Coordinate;
-use everymap_core::domains::isoline::{IsolineRequest, IsolineProvider};
-use everymap_providers_here::domain::isoline::{HereIsoline, HereIsolineOptions, RangeType};
+use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions};
+use everymap_core::domains::isoline::RangeType as CoreRangeType;
+use everymap_providers_here::domain::isoline::HereIsoline;
 use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
 use std::sync::Arc;
@@ -30,16 +31,13 @@ async fn test_isoline_contract() {
     let client = Arc::new(HereClient::new(auth));
     let isoline_provider = HereIsoline::with_base_url(client, server.uri());
 
-    let req = IsolineRequest {
-        center: Coordinate::new(52.52, 13.405).unwrap(),
-        range: 1000.0,
-        options: HereIsolineOptions {
-            range_type: RangeType::Time,
-            ..Default::default()
-        },
+    let center = Coordinate::new(52.52, 13.405).unwrap();
+    let opts = IsolineOptions {
+        range_type: Some(CoreRangeType::Time),
+        ..Default::default()
     };
 
-    let res = isoline_provider.get_isoline(req).await.unwrap();
+    let res = isoline_provider.get_isoline(&center, 1000.0, &opts).await.unwrap();
     assert!(!res.isolines[0].polygon.is_empty());
 }
 
@@ -66,17 +64,15 @@ async fn test_isoline_with_routing_mode() {
     let client = Arc::new(HereClient::new(auth));
     let isoline_provider = HereIsoline::with_base_url(client, server.uri());
 
-    use everymap_providers_here::domain::isoline::IsolineRoutingMode;
-    let req = IsolineRequest {
-        center: Coordinate::new(52.52, 13.405).unwrap(),
-        range: 5000.0,
-        options: HereIsolineOptions {
-            range_type: RangeType::Distance,
-            routing_mode: IsolineRoutingMode::Short,
-            ..Default::default()
-        },
+    let center = Coordinate::new(52.52, 13.405).unwrap();
+    let opts = IsolineOptions {
+        range_type: Some(CoreRangeType::Distance),
+        provider_extra: Some(serde_json::json!({
+            "routing_mode": "short"
+        })),
+        ..Default::default()
     };
 
-    let res = isoline_provider.get_isoline(req).await.unwrap();
+    let res = isoline_provider.get_isoline(&center, 5000.0, &opts).await.unwrap();
     assert!(!res.isolines[0].polygon.is_empty());
 }
