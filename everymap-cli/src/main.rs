@@ -76,12 +76,12 @@ fn create_google_traffic_provider(_client: Arc<GoogleClient>) -> Box<dyn Traffic
     Box::new(everymap_providers_google::GoogleTraffic)
 }
 
-fn create_google_positioner(_client: Arc<GoogleClient>) -> Box<dyn NetworkPositionerTrait> {
-    Box::new(everymap_providers_google::GooglePositioner)
+fn create_google_positioner(client: Arc<GoogleClient>) -> Box<dyn NetworkPositionerTrait> {
+    Box::new(everymap_providers_google::GooglePositioner::new(client))
 }
 
-fn create_google_route_matcher(_client: Arc<GoogleClient>) -> Box<dyn RouteMatcher> {
-    Box::new(everymap_providers_google::GoogleRouteMatcher)
+fn create_google_route_matcher(client: Arc<GoogleClient>) -> Box<dyn RouteMatcher> {
+    Box::new(everymap_providers_google::GoogleRouteMatcher::new(client))
 }
 
 fn create_google_tour_planner(_client: Arc<GoogleClient>) -> Box<dyn TourPlanner> {
@@ -92,12 +92,12 @@ fn create_google_tile_provider(_client: Arc<GoogleClient>) -> Box<dyn TileProvid
     Box::new(everymap_providers_google::GoogleTileProvider)
 }
 
-fn create_google_attribute_provider(_client: Arc<GoogleClient>) -> Box<dyn AttributeProvider> {
-    Box::new(everymap_providers_google::GoogleAttributeProvider)
+fn create_google_attribute_provider(client: Arc<GoogleClient>) -> Box<dyn AttributeProvider> {
+    Box::new(everymap_providers_google::GoogleAttributeProvider::new(client))
 }
 
-fn create_google_image_provider(_client: Arc<GoogleClient>) -> Box<dyn MapImageProvider> {
-    Box::new(everymap_providers_google::GoogleMapImageProvider)
+fn create_google_image_provider(client: Arc<GoogleClient>) -> Box<dyn MapImageProvider> {
+    Box::new(everymap_providers_google::GoogleMapImageProvider::new(client))
 }
 
 #[derive(Parser)]
@@ -118,6 +118,10 @@ struct Cli {
     /// Output format
     #[arg(long, default_value = "json")]
     output: String,
+
+    /// Enable verbose output (show request URLs and response bodies on stderr)
+    #[arg(long, short)]
+    verbose: bool,
 
     #[command(subcommand)]
     command: Commands,
@@ -200,9 +204,21 @@ enum Commands {
     },
     /// Query road attributes
     Attributes {
-        /// Bounding box as "south,west,north,east"
+        /// Bounding box as "south,west;north,east" or "lat,lng;lat,lng"
         #[arg(long)]
         bbox: Option<String>,
+        /// Attribute layer (roads, segments, adminAreas, buildings, landmarks)
+        #[arg(long, default_value = "roads")]
+        layer: String,
+        /// Response format (json, geojson)
+        #[arg(long, default_value = "json")]
+        format: String,
+        /// Specific feature IDs to retrieve
+        #[arg(long)]
+        ids: Option<Vec<String>>,
+        /// Include specific attribute fields (comma-separated)
+        #[arg(long)]
+        include: Option<String>,
     },
     /// Get a static map image
     MapImage {
@@ -279,11 +295,15 @@ async fn main() {
 
     match cli.provider.as_str() {
         "here" => {
-            let client = Arc::new(HereClient::new(auth));
+            let mut client = HereClient::new(auth);
+            client.set_verbose(cli.verbose);
+            let client = Arc::new(client);
             run_here_commands(&cli, client, &fmt).await;
         }
         "google" => {
-            let client = Arc::new(GoogleClient::new(auth));
+            let mut client = GoogleClient::new(auth);
+            client.set_verbose(cli.verbose);
+            let client = Arc::new(client);
             run_google_commands(&cli, client, &fmt).await;
         }
         _ => unreachable!(),
@@ -498,10 +518,21 @@ async fn run_here_commands(cli: &Cli, client: Arc<HereClient>, fmt: &output::Out
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Attributes { bbox } => {
+        Commands::Attributes { bbox, layer, format, ids, include } => {
             let attr_provider = create_here_attribute_provider(client);
+            let mut provider_extra = serde_json::json!({
+                "layer": layer,
+                "format": format,
+            });
+            if let Some(ids) = ids {
+                provider_extra["ids"] = serde_json::json!(ids);
+            }
+            if let Some(include) = include {
+                provider_extra["include"] = serde_json::json!(include.split(',').collect::<Vec<_>>());
+            }
             let opts = AttributeOptions {
                 bbox: bbox.clone(),
+                provider_extra: Some(provider_extra),
                 ..Default::default()
             };
             match attr_provider.get_attributes(&opts).await {
@@ -627,7 +658,13 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
             let positioner = create_google_positioner(client);
             let opts = PositioningOptions::default();
             match positioner.get_position(&opts).await {
-                Ok(_) => unreachable!(),
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "coordinate": { "lat": res.coordinate.lat, "lng": res.coordinate.lng },
+                        "accuracy": res.accuracy,
+                        "altitude": res.altitude,
+                    }), fmt);
+                }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
@@ -639,11 +676,24 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::MatchRoute { .. } => {
+        Commands::MatchRoute { trace } => {
             let matcher = create_google_route_matcher(client);
+            let points: Vec<Coordinate> = trace.split(';')
+                .filter_map(|p| parse_coordinate(p.trim()).ok())
+                .collect();
+            if points.is_empty() {
+                eprintln!("Error: No valid coordinates in trace. Use format: 'lat,lng;lat,lng'");
+                std::process::exit(1);
+            }
             let opts = MatchingOptions::default();
-            match matcher.match_route(&[], &opts).await {
-                Ok(_) => unreachable!(),
+            match matcher.match_route(&points, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "matched_points": res.matched_points.len(),
+                        "distance_m": res.distance,
+                        "duration_s": res.duration,
+                    }), fmt);
+                }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
@@ -663,23 +713,38 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Attributes { bbox } => {
+        Commands::Attributes { bbox, layer: _, format: _, ids, include: _ } => {
             let attr_provider = create_google_attribute_provider(client);
+            let mut provider_extra = serde_json::json!({});
+            if let Some(ids) = ids {
+                provider_extra["place_ids"] = serde_json::json!(ids);
+            }
             let opts = AttributeOptions {
                 bbox: bbox.clone(),
+                provider_extra: Some(provider_extra),
                 ..Default::default()
             };
             match attr_provider.get_attributes(&opts).await {
-                Ok(_) => unreachable!(),
+                Ok(res) => {
+                    print_output(&res.data, fmt);
+                }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::MapImage { lat, lng, zoom } => {
             let image_provider = create_google_image_provider(client);
+            let center = match Coordinate::new(*lat, *lng) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("Invalid coordinates: {}", e);
+                    std::process::exit(1);
+                }
+            };
             let opts = ImageOptions::default();
-            let center = Coordinate::new(*lat, *lng).unwrap();
             match image_provider.get_image(&center, *zoom, (800, 600), &opts).await {
-                Ok(_) => unreachable!(),
+                Ok(res) => {
+                    println!("Retrieved map image ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }

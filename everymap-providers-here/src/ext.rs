@@ -92,6 +92,56 @@ pub trait HereTourPlannerExt: Send + Sync {
     async fn health(&self) -> EveryMapResult<super::domain::tour::HealthResponse>;
 }
 
+/// Extension trait for HERE-specific attribute capabilities.
+///
+/// Provides typed access to the Map Attributes API v8 layers.
+#[async_trait]
+pub trait HereAttributeExt: Send + Sync {
+    /// Get road attributes for a bounding box.
+    async fn get_road_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse>;
+
+    /// Get segment (topology) attributes for a bounding box.
+    async fn get_segment_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<super::domain::attributes::HereSegmentAttributesResponse>;
+
+    /// Get administrative area attributes for a bounding box.
+    async fn get_admin_areas(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereAdminAreasResponse>;
+
+    /// Get building attributes for a bounding box.
+    async fn get_buildings(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereBuildingsResponse>;
+
+    /// Get landmark attributes for a bounding box.
+    async fn get_landmarks(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereLandmarksResponse>;
+
+    /// Get road attributes by specific feature IDs.
+    async fn get_road_attributes_by_ids(
+        &self,
+        ids: &[String],
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse>;
+
+    /// Get speed limits for a bounding area (convenience method).
+    async fn get_speed_limits(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse>;
+}
+
 // --- Extension trait implementations ---
 
 #[async_trait]
@@ -182,5 +232,59 @@ impl HereTourPlannerExt for super::domain::tour::HereTourPlanner {
 
     async fn health(&self) -> EveryMapResult<super::domain::tour::HealthResponse> {
         self.health().await
+    }
+}
+
+#[async_trait]
+impl HereAttributeExt for super::domain::attributes::HereAttributeProvider {
+    async fn get_road_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse> {
+        self.get_road_attributes(bbox, includes).await
+    }
+
+    async fn get_segment_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<super::domain::attributes::HereSegmentAttributesResponse> {
+        self.get_segment_attributes(bbox, includes).await
+    }
+
+    async fn get_admin_areas(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereAdminAreasResponse> {
+        self.get_admin_areas(bbox).await
+    }
+
+    async fn get_buildings(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereBuildingsResponse> {
+        self.get_buildings(bbox).await
+    }
+
+    async fn get_landmarks(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereLandmarksResponse> {
+        self.get_landmarks(bbox).await
+    }
+
+    async fn get_road_attributes_by_ids(
+        &self,
+        ids: &[String],
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse> {
+        self.get_road_attributes_by_ids(ids).await
+    }
+
+    async fn get_speed_limits(
+        &self,
+        bbox: &str,
+    ) -> EveryMapResult<super::domain::attributes::HereRoadAttributesResponse> {
+        self.get_speed_limits(bbox).await
     }
 }

@@ -293,8 +293,7 @@ impl IsolineProvider for HereIsoline {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereIsolineLegacyResponse = response.json().await?;
+        let here_res: HereIsolineLegacyResponse = self.client.request_json(builder).await?;
 
         let isolines: Vec<IsolineResult> = here_res.isolines.into_iter()
             .map(IsolineResult::from)

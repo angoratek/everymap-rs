@@ -19,8 +19,8 @@ impl From<HereRoute> for RouteResult {
         let section = route.sections.into_iter().next();
         let (distance, duration, geometry, steps) = match &section {
             Some(s) => {
-                let dist = s.summary.length.unwrap_or(0.0);
-                let dur = s.summary.duration.unwrap_or(0.0);
+                let dist = s.summary.as_ref().and_then(|sum| sum.length).unwrap_or(0.0);
+                let dur = s.summary.as_ref().and_then(|sum| sum.duration).unwrap_or(0.0);
                 let geom = s.polyline.as_ref()
                     .and_then(|p| p.polyline.as_ref())
                     .map(|encoded| {
@@ -56,8 +56,8 @@ impl From<HereRoute> for RouteResult {
 
 impl From<HereRouteSection> for RouteResult {
     fn from(section: HereRouteSection) -> Self {
-        let distance = section.summary.length.unwrap_or(0.0);
-        let duration = section.summary.duration.unwrap_or(0.0);
+        let distance = section.summary.as_ref().and_then(|s| s.length).unwrap_or(0.0);
+        let duration = section.summary.as_ref().and_then(|s| s.duration).unwrap_or(0.0);
         let geometry = section.polyline.as_ref()
             .and_then(|p| p.polyline.as_ref())
             .map(|encoded| {
@@ -505,8 +505,7 @@ impl Router for HereRouter {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereRouteApiResponse = response.json().await?;
+        let here_res: HereRouteApiResponse = self.client.request_json(builder).await?;
 
         let routes: Vec<RouteResult> = here_res.routes.into_iter()
             .map(RouteResult::from)

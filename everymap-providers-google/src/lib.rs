@@ -20,8 +20,30 @@ pub use domain::routing::{
     GoogleDistance, GoogleDuration, GooglePolyline, GoogleGeocodedWaypoint,
 };
 
+// Matching (Roads API snapToRoads)
+pub use domain::matching::{
+    GoogleRouteMatcher,
+    GoogleSnapResponse, GoogleSnappedPoint, GoogleLocation, GoogleMatchOptions,
+};
+
+// Imaging (Static Maps API)
+pub use domain::imaging::GoogleMapImageProvider;
+
+// Positioning (Geolocation API)
+pub use domain::positioning::{
+    GooglePositioner,
+    GooglePositioningOptions, GoogleWifiAccessPoint, GoogleCellTower,
+    GoogleGeolocationResponse, GoogleGeolocationLocation,
+};
+
+// Attributes (Roads API speedLimits)
+pub use domain::attributes::{
+    GoogleAttributeProvider,
+    GoogleAttributeOptions, GoogleSpeedLimitsResponse, GoogleSpeedLimit,
+    GoogleSnappedSpeedPoint, GoogleSpeedLocation,
+};
+
 // Unsupported domains (return UnsupportedDomain error)
 pub use domain::unsupported::{
-    GoogleIsoline, GoogleTraffic, GooglePositioner, GoogleRouteMatcher,
-    GoogleTourPlanner, GoogleTileProvider, GoogleAttributeProvider, GoogleMapImageProvider,
+    GoogleIsoline, GoogleTraffic, GoogleTourPlanner, GoogleTileProvider,
 };

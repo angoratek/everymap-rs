@@ -33,7 +33,7 @@ pub struct HereRouteSection {
     #[serde(default)]
     pub arrival: Option<HerePlace>,
     #[serde(default)]
-    pub summary: HereRouteSummary,
+    pub summary: Option<HereRouteSummary>,
     #[serde(default)]
     pub polyline: Option<HerePolylineData>,
     #[serde(default)]

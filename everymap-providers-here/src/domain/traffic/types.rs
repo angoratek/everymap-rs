@@ -88,9 +88,11 @@ pub struct HereTrafficLocation {
 }
 
 /// A shape point in a traffic location.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HereTrafficShapePoint {
+    #[serde(default)]
     pub lat: f64,
+    #[serde(default)]
     pub lng: f64,
 }
 

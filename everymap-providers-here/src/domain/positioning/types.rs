@@ -150,8 +150,10 @@ pub struct PositioningResponse {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct PositionLocation {
     /// Latitude in degrees.
+    #[serde(default)]
     pub lat: f64,
     /// Longitude in degrees.
+    #[serde(default)]
     pub lng: f64,
     /// Accuracy of the position in meters.
     #[serde(default)]

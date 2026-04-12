@@ -4,6 +4,7 @@ members = [
     "everymap-providers-here",
     "everymap-providers-google",
     "everymap-cli",
+    "everymap-providers-tomtom",
 ]
 resolver = "2"
 
@@ -16,3 +17,4 @@ reqwest = { version = "0.12", features = ["json"] }
 thiserror = "1.0"
 futures = "0.3"
 flexpolyline = "1.0"
+wiremock = "0.6"

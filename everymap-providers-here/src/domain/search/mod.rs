@@ -94,8 +94,7 @@ impl HereGeocoder {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereDiscoverResponse = response.json().await?;
+        let here_res: HereDiscoverResponse = self.client.request_json(builder).await?;
 
         Ok(here_res)
     }
@@ -113,8 +112,7 @@ impl HereGeocoder {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereAutosuggestResponse = response.json().await?;
+        let here_res: HereAutosuggestResponse = self.client.request_json(builder).await?;
 
         Ok(here_res)
     }
@@ -498,8 +496,7 @@ impl Geocoder for HereGeocoder {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereSearchResponse = response.json().await?;
+        let here_res: HereSearchResponse = self.client.request_json(builder).await?;
 
         let items = here_res.items.into_iter().map(SearchResult::from).collect();
 
@@ -518,8 +515,7 @@ impl Geocoder for HereGeocoder {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereSearchResponse = response.json().await?;
+        let here_res: HereSearchResponse = self.client.request_json(builder).await?;
 
         let items = here_res.items.into_iter().map(SearchResult::from).collect();
 

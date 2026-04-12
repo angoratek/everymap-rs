@@ -50,6 +50,93 @@ impl HereAttributeProvider {
     pub fn with_base_url(client: Arc<HereClient>, base_url: String) -> Self {
         Self { client, base_url }
     }
+
+    /// Get road attributes for a bounding box.
+    /// Convenience method that returns typed road attribute data.
+    pub async fn get_road_attributes(&self, bbox: &str, includes: Option<Vec<String>>) -> EveryMapResult<HereRoadAttributesResponse> {
+        let url = format!("{}/attributes/roads", self.base_url);
+        let mut params: Vec<(String, String)> = vec![("format".to_string(), "json".to_string())];
+        params.push(("bbox".to_string(), bbox.to_string()));
+        if let Some(inc) = includes {
+            params.push(("include".to_string(), inc.join(",")));
+        }
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get segment (topology) attributes for a bounding box.
+    pub async fn get_segment_attributes(&self, bbox: &str, includes: Option<Vec<String>>) -> EveryMapResult<HereSegmentAttributesResponse> {
+        let url = format!("{}/attributes/segments", self.base_url);
+        let mut params: Vec<(String, String)> = vec![("format".to_string(), "json".to_string())];
+        params.push(("bbox".to_string(), bbox.to_string()));
+        if let Some(inc) = includes {
+            params.push(("include".to_string(), inc.join(",")));
+        }
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get administrative area attributes for a bounding box.
+    pub async fn get_admin_areas(&self, bbox: &str) -> EveryMapResult<HereAdminAreasResponse> {
+        let url = format!("{}/attributes/adminAreas", self.base_url);
+        let mut params: Vec<(String, String)> = vec![("format".to_string(), "json".to_string())];
+        params.push(("bbox".to_string(), bbox.to_string()));
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get building attributes for a bounding box.
+    pub async fn get_buildings(&self, bbox: &str) -> EveryMapResult<HereBuildingsResponse> {
+        let url = format!("{}/attributes/buildings", self.base_url);
+        let mut params: Vec<(String, String)> = vec![("format".to_string(), "json".to_string())];
+        params.push(("bbox".to_string(), bbox.to_string()));
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get landmark attributes for a bounding box.
+    pub async fn get_landmarks(&self, bbox: &str) -> EveryMapResult<HereLandmarksResponse> {
+        let url = format!("{}/attributes/landmarks", self.base_url);
+        let mut params: Vec<(String, String)> = vec![("format".to_string(), "json".to_string())];
+        params.push(("bbox".to_string(), bbox.to_string()));
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get road attributes by specific feature IDs.
+    pub async fn get_road_attributes_by_ids(&self, ids: &[String]) -> EveryMapResult<HereRoadAttributesResponse> {
+        let url = format!("{}/attributes/roads", self.base_url);
+        let params: Vec<(String, String)> = vec![
+            ("format".to_string(), "json".to_string()),
+            ("ids".to_string(), ids.join(",")),
+        ];
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+        self.client.request_json(builder).await
+    }
+
+    /// Get speed limits for a bounding area (convenience method).
+    pub async fn get_speed_limits(&self, bbox: &str) -> EveryMapResult<HereRoadAttributesResponse> {
+        self.get_road_attributes(bbox, Some(vec![
+            "LINK_ID".to_string(),
+            "SPEED_LIMIT".to_string(),
+            "SPEED_LIMITS_BY_DIRECTION".to_string(),
+            "FUNCTIONAL_CLASS".to_string(),
+            "TRAVEL_DIRECTION".to_string(),
+            "NAME".to_string(),
+        ])).await
+    }
 }
 
 /// Convert core `AttributeOptions` to HERE-specific `HereAttributeOptions`,
@@ -149,8 +236,7 @@ impl AttributeProvider for HereAttributeProvider {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let data: serde_json::Value = response.json().await?;
+        let data: serde_json::Value = self.client.request_json(builder).await?;
 
         Ok(AttributeResponse { data })
     }

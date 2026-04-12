@@ -1,12 +1,8 @@
 use async_trait::async_trait;
 use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineResponse};
 use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions, TrafficResponse};
-use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions, PositioningResponse};
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse};
 use everymap_core::domains::tour::{TourPlanner, TourOptions, TourResponse};
 use everymap_core::domains::tiling::{TileProvider, TileOptions, TileResponse};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions, AttributeResponse};
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
 use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
 
@@ -30,26 +26,6 @@ impl TrafficProvider for GoogleTraffic {
     }
 }
 
-// Positioning — Google Geolocation API exists but is separate and paid
-pub struct GooglePositioner;
-
-#[async_trait]
-impl NetworkPositioner for GooglePositioner {
-    async fn get_position(&self, _options: &PositioningOptions) -> everymap_core::error::EveryMapResult<PositioningResponse> {
-        Err(EveryMapError::unsupported_domain("google", "positioning"))
-    }
-}
-
-// Matching — Google Roads API (snapToRoads) exists but is limited
-pub struct GoogleRouteMatcher;
-
-#[async_trait]
-impl RouteMatcher for GoogleRouteMatcher {
-    async fn match_route(&self, _points: &[Coordinate], _options: &MatchingOptions) -> everymap_core::error::EveryMapResult<TraceResponse> {
-        Err(EveryMapError::unsupported_domain("google", "matching"))
-    }
-}
-
 // Tour — Google doesn't have a tour optimization API
 pub struct GoogleTourPlanner;
 
@@ -67,25 +43,5 @@ pub struct GoogleTileProvider;
 impl TileProvider for GoogleTileProvider {
     async fn get_tile(&self, _z: u32, _x: u32, _y: u32, _options: &TileOptions) -> everymap_core::error::EveryMapResult<TileResponse> {
         Err(EveryMapError::unsupported_domain("google", "tiling"))
-    }
-}
-
-// Attributes — Google doesn't have a road attributes API
-pub struct GoogleAttributeProvider;
-
-#[async_trait]
-impl AttributeProvider for GoogleAttributeProvider {
-    async fn get_attributes(&self, _options: &AttributeOptions) -> everymap_core::error::EveryMapResult<AttributeResponse> {
-        Err(EveryMapError::unsupported_domain("google", "attributes"))
-    }
-}
-
-// Imaging — Google Static Maps API (partial support, future)
-pub struct GoogleMapImageProvider;
-
-#[async_trait]
-impl MapImageProvider for GoogleMapImageProvider {
-    async fn get_image(&self, _center: &Coordinate, _zoom: u32, _size: (u32, u32), _options: &ImageOptions) -> everymap_core::error::EveryMapResult<ImageResponse> {
-        Err(EveryMapError::unsupported_domain("google", "imaging"))
     }
 }

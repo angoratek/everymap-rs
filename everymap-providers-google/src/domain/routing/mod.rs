@@ -195,8 +195,7 @@ impl Router for GoogleRouter {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let google_res: GoogleDirectionsResponse = response.json().await?;
+        let google_res: GoogleDirectionsResponse = self.client.request_json(builder).await?;
 
         if google_res.status != "OK" && google_res.status != "ZERO_RESULTS" {
             return Err(EveryMapError::provider(

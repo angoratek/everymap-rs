@@ -489,7 +489,9 @@ pub enum MultiObjective {
 /// Location with lat/lng.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TourLocation {
+    #[serde(default)]
     pub lat: f64,
+    #[serde(default)]
     pub lng: f64,
 }
 

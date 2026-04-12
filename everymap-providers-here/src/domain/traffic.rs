@@ -86,8 +86,7 @@ impl HereTraffic {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereFlowResponse = response.json().await?;
+        let here_res: HereFlowResponse = self.client.request_json(builder).await?;
 
         Ok(here_res)
     }
@@ -154,8 +153,7 @@ impl HereTraffic {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereIncidentsResponse = response.json().await?;
+        let here_res: HereIncidentsResponse = self.client.request_json(builder).await?;
 
         Ok(here_res)
     }

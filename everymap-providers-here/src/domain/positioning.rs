@@ -61,8 +61,7 @@ impl HerePositioner {
         let builder = self.client.build_request(reqwest::Method::POST, &url)
             .json(&body);
 
-        let response = self.client.request(builder).await?;
-        let result: PositioningResponse = response.json().await?;
+        let result: PositioningResponse = self.client.request_json(builder).await?;
         Ok(result)
     }
 }

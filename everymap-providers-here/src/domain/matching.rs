@@ -547,8 +547,7 @@ impl RouteMatcher for HereRouteMatcher {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let response = self.client.request(builder).await?;
-        let here_res: HereLegacyMatchResponse = response.json().await?;
+        let here_res: HereLegacyMatchResponse = self.client.request_json(builder).await?;
 
         let matched_points = here_res.trace.into_iter()
             .map(|p| MatchedPoint {

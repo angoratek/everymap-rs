@@ -74,8 +74,7 @@ impl HereTourPlanner {
         let builder = self.client.build_request(reqwest::Method::POST, &url)
             .json(&problem);
 
-        let response = self.client.request(builder).await?;
-        let solution: TourSolution = response.json().await?;
+        let solution: TourSolution = self.client.request_json(builder).await?;
         Ok(solution)
     }
 
@@ -86,8 +85,7 @@ impl HereTourPlanner {
         let builder = self.client.build_request(reqwest::Method::POST, &url)
             .json(&problem);
 
-        let response = self.client.request(builder).await?;
-        let result: AsyncSubmissionResult = response.json().await?;
+        let result: AsyncSubmissionResult = self.client.request_json(builder).await?;
         Ok(result)
     }
 
@@ -96,8 +94,7 @@ impl HereTourPlanner {
         let url = format!("{}/status/{}", self.base_url, status_id);
         let builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        let response = self.client.request(builder).await?;
-        let status: AsyncJobStatus = response.json().await?;
+        let status: AsyncJobStatus = self.client.request_json(builder).await?;
         Ok(status)
     }
 
@@ -106,8 +103,7 @@ impl HereTourPlanner {
         let url = format!("{}/problems/{}/solution", self.base_url, problem_id);
         let builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        let response = self.client.request(builder).await?;
-        let solution: TourSolution = response.json().await?;
+        let solution: TourSolution = self.client.request_json(builder).await?;
         Ok(solution)
     }
 
@@ -116,8 +112,7 @@ impl HereTourPlanner {
         let url = format!("{}/problems/{}/cancel", self.base_url, problem_id);
         let builder = self.client.build_request(reqwest::Method::PUT, &url);
 
-        let response = self.client.request(builder).await?;
-        let status: CancellationStatus = response.json().await?;
+        let status: CancellationStatus = self.client.request_json(builder).await?;
         Ok(status)
     }
 
@@ -126,8 +121,7 @@ impl HereTourPlanner {
         let url = format!("{}/version", self.base_url);
         let builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        let response = self.client.request(builder).await?;
-        let version: VersionResponse = response.json().await?;
+        let version: VersionResponse = self.client.request_json(builder).await?;
         Ok(version)
     }
 
@@ -136,8 +130,7 @@ impl HereTourPlanner {
         let url = format!("{}/health", self.base_url);
         let builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        let response = self.client.request(builder).await?;
-        let health: HealthResponse = response.json().await?;
+        let health: HealthResponse = self.client.request_json(builder).await?;
         Ok(health)
     }
 }

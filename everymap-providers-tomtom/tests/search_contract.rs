@@ -1,0 +1,87 @@
+use wiremock::{MockServer, Mock, ResponseTemplate};
+use wiremock::matchers::{method, path};
+use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::TomTomGeocoder;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_core::auth::ApiKeyProvider;
+use std::sync::Arc;
+
+#[tokio::test]
+async fn test_geocode_contract() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "results": [
+            {
+                "position": { "lat": 52.5200, "lon": 13.4050 },
+                "address": {
+                    "freeformAddress": "Brandenburg Gate, Berlin",
+                    "municipality": "Berlin",
+                    "country": "Germany",
+                    "countryCode": "DEU"
+                },
+                "resultType": "Point Address",
+                "score": 0.95,
+                "id": "tomtom_place_1"
+            }
+        ],
+        "summary": { "numResults": 1, "query": "Brandenburg Gate" }
+    });
+
+    Mock::given(method("GET"))
+        .and(path("/search/2/geocode/Brandenburg+Gate.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let client = Arc::new(TomTomClient::new(auth));
+    let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
+
+    let opts = GeocodeOptions::default();
+    let res = geocoder.geocode("Brandenburg Gate", &opts).await.unwrap();
+
+    assert_eq!(res.items.len(), 1);
+    assert_eq!(res.items[0].coordinate.lat, 52.5200);
+    assert_eq!(res.items[0].coordinate.lng, 13.4050);
+}
+
+#[tokio::test]
+async fn test_reverse_geocode_contract() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "results": [
+            {
+                "position": { "lat": 52.5200, "lon": 13.4050 },
+                "address": {
+                    "freeformAddress": "Pariser Platz 1, 10117 Berlin",
+                    "municipality": "Berlin",
+                    "country": "Germany"
+                },
+                "resultType": "Point Address",
+                "dist": 12.5,
+                "id": "tomtom_address_1"
+            }
+        ],
+        "summary": { "numResults": 1, "queryType": "ReverseGeometry" }
+    });
+
+    Mock::given(method("GET"))
+        .and(path("/search/2/reverseGeocode/52.52,13.405.json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let client = Arc::new(TomTomClient::new(auth));
+    let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
+
+    let coord = Coordinate::new(52.52, 13.405).unwrap();
+    let opts = ReverseGeocodeOptions::default();
+    let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
+
+    assert_eq!(res.items.len(), 1);
+    assert_eq!(res.items[0].distance, Some(12.5));
+}

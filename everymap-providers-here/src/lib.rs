@@ -56,6 +56,13 @@ pub use domain::positioning::{
 };
 pub use domain::attributes::{
     HereAttributeProvider, HereAttributeOptions, AttributeLayer, AttributeFormat,
+    HereRoadFeature, HereSegmentFeature, HereAdminAreaFeature, HereBuildingFeature,
+    HereLandmarkFeature,
+    HereRoadAttributeFeature, HereSegmentAttributeFeature,
+    HereAdminAreaAttributeFeature, HereBuildingAttributeFeature, HereLandmarkAttributeFeature,
+    HereRoadAttributesResponse, HereSegmentAttributesResponse,
+    HereAdminAreasResponse, HereBuildingsResponse, HereLandmarksResponse,
+    DirectionalSpeedLimit, LocalizedText,
 };
 pub use domain::imaging::{
     HereMapImageProvider, HereImageOptions, ImageFormat, MapStyle,
@@ -63,5 +70,5 @@ pub use domain::imaging::{
 
 // Extension traits for HERE-specific capabilities
 pub use ext::{
-    HereGeocoderExt, HereTrafficExt, HerePositionerExt, HereTourPlannerExt,
+    HereGeocoderExt, HereTrafficExt, HerePositionerExt, HereTourPlannerExt, HereAttributeExt,
 };

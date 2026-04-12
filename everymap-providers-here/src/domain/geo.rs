@@ -5,9 +5,11 @@ use serde::{Deserialize, Serialize};
 ///
 /// This is a shared type used across multiple HERE API domains
 /// (search, routing, traffic, etc.) for deserializing lat/lng pairs.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HereLatLng {
+    #[serde(default)]
     pub lat: f64,
+    #[serde(default)]
     pub lng: f64,
 }
 
