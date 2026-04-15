@@ -9,6 +9,7 @@ pub mod tiling;
 pub mod positioning;
 pub mod attributes;
 pub mod imaging;
+pub mod unsupported;
 
 // Shared HERE types
 pub use geo::HereLatLng;

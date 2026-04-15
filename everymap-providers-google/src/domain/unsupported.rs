@@ -3,6 +3,9 @@ use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineRe
 use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions, TrafficResponse};
 use everymap_core::domains::tour::{TourPlanner, TourOptions, TourResponse};
 use everymap_core::domains::tiling::{TileProvider, TileOptions, TileResponse};
+use everymap_core::domains::geofencing::{GeofenceProvider, GeofenceOptions, GeofenceCreateOptions, GeofenceResponse, GeofenceResult};
+use everymap_core::domains::tracking::{TripTracker, TripCreateOptions, TripUpdateOptions, TripResult};
+use everymap_core::domains::fraud::{FraudDetector, FraudCheckOptions, FraudResult};
 use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
 
@@ -43,5 +46,55 @@ pub struct GoogleTileProvider;
 impl TileProvider for GoogleTileProvider {
     async fn get_tile(&self, _z: u32, _x: u32, _y: u32, _options: &TileOptions) -> everymap_core::error::EveryMapResult<TileResponse> {
         Err(EveryMapError::unsupported_domain("google", "tiling"))
+    }
+}
+
+// Geofencing — Google doesn't have a geofencing API
+pub struct GoogleGeofenceProvider;
+
+#[async_trait]
+impl GeofenceProvider for GoogleGeofenceProvider {
+    async fn search_geofences(&self, _options: &GeofenceOptions) -> everymap_core::error::EveryMapResult<GeofenceResponse> {
+        Err(EveryMapError::unsupported_domain("google", "geofencing"))
+    }
+
+    async fn create_geofence(&self, _options: &GeofenceCreateOptions) -> everymap_core::error::EveryMapResult<GeofenceResult> {
+        Err(EveryMapError::unsupported_domain("google", "geofencing"))
+    }
+
+    async fn get_geofence(&self, _id: &str) -> everymap_core::error::EveryMapResult<GeofenceResult> {
+        Err(EveryMapError::unsupported_domain("google", "geofencing"))
+    }
+
+    async fn delete_geofence(&self, _id: &str) -> everymap_core::error::EveryMapResult<()> {
+        Err(EveryMapError::unsupported_domain("google", "geofencing"))
+    }
+}
+
+// Trip Tracking — Google doesn't have a trip tracking API
+pub struct GoogleTripTracker;
+
+#[async_trait]
+impl TripTracker for GoogleTripTracker {
+    async fn create_trip(&self, _options: &TripCreateOptions) -> everymap_core::error::EveryMapResult<TripResult> {
+        Err(EveryMapError::unsupported_domain("google", "tracking"))
+    }
+
+    async fn update_trip(&self, _options: &TripUpdateOptions) -> everymap_core::error::EveryMapResult<TripResult> {
+        Err(EveryMapError::unsupported_domain("google", "tracking"))
+    }
+
+    async fn get_trip(&self, _trip_id: &str) -> everymap_core::error::EveryMapResult<TripResult> {
+        Err(EveryMapError::unsupported_domain("google", "tracking"))
+    }
+}
+
+// Fraud Detection — Google doesn't have a fraud detection API
+pub struct GoogleFraudDetector;
+
+#[async_trait]
+impl FraudDetector for GoogleFraudDetector {
+    async fn check_fraud(&self, _options: &FraudCheckOptions) -> everymap_core::error::EveryMapResult<FraudResult> {
+        Err(EveryMapError::unsupported_domain("google", "fraud"))
     }
 }

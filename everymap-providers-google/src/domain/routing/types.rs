@@ -12,11 +12,11 @@ pub struct GoogleDirectionsResponse {
     pub routes: Vec<GoogleRoute>,
     #[serde(default)]
     pub status: String,
-    #[serde(default, rename = "error_message")]
+    #[serde(default, rename = "errorMessage")]
     pub error_message: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "geocodedWaypoints")]
     pub geocoded_waypoints: Vec<GoogleGeocodedWaypoint>,
-    #[serde(default)]
+    #[serde(default, rename = "availableTravelModes")]
     pub available_travel_modes: Vec<String>,
 }
 
@@ -27,7 +27,7 @@ pub struct GoogleRoute {
     pub summary: Option<String>,
     #[serde(default)]
     pub legs: Vec<GoogleRouteLeg>,
-    #[serde(default, rename = "overview_polyline")]
+    #[serde(default, rename = "overviewPolyline")]
     pub overview_polyline: Option<GooglePolyline>,
     #[serde(default)]
     pub bounds: Option<GoogleBounds>,
@@ -35,7 +35,7 @@ pub struct GoogleRoute {
     pub copyrights: Option<String>,
     #[serde(default)]
     pub warnings: Vec<String>,
-    #[serde(default)]
+    #[serde(default, rename = "waypointOrder")]
     pub waypoint_order: Vec<u32>,
 }
 
@@ -46,15 +46,15 @@ pub struct GoogleRouteLeg {
     pub distance: Option<GoogleDistance>,
     #[serde(default)]
     pub duration: Option<GoogleDuration>,
-    #[serde(default, rename = "duration_in_traffic")]
+    #[serde(default, rename = "durationInTraffic")]
     pub duration_in_traffic: Option<GoogleDuration>,
-    #[serde(default, rename = "start_location")]
+    #[serde(default, rename = "startLocation")]
     pub start_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "end_location")]
+    #[serde(default, rename = "endLocation")]
     pub end_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "start_address")]
+    #[serde(default, rename = "startAddress")]
     pub start_address: Option<String>,
-    #[serde(default, rename = "end_address")]
+    #[serde(default, rename = "endAddress")]
     pub end_address: Option<String>,
     #[serde(default)]
     pub steps: Vec<GoogleRouteStep>,
@@ -67,17 +67,17 @@ pub struct GoogleRouteStep {
     pub distance: Option<GoogleDistance>,
     #[serde(default)]
     pub duration: Option<GoogleDuration>,
-    #[serde(default, rename = "start_location")]
+    #[serde(default, rename = "startLocation")]
     pub start_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "end_location")]
+    #[serde(default, rename = "endLocation")]
     pub end_location: Option<GoogleLatLng>,
-    #[serde(default)]
+    #[serde(default, rename = "htmlInstructions")]
     pub html_instructions: Option<String>,
     #[serde(default)]
     pub maneuver: Option<String>,
     #[serde(default)]
     pub polyline: Option<GooglePolyline>,
-    #[serde(default, rename = "travel_mode")]
+    #[serde(default, rename = "travelMode")]
     pub travel_mode: Option<String>,
 }
 
@@ -104,9 +104,9 @@ pub struct GooglePolyline {
 /// Geocoded waypoint information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GoogleGeocodedWaypoint {
-    #[serde(default, rename = "geocoder_status")]
+    #[serde(default, rename = "geocoderStatus")]
     pub geocoder_status: Option<String>,
-    #[serde(default, rename = "place_id")]
+    #[serde(default, rename = "placeId")]
     pub place_id: Option<String>,
     #[serde(default)]
     pub types: Vec<String>,

@@ -1,0 +1,61 @@
+use async_trait::async_trait;
+use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
+use everymap_core::error::EveryMapResult;
+use everymap_core::types::Coordinate;
+use crate::client::MapBoxClient;
+use std::sync::Arc;
+
+const MAP_BASE_URL: &str = "https://api.mapbox.com";
+
+/// Implementation of MapImageProvider for MapBox Static Images API.
+pub struct MapBoxMapImageProvider {
+    pub(crate) client: Arc<MapBoxClient>,
+    pub(crate) base_url: String,
+}
+
+impl MapBoxMapImageProvider {
+    pub fn new(client: Arc<MapBoxClient>) -> Self {
+        Self {
+            client,
+            base_url: MAP_BASE_URL.to_string(),
+        }
+    }
+
+    pub fn with_base_url(client: Arc<MapBoxClient>, base_url: String) -> Self {
+        Self { client, base_url }
+    }
+}
+
+#[async_trait]
+impl MapImageProvider for MapBoxMapImageProvider {
+    async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
+        let style = options.provider_extra.as_ref()
+            .and_then(|e| e.get("style")).and_then(|v| v.as_str()).unwrap_or("mapbox/streets-v12");
+        let format = options.format.as_deref().unwrap_or("png");
+
+        // Build the full style URL: /styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom}/{width}x{height}@2x
+        let url = format!(
+            "{}/styles/v1/{}/static/{},{},{}/{:}x{:}@2x.{}",
+            self.base_url, style, center.lng, center.lat, zoom, size.0, size.1, format
+        );
+
+        let mut params: Vec<(&str, String)> = Vec::new();
+        if let Some(lang) = &options.language {
+            params.push(("language", lang.clone()));
+        }
+
+        let builder = self.client.build_request(reqwest::Method::GET, &url)
+            .query(&params);
+
+        let response = self.client.request(builder).await?;
+
+        let content_type = response.headers()
+            .get("content-type")
+            .and_then(|v| v.to_str().ok())
+            .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());
+
+        let data = response.bytes().await?.to_vec();
+
+        Ok(ImageResponse { data, content_type })
+    }
+}

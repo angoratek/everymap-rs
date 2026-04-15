@@ -1,0 +1,30 @@
+# Build artifacts (8.7GB+)
+target/
+
+# Lockfile (auto-generated, large, no value for context)
+Cargo.lock
+
+# Secrets and environment files
+.env
+.env.*
+!.env.example
+
+# Temp/planning files
+tmp/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Rust backup files
+**/*.rs.bk
+
+# Claude Code internal state
+.claude/

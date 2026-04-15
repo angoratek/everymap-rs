@@ -1,4 +1,18 @@
 use serde::{Deserialize, Serialize};
+use everymap_core::domains::matching::MatchedPoint;
+use everymap_core::types::Coordinate;
+
+impl From<TomTomSnapPoint> for MatchedPoint {
+    fn from(sp: TomTomSnapPoint) -> Self {
+        MatchedPoint {
+            coordinate: sp.coordinate.map(|c| Coordinate::new(c.latitude, c.longitude)
+                .unwrap_or(Coordinate::ORIGIN))
+                .unwrap_or(Coordinate::ORIGIN),
+            confidence: None,
+            road_name: None,
+        }
+    }
+}
 
 /// Response from TomTom Snap to Roads API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -14,7 +28,7 @@ pub struct TomTomSnapPoint {
     pub coordinate: Option<TomTomSnapCoordinate>,
     #[serde(default, rename = "originalIndex")]
     pub original_index: Option<u32>,
-    #[serde(default)]
+    #[serde(default, rename = "routeOffset")]
     pub route_offset: Option<f64>,
 }
 

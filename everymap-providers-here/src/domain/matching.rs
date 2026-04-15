@@ -111,8 +111,8 @@ pub struct HereMatchingOptions {
 
 /// Implementation of RouteMatcher for HERE Technologies.
 pub struct HereRouteMatcher {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereRouteMatcher {
@@ -152,7 +152,7 @@ impl From<HereMatchedPoint> for MatchedPoint {
             coordinate: Coordinate::new(
                 p.lat.unwrap_or(0.0),
                 p.lng.unwrap_or(0.0),
-            ).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+            ).unwrap_or(Coordinate::ORIGIN),
             confidence: p.point_match_probability,
             road_name: None,
         }
@@ -436,10 +436,10 @@ impl RouteMatcher for HereRouteMatcher {
         // Match mode
         add_option(&mut params, "routeMatch", opts.route_match);
         if let Some(mode) = &opts.mode {
-            params.push(("mode".to_string(), serde_json::to_value(mode).unwrap().as_str().unwrap().to_string()));
+            params.push(("mode".to_string(), crate::util::enum_as_str(mode)));
         }
         if let Some(legal) = &opts.legal {
-            params.push(("legal".to_string(), serde_json::to_value(legal).unwrap().as_str().unwrap().to_string()));
+            params.push(("legal".to_string(), crate::util::enum_as_str(legal)));
         }
         add_option(&mut params, "traverseGates", opts.traverse_gates);
         add_option(&mut params, "oneway", opts.oneway);
@@ -461,7 +461,7 @@ impl RouteMatcher for HereRouteMatcher {
         add_option(&mut params, "vehicleNumberAxles", opts.vehicle_number_axles);
         add_option(&mut params, "trailerNumberAxles", opts.trailer_number_axles);
         if let Some(tt) = &opts.trailer_type {
-            params.push(("trailerType".to_string(), serde_json::to_value(tt).unwrap().as_str().unwrap().to_string()));
+            params.push(("trailerType".to_string(), crate::util::enum_as_str(tt)));
         }
         add_option(&mut params, "vehicleWeight", opts.vehicle_weight);
         add_option(&mut params, "trailerWeight", opts.trailer_weight);
@@ -471,11 +471,11 @@ impl RouteMatcher for HereRouteMatcher {
 
         // Emission & fuel
         if let Some(et) = &opts.emission_type {
-            params.push(("emissionType".to_string(), serde_json::to_value(et).unwrap().as_str().unwrap().to_string()));
+            params.push(("emissionType".to_string(), crate::util::enum_as_str(et)));
         }
         add_option(&mut params, "co2EmissionClass", opts.co2_emission_class);
         if let Some(ft) = &opts.fuel_type {
-            params.push(("fuelType".to_string(), serde_json::to_value(ft).unwrap().as_str().unwrap().to_string()));
+            params.push(("fuelType".to_string(), crate::util::enum_as_str(ft)));
         }
         add_option(&mut params, "hybrid", opts.hybrid);
 
@@ -484,15 +484,15 @@ impl RouteMatcher for HereRouteMatcher {
         if let Some(areas) = &opts.avoid_areas { params.push(("avoidAreas".to_string(), areas.join(","))); }
         if let Some(turns) = &opts.avoid_turns { params.push(("avoidTurns".to_string(), turns.join(","))); }
         if let Some(af) = &opts.avoid_features {
-            params.push(("avoidFeatures".to_string(), af.iter().map(|f| serde_json::to_value(f).unwrap().as_str().unwrap().to_string()).collect::<Vec<_>>().join(",")));
+            params.push(("avoidFeatures".to_string(), af.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
         }
         add_option(&mut params, "avoidPrivate", opts.avoid_private);
         add_option(&mut params, "avoidCountryChange", opts.avoid_country_change);
         if let Some(hg) = &opts.shipped_hazardous_goods {
-            params.push(("shippedHazardousGoods".to_string(), hg.iter().map(|g| serde_json::to_value(g).unwrap().as_str().unwrap().to_string()).collect::<Vec<_>>().join(",")));
+            params.push(("shippedHazardousGoods".to_string(), hg.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
         }
         if let Some(tc) = &opts.tunnel_category {
-            params.push(("tunnelCategory".to_string(), serde_json::to_value(tc).unwrap().as_str().unwrap().to_string()));
+            params.push(("tunnelCategory".to_string(), crate::util::enum_as_str(tc)));
         }
 
         // Commercial
@@ -514,7 +514,7 @@ impl RouteMatcher for HereRouteMatcher {
         add_option_ref(&mut params, "metaAttributes", opts.meta_attributes.as_ref());
         add_option_ref(&mut params, "maneuverAttributes", opts.maneuver_attributes.as_ref());
         if let Some(fmt) = &opts.instruction_format {
-            params.push(("instructionFormat".to_string(), serde_json::to_value(fmt).unwrap().as_str().unwrap().to_string()));
+            params.push(("instructionFormat".to_string(), crate::util::enum_as_str(fmt)));
         }
         add_option_ref(&mut params, "language", opts.language.as_ref());
 
@@ -551,7 +551,7 @@ impl RouteMatcher for HereRouteMatcher {
 
         let matched_points = here_res.trace.into_iter()
             .map(|p| MatchedPoint {
-                coordinate: Coordinate::new(p.lat, p.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+                coordinate: Coordinate::new(p.lat, p.lng).unwrap_or(Coordinate::ORIGIN),
                 confidence: None,
                 road_name: None,
             })

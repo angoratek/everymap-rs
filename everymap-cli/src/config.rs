@@ -20,6 +20,8 @@ pub struct Providers {
     pub tomtom: ProviderConfig,
     #[serde(default)]
     pub mapbox: ProviderConfig,
+    #[serde(default)]
+    pub radar: ProviderConfig,
 }
 
 /// Configuration for a single provider.
@@ -66,6 +68,7 @@ impl Config {
             "google" => self.providers.google.api_key.clone(),
             "tomtom" => self.providers.tomtom.api_key.clone(),
             "mapbox" => self.providers.mapbox.api_key.clone(),
+            "radar" => self.providers.radar.api_key.clone(),
             _ => None,
         };
         if config_key.is_some() {

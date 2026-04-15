@@ -8,8 +8,8 @@ const MAP_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of TileProvider for TomTom Map Display API.
 pub struct TomTomTileProvider {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomTileProvider {

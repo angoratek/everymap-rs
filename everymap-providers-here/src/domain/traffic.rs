@@ -16,8 +16,8 @@ const TRAFFIC_BASE_URL: &str = "https://data.traffic.hereapi.com/v7";
 /// In addition to the core `TrafficProvider` trait method (`get_traffic`),
 /// this struct provides HERE-specific methods: `get_flow` and `get_incidents`.
 pub struct HereTraffic {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereTraffic {
@@ -50,7 +50,7 @@ impl HereTraffic {
 
         if let Some(lr) = &options.location_referencing {
             let val = lr.iter()
-                .map(|l| serde_json::to_value(l).unwrap().as_str().unwrap().to_string())
+                .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
             params.push(("locationReferencing", val));
@@ -70,7 +70,7 @@ impl HereTraffic {
         }
         if let Some(af) = &options.advanced_features {
             let val = af.iter()
-                .map(|a| serde_json::to_value(a).unwrap().as_str().unwrap().to_string())
+                .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
             params.push(("advancedFeatures", val));
@@ -104,7 +104,7 @@ impl HereTraffic {
 
         if let Some(lr) = &options.location_referencing {
             let val = lr.iter()
-                .map(|l| serde_json::to_value(l).unwrap().as_str().unwrap().to_string())
+                .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
             params.push(("locationReferencing", val));
@@ -118,14 +118,14 @@ impl HereTraffic {
         }
         if let Some(crit) = &options.criticality {
             let val = crit.iter()
-                .map(|c| serde_json::to_value(c).unwrap().as_str().unwrap().to_string())
+                .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
             params.push(("criticality", val));
         }
         if let Some(it) = &options.incident_types {
             let val = it.iter()
-                .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_string())
+                .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
             params.push(("type", val));
@@ -140,7 +140,7 @@ impl HereTraffic {
             params.push(("lang", lang.clone()));
         }
         if let Some(units) = &options.units {
-            params.push(("units", serde_json::to_value(units).unwrap().as_str().unwrap().to_string()));
+            params.push(("units", crate::util::enum_as_str(units)));
         }
         if let Some(urr) = options.use_ref_replacements {
             params.push(("useRefReplacements", urr.to_string()));

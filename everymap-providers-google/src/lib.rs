@@ -1,5 +1,6 @@
 pub mod client;
 pub mod domain;
+pub mod ext;
 
 pub use client::GoogleClient;
 
@@ -47,3 +48,6 @@ pub use domain::attributes::{
 pub use domain::unsupported::{
     GoogleIsoline, GoogleTraffic, GoogleTourPlanner, GoogleTileProvider,
 };
+
+// Extension traits
+pub use ext::{GooglePositionerExt, GoogleAttributeExt};

@@ -15,16 +15,16 @@ pub struct TomTomSearchResponse {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomSearchSummary {
     /// Number of results.
-    #[serde(default)]
+    #[serde(default, rename = "numResults")]
     pub num_results: Option<u32>,
     /// Query text.
     #[serde(default)]
     pub query: Option<String>,
     /// Query type.
-    #[serde(default)]
+    #[serde(default, rename = "queryType")]
     pub query_type: Option<String>,
     /// Total number of results available.
-    #[serde(default)]
+    #[serde(default, rename = "totalResults")]
     pub total_results: Option<u32>,
 }
 
@@ -32,7 +32,7 @@ pub struct TomTomSearchSummary {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomSearchResult {
     /// Result type (e.g., "Point Address", "Street", "Geography").
-    #[serde(default)]
+    #[serde(default, rename = "type")]
     pub result_type: Option<String>,
     /// Address information.
     #[serde(default)]
@@ -41,7 +41,7 @@ pub struct TomTomSearchResult {
     #[serde(default)]
     pub position: Option<TomTomPosition>,
     /// Viewport bounding box.
-    #[serde(default)]
+    #[serde(default, rename = "boundingBox")]
     pub bounding_box: Option<TomTomBoundingBox>,
     /// Distance in meters from the query point (for reverse geocode).
     #[serde(default)]
@@ -53,7 +53,7 @@ pub struct TomTomSearchResult {
     #[serde(default)]
     pub id: Option<String>,
     /// Data sources (e.g., geometry).
-    #[serde(default)]
+    #[serde(default, rename = "dataSources")]
     pub data_sources: Option<serde_json::Value>,
 }
 
@@ -61,10 +61,10 @@ pub struct TomTomSearchResult {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomAddress {
     /// Free-form address string.
-    #[serde(default)]
+    #[serde(default, rename = "freeformAddress")]
     pub freeform_address: Option<String>,
     /// Street name.
-    #[serde(default)]
+    #[serde(default, rename = "streetName")]
     pub street_name: Option<String>,
     /// Street number.
     #[serde(default, rename = "streetNumber")]

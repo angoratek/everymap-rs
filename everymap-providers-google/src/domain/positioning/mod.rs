@@ -14,6 +14,7 @@ const GEOLOCATION_BASE_URL: &str = "https://www.googleapis.com/geolocation/v1";
 
 /// Internal request body for the Geolocation API.
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 struct GeolocationRequestBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     consider_ip: Option<bool>,
@@ -35,8 +36,8 @@ impl From<GooglePositioningOptions> for GeolocationRequestBody {
 
 /// Implementation of NetworkPositioner for Google Geolocation API.
 pub struct GooglePositioner {
-    client: Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GooglePositioner {
@@ -81,7 +82,7 @@ fn positioning_options_from_core(opts: &PositioningOptions) -> GooglePositioning
 impl From<GoogleGeolocationResponse> for CorePositioningResponse {
     fn from(res: GoogleGeolocationResponse) -> Self {
         let coordinate = Coordinate::new(res.location.lat, res.location.lng)
-            .unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap());
+            .unwrap_or(Coordinate::ORIGIN);
         Self {
             coordinate,
             accuracy: if res.accuracy > 0.0 { Some(res.accuracy) } else { None },

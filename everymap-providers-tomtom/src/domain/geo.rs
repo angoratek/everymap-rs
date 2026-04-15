@@ -15,9 +15,9 @@ pub struct TomTomLatLng {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomBounds {
     /// Top-left corner.
-    #[serde(default)]
+    #[serde(default, rename = "topLeft")]
     pub top_left: TomTomLatLng,
     /// Bottom-right corner.
-    #[serde(default)]
+    #[serde(default, rename = "btmRight")]
     pub btm_right: TomTomLatLng,
 }

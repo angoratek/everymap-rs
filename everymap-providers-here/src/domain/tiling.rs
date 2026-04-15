@@ -23,8 +23,8 @@ pub struct HereTileOptions {
 
 /// Implementation of TileProvider for HERE Technologies.
 pub struct HereTileProvider {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereTileProvider {

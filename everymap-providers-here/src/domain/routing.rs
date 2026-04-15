@@ -282,8 +282,8 @@ pub struct MaxSpeedOnSegment {
 
 /// Implementation of Router for HERE Technologies.
 pub struct HereRouter {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereRouter {
@@ -445,7 +445,7 @@ impl Router for HereRouter {
         ];
 
         if let Some(ret) = &here_opts.return_fields {
-            params.push(("return", ret.iter().map(|r| serde_json::to_value(r).unwrap().as_str().unwrap().to_string()).collect::<Vec<_>>().join(",")));
+            params.push(("return", ret.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
         } else {
             params.push(("return", "polyline,summary".to_string()));
         }
@@ -471,7 +471,7 @@ impl Router for HereRouter {
             params.push(("exclude", exclude.join(",")));
         }
         if let Some(units) = &here_opts.units {
-            params.push(("units", serde_json::to_value(units).unwrap().as_str().unwrap().to_string()));
+            params.push(("units", crate::util::enum_as_str(units)));
         }
         if let Some(lang) = &here_opts.lang {
             params.push(("lang", lang.clone()));
@@ -483,10 +483,10 @@ impl Router for HereRouter {
             params.push(("vehicle", vehicle.join(",")));
         }
         if let Some(cm) = &here_opts.consumption_model {
-            params.push(("consumptionModel", serde_json::to_value(cm).unwrap().as_str().unwrap().to_string()));
+            params.push(("consumptionModel", crate::util::enum_as_str(cm)));
         }
         if let Some(traffic) = &here_opts.traffic {
-            params.push(("traffic", serde_json::to_value(traffic).unwrap().as_str().unwrap().to_string()));
+            params.push(("traffic", crate::util::enum_as_str(traffic)));
         }
         if let Some(bt) = &here_opts.billing_tag {
             params.push(("billingTag", bt.clone()));

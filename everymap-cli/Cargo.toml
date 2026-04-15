@@ -11,9 +11,16 @@ path = "src/main.rs"
 everymap-core = { path = "../everymap-core" }
 everymap-providers-here = { path = "../everymap-providers-here" }
 everymap-providers-google = { path = "../everymap-providers-google" }
+everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
+everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }
+everymap-providers-radar = { path = "../everymap-providers-radar" }
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 toml = "0.8"
 directories = "5"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"

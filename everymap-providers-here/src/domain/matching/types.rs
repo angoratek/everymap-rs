@@ -36,7 +36,7 @@ pub struct HereMatchedPoint {
     pub distance_from_start: Option<f64>,
     #[serde(default, rename = "elevation")]
     pub elevation: Option<f64>,
-    #[serde(default)]
+    #[serde(default, rename = "matchQuality")]
     pub match_quality: Option<String>,
 }
 
@@ -117,7 +117,7 @@ pub struct HereMatchSummary {
 /// An error from route matching.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct HereMatchError {
-    #[serde(default)]
+    #[serde(default, rename = "type")]
     pub type_: Option<String>,
     #[serde(default)]
     pub description: Option<String>,

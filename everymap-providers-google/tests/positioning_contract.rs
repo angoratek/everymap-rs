@@ -62,10 +62,11 @@ async fn test_positioning_with_wifi() {
 
     let opts = PositioningOptions {
         provider_extra: Some(serde_json::json!({
-            "wifi_access_points": [
+            "considerIp": true,
+            "wifiAccessPoints": [
                 {
-                    "mac_address": "00:1A:2B:3C:4D:5E",
-                    "signal_strength": -65,
+                    "macAddress": "00:1A:2B:3C:4D:5E",
+                    "signalStrength": -65,
                     "channel": 6
                 }
             ]

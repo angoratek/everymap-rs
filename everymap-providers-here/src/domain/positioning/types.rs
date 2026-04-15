@@ -24,6 +24,7 @@ pub struct HerePositioningOptions {
 
 /// WLAN access point observation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct WlanAccessPoint {
     /// MAC address (BSSID) of the access point.
     pub mac: String,
@@ -46,6 +47,7 @@ pub struct WlanAccessPoint {
 
 /// Cell tower observation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CellTower {
     /// Mobile Country Code.
     pub mcc: u32,
@@ -98,6 +100,7 @@ pub enum RadioType {
 
 /// Bluetooth beacon observation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct BluetoothBeacon {
     /// MAC address of the beacon.
     pub mac: String,

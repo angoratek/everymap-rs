@@ -1,9 +1,55 @@
 use serde::{Deserialize, Serialize};
+use everymap_core::domains::traffic::{TrafficFlow, TrafficIncident, IncidentSeverity};
+
+/// Calculate jam factor from current/free-flow speed ratio.
+fn calculate_jam_factor(current: f64, free_flow: f64) -> f64 {
+    if free_flow <= 0.0 { return 0.0; }
+    let ratio = current / free_flow;
+    if ratio >= 1.0 { 0.0 } else { (1.0 - ratio) * 10.0 }
+}
+
+/// Map TomTom severity string to core IncidentSeverity.
+fn map_severity(severity: &str) -> IncidentSeverity {
+    match severity.to_lowercase().as_str() {
+        "minor" => IncidentSeverity::Minor,
+        "moderate" => IncidentSeverity::Minor,
+        "major" => IncidentSeverity::Major,
+        "critical" => IncidentSeverity::Critical,
+        _ => IncidentSeverity::Unknown,
+    }
+}
+
+impl From<TomTomFlowSegmentData> for TrafficFlow {
+    fn from(seg: TomTomFlowSegmentData) -> Self {
+        let jam_factor = calculate_jam_factor(seg.current_speed, seg.free_flow_speed);
+        TrafficFlow {
+            speed: Some(seg.current_speed),
+            free_flow_speed: Some(seg.free_flow_speed),
+            jam_factor: Some(jam_factor),
+            confidence: seg.confidence,
+            road_name: seg.road_name,
+        }
+    }
+}
+
+impl From<TomTomIncident> for TrafficIncident {
+    fn from(inc: TomTomIncident) -> Self {
+        TrafficIncident {
+            id: inc.id,
+            incident_type: inc.incident_type,
+            severity: inc.severity.as_deref().map(map_severity),
+            description: inc.description,
+            road_name: None,
+            start_time: inc.start_time,
+            end_time: inc.end_time,
+        }
+    }
+}
 
 /// Response from TomTom Traffic Flow API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomFlowResponse {
-    #[serde(default)]
+    #[serde(default, rename = "flowSegmentData")]
     pub flow_segment_data: Option<TomTomFlowSegmentData>,
 }
 
@@ -70,9 +116,9 @@ pub struct TomTomIncident {
     pub delay: Option<u64>,
     #[serde(default)]
     pub length: Option<f64>,
-    #[serde(default)]
+    #[serde(default, rename = "startTime")]
     pub start_time: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "endTime")]
     pub end_time: Option<String>,
     #[serde(default)]
     pub geometry: Option<TomTomIncidentGeometry>,

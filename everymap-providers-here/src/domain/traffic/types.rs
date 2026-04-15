@@ -68,9 +68,9 @@ pub struct HereLane {
 pub struct HereRoadInfo {
     #[serde(default, rename = "functionalClass")]
     pub functional_class: Option<u32>,
-    #[serde(default)]
+    #[serde(default, rename = "roadName")]
     pub road_name: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "roadShield")]
     pub road_shield: Option<String>,
 }
 

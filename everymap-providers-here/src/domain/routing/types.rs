@@ -46,7 +46,7 @@ pub struct HereRouteSection {
     pub travel_summary: Option<HereTravelSummary>,
     #[serde(default)]
     pub spans: Vec<HereSpan>,
-    #[serde(default)]
+    #[serde(default, rename = "transportMode")]
     pub transport_mode: Option<String>,
 }
 
@@ -70,7 +70,7 @@ pub struct HereTravelSummary {
     pub duration: Option<f64>,
     #[serde(default)]
     pub length: Option<f64>,
-    #[serde(default)]
+    #[serde(default, rename = "baseDuration")]
     pub base_duration: Option<f64>,
 }
 
@@ -122,7 +122,7 @@ pub struct HereRouteAction {
     pub offset: Option<u32>,
     #[serde(default)]
     pub direction: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "nextAction")]
     pub next_action: Option<HereNextAction>,
 }
 
@@ -184,6 +184,6 @@ pub struct HereSpan {
     pub functional_class: Option<u32>,
     #[serde(default, rename = "speedLimit")]
     pub speed_limit: Option<f64>,
-    #[serde(default)]
+    #[serde(default, rename = "streetAttributes")]
     pub street_attributes: Option<Vec<String>>,
 }

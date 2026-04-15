@@ -14,8 +14,8 @@ const ROUTING_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of IsolineProvider for TomTom Reachable Range API.
 pub struct TomTomIsoline {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomIsoline {
@@ -79,7 +79,7 @@ impl IsolineProvider for TomTomIsoline {
 
         let isolines: Vec<IsolineResult> = result.reachable_range.map(|rr| {
             let polygon: Vec<Coordinate> = rr.boundary.into_iter()
-                .map(|b| Coordinate::new(b.lat, b.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
+                .map(|b| Coordinate::new(b.lat, b.lng).unwrap_or(Coordinate::ORIGIN))
                 .collect();
             vec![IsolineResult {
                 range: Some(range),

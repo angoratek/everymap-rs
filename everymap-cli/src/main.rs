@@ -2,7 +2,8 @@ mod config;
 mod output;
 
 use clap::{Parser, Subcommand};
-use everymap_core::auth::ApiKeyProvider;
+use everymap_core::auth::{AuthProvider, ApiKeyProvider};
+use everymap_core::auth::header::HeaderAuthProvider;
 use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
 use everymap_core::domains::routing::{Router, RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
@@ -13,9 +14,15 @@ use everymap_core::domains::tour::{TourPlanner, TourOptions};
 use everymap_core::domains::tiling::{TileProvider, TileOptions};
 use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
 use everymap_core::domains::imaging::{MapImageProvider, ImageOptions};
+use everymap_core::domains::geofencing::{GeofenceProvider, GeofenceOptions, GeofenceCreateOptions, GeofenceType};
+use everymap_core::domains::tracking::{TripTracker, TripCreateOptions, TripUpdateOptions, TripStatus};
+use everymap_core::domains::fraud::{FraudDetector, FraudCheckOptions};
 use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
 use everymap_providers_google::client::GoogleClient;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_radar::client::RadarClient;
 use std::sync::Arc;
 
 // Factory functions for HERE provider
@@ -100,10 +107,145 @@ fn create_google_image_provider(client: Arc<GoogleClient>) -> Box<dyn MapImagePr
     Box::new(everymap_providers_google::GoogleMapImageProvider::new(client))
 }
 
+// Factory functions for TomTom provider
+fn create_tomtom_geocoder(client: Arc<TomTomClient>) -> Box<dyn Geocoder> {
+    Box::new(everymap_providers_tomtom::TomTomGeocoder::new(client))
+}
+
+fn create_tomtom_router(client: Arc<TomTomClient>) -> Box<dyn Router> {
+    Box::new(everymap_providers_tomtom::TomTomRouter::new(client))
+}
+
+fn create_tomtom_traffic_provider(client: Arc<TomTomClient>) -> Box<dyn TrafficProvider> {
+    Box::new(everymap_providers_tomtom::TomTomTraffic::new(client))
+}
+
+fn create_tomtom_isoline_provider(client: Arc<TomTomClient>) -> Box<dyn IsolineProvider> {
+    Box::new(everymap_providers_tomtom::TomTomIsoline::new(client))
+}
+
+fn create_tomtom_route_matcher(client: Arc<TomTomClient>) -> Box<dyn RouteMatcher> {
+    Box::new(everymap_providers_tomtom::TomTomRouteMatcher::new(client))
+}
+
+fn create_tomtom_tour_planner(client: Arc<TomTomClient>) -> Box<dyn TourPlanner> {
+    Box::new(everymap_providers_tomtom::TomTomTourPlanner::new(client))
+}
+
+fn create_tomtom_tile_provider(client: Arc<TomTomClient>) -> Box<dyn TileProvider> {
+    Box::new(everymap_providers_tomtom::TomTomTileProvider::new(client))
+}
+
+fn create_tomtom_image_provider(client: Arc<TomTomClient>) -> Box<dyn MapImageProvider> {
+    Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(client))
+}
+
+fn create_tomtom_positioner() -> Box<dyn NetworkPositionerTrait> {
+    Box::new(everymap_providers_tomtom::TomTomPositioner)
+}
+
+fn create_tomtom_attribute_provider() -> Box<dyn AttributeProvider> {
+    Box::new(everymap_providers_tomtom::TomTomAttributeProvider)
+}
+
+// Factory functions for MapBox provider
+fn create_mapbox_geocoder(client: Arc<MapBoxClient>) -> Box<dyn Geocoder> {
+    Box::new(everymap_providers_mapbox::MapBoxGeocoder::new(client))
+}
+
+fn create_mapbox_router(client: Arc<MapBoxClient>) -> Box<dyn Router> {
+    Box::new(everymap_providers_mapbox::MapBoxRouter::new(client))
+}
+
+fn create_mapbox_isoline_provider(client: Arc<MapBoxClient>) -> Box<dyn IsolineProvider> {
+    Box::new(everymap_providers_mapbox::MapBoxIsoline::new(client))
+}
+
+fn create_mapbox_route_matcher(client: Arc<MapBoxClient>) -> Box<dyn RouteMatcher> {
+    Box::new(everymap_providers_mapbox::MapBoxRouteMatcher::new(client))
+}
+
+fn create_mapbox_tour_planner(client: Arc<MapBoxClient>) -> Box<dyn TourPlanner> {
+    Box::new(everymap_providers_mapbox::MapBoxTourPlanner::new(client))
+}
+
+fn create_mapbox_tile_provider(client: Arc<MapBoxClient>) -> Box<dyn TileProvider> {
+    Box::new(everymap_providers_mapbox::MapBoxTileProvider::new(client))
+}
+
+fn create_mapbox_image_provider(client: Arc<MapBoxClient>) -> Box<dyn MapImageProvider> {
+    Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(client))
+}
+
+fn create_mapbox_traffic() -> Box<dyn TrafficProvider> {
+    Box::new(everymap_providers_mapbox::MapBoxTraffic)
+}
+
+fn create_mapbox_positioner() -> Box<dyn NetworkPositionerTrait> {
+    Box::new(everymap_providers_mapbox::MapBoxPositioner)
+}
+
+fn create_mapbox_attribute_provider() -> Box<dyn AttributeProvider> {
+    Box::new(everymap_providers_mapbox::MapBoxAttributeProvider)
+}
+
+// Factory functions for Radar provider
+fn create_radar_geocoder(client: Arc<RadarClient>) -> Box<dyn Geocoder> {
+    Box::new(everymap_providers_radar::RadarGeocoder::new(client))
+}
+
+fn create_radar_router(client: Arc<RadarClient>) -> Box<dyn Router> {
+    Box::new(everymap_providers_radar::RadarRouter::new(client))
+}
+
+fn create_radar_route_matcher(client: Arc<RadarClient>) -> Box<dyn RouteMatcher> {
+    Box::new(everymap_providers_radar::RadarRouteMatcher::new(client))
+}
+
+fn create_radar_tour_planner(client: Arc<RadarClient>) -> Box<dyn TourPlanner> {
+    Box::new(everymap_providers_radar::RadarTourPlanner::new(client))
+}
+
+fn create_radar_geofence_provider(client: Arc<RadarClient>) -> Box<dyn GeofenceProvider> {
+    Box::new(everymap_providers_radar::RadarGeofenceProvider::new(client))
+}
+
+fn create_radar_trip_tracker(client: Arc<RadarClient>) -> Box<dyn TripTracker> {
+    Box::new(everymap_providers_radar::RadarTripTracker::new(client))
+}
+
+fn create_radar_fraud_detector(client: Arc<RadarClient>) -> Box<dyn FraudDetector> {
+    Box::new(everymap_providers_radar::RadarFraudDetector::new(client))
+}
+
+fn create_radar_traffic() -> Box<dyn TrafficProvider> {
+    Box::new(everymap_providers_radar::RadarTraffic)
+}
+
+fn create_radar_positioner() -> Box<dyn NetworkPositionerTrait> {
+    Box::new(everymap_providers_radar::RadarPositioner)
+}
+
+fn create_radar_isoline() -> Box<dyn IsolineProvider> {
+    Box::new(everymap_providers_radar::RadarIsoline)
+}
+
+fn create_radar_tile_provider() -> Box<dyn TileProvider> {
+    Box::new(everymap_providers_radar::RadarTileProvider)
+}
+
+fn create_radar_attribute_provider() -> Box<dyn AttributeProvider> {
+    Box::new(everymap_providers_radar::RadarAttributeProvider)
+}
+
+fn create_radar_image_provider() -> Box<dyn MapImageProvider> {
+    Box::new(everymap_providers_radar::RadarMapImageProvider)
+}
+
 #[derive(Parser)]
 #[command(name = "everymap", version, about = "Geospatial API CLI - unified interface for map providers")]
 struct Cli {
-    /// Provider to use (here, google)
+    /// Provider to use (here, google, tomtom, mapbox, radar)
     #[arg(long, default_value = "here")]
     provider: String,
 
@@ -232,6 +374,102 @@ enum Commands {
         #[arg(long, default_value = "14")]
         zoom: u32,
     },
+    /// Search for geofences near a location
+    GeofenceSearch {
+        /// Latitude
+        #[arg(long)]
+        lat: f64,
+        /// Longitude
+        #[arg(long)]
+        lng: f64,
+        /// Search radius in meters
+        #[arg(long)]
+        radius: Option<f64>,
+        /// Filter by tags (comma-separated)
+        #[arg(long)]
+        tags: Option<String>,
+        /// Maximum number of results
+        #[arg(long)]
+        limit: Option<u32>,
+    },
+    /// Create a circle geofence
+    GeofenceCreate {
+        /// Center latitude
+        #[arg(long)]
+        lat: f64,
+        /// Center longitude
+        #[arg(long)]
+        lng: f64,
+        /// Radius in meters
+        #[arg(long)]
+        radius: f64,
+        /// Tag for grouping
+        #[arg(long)]
+        tag: Option<String>,
+        /// Description
+        #[arg(long)]
+        description: Option<String>,
+    },
+    /// Get a geofence by ID
+    GeofenceGet {
+        /// Geofence ID
+        id: String,
+    },
+    /// Delete a geofence by ID
+    GeofenceDelete {
+        /// Geofence ID
+        id: String,
+    },
+    /// Create a new trip for tracking
+    TripCreate {
+        /// Origin coordinates (lat,lng)
+        #[arg(long)]
+        origin: Option<String>,
+        /// Destination coordinates (lat,lng)
+        #[arg(long)]
+        destination: Option<String>,
+        /// Travel mode (car, foot, bike)
+        #[arg(long, default_value = "car")]
+        mode: String,
+        /// External ID for linking
+        #[arg(long)]
+        external_id: Option<String>,
+        /// Tag for grouping
+        #[arg(long)]
+        tag: Option<String>,
+    },
+    /// Update a trip's status
+    TripUpdate {
+        /// Trip ID to update
+        #[arg(long)]
+        trip_id: String,
+        /// New status (pending, started, approaching, arrived, completed)
+        #[arg(long)]
+        status: String,
+    },
+    /// Get a trip by ID
+    TripGet {
+        /// Trip ID
+        id: String,
+    },
+    /// Check for location fraud
+    FraudCheck {
+        /// Device ID
+        #[arg(long)]
+        device_id: String,
+        /// Latitude
+        #[arg(long)]
+        lat: f64,
+        /// Longitude
+        #[arg(long)]
+        lng: f64,
+        /// Accuracy in meters
+        #[arg(long, default_value = "10.0")]
+        accuracy: f64,
+        /// User ID (optional)
+        #[arg(long)]
+        user_id: Option<String>,
+    },
 }
 
 fn parse_coordinate(input: &str) -> Result<Coordinate, String> {
@@ -280,20 +518,33 @@ async fn main() {
         }
     };
 
-    if cli.provider != "here" && cli.provider != "google" {
-        eprintln!("Error: Unsupported provider '{}'. Supported providers: here, google", cli.provider);
+    if !["here", "google", "tomtom", "mapbox", "radar"].contains(&cli.provider.as_str()) {
+        eprintln!("Error: Unsupported provider '{}'. Supported providers: here, google, tomtom, mapbox, radar", cli.provider);
         std::process::exit(1);
     }
 
     // Default API key param name varies by provider
     let key_param = cli.api_key_param.clone().unwrap_or_else(|| {
-        if cli.provider == "google" { "key".to_string() } else { "apiKey".to_string() }
+        match cli.provider.as_str() {
+            "google" | "tomtom" => "key".to_string(),
+            "mapbox" => "access_token".to_string(),
+            _ => "apiKey".to_string(),
+        }
     });
 
-    let auth = Arc::new(ApiKeyProvider::new(api_key, key_param));
     let fmt = output::OutputFormat::from_str(&cli.output);
 
-    match cli.provider.as_str() {
+    // Radar uses HeaderAuthProvider (Authorization header), all others use ApiKeyProvider (query param)
+    if cli.provider.as_str() == "radar" {
+        let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new(api_key));
+        let mut client = RadarClient::new(auth);
+        client.set_verbose(cli.verbose);
+        let client = Arc::new(client);
+        run_radar_commands(&cli, client, &fmt).await;
+    } else {
+        let auth = Arc::new(ApiKeyProvider::new(api_key, key_param));
+
+        match cli.provider.as_str() {
         "here" => {
             let mut client = HereClient::new(auth);
             client.set_verbose(cli.verbose);
@@ -306,8 +557,21 @@ async fn main() {
             let client = Arc::new(client);
             run_google_commands(&cli, client, &fmt).await;
         }
+        "tomtom" => {
+            let mut client = TomTomClient::new(auth);
+            client.set_verbose(cli.verbose);
+            let client = Arc::new(client);
+            run_tomtom_commands(&cli, client, &fmt).await;
+        }
+        "mapbox" => {
+            let mut client = MapBoxClient::new(auth);
+            client.set_verbose(cli.verbose);
+            let client = Arc::new(client);
+            run_mapbox_commands(&cli, client, &fmt).await;
+        }
         _ => unreachable!(),
     }
+    } // end else (non-Radar providers)
 }
 
 async fn run_here_commands(cli: &Cli, client: Arc<HereClient>, fmt: &output::OutputFormat) {
@@ -559,6 +823,30 @@ async fn run_here_commands(cli: &Cli, client: Arc<HereClient>, fmt: &output::Out
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
+        Commands::GeofenceSearch { .. } => {
+            eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceCreate { .. } => {
+            eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceGet { .. } => {
+            eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceDelete { .. } => {
+            eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripCreate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripUpdate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripGet { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::FraudCheck { .. } => {
+            eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar");
+        }
     }
 }
 
@@ -649,7 +937,7 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
         Commands::Traffic { .. } => {
             let traffic = create_google_traffic_provider(client);
             let opts = TrafficOptions::default();
-            match traffic.get_traffic(&Coordinate::new(0.0, 0.0).unwrap(), &opts).await {
+            match traffic.get_traffic(&Coordinate::ORIGIN, &opts).await {
                 Ok(_) => unreachable!(),
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -671,7 +959,7 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
         Commands::Isoline { .. } => {
             let isoline = create_google_isoline_provider(client);
             let opts = IsolineOptions::default();
-            match isoline.get_isoline(&Coordinate::new(0.0, 0.0).unwrap(), 1000.0, &opts).await {
+            match isoline.get_isoline(&Coordinate::ORIGIN, 1000.0, &opts).await {
                 Ok(_) => unreachable!(),
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -744,6 +1032,721 @@ async fn run_google_commands(cli: &Cli, client: Arc<GoogleClient>, fmt: &output:
             match image_provider.get_image(&center, *zoom, (800, 600), &opts).await {
                 Ok(res) => {
                     println!("Retrieved map image ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceSearch { .. } => {
+            eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceCreate { .. } => {
+            eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceGet { .. } => {
+            eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceDelete { .. } => {
+            eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripCreate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripUpdate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripGet { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::FraudCheck { .. } => {
+            eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar");
+        }
+    }
+}
+
+async fn run_tomtom_commands(cli: &Cli, client: Arc<TomTomClient>, fmt: &output::OutputFormat) {
+    match &cli.command {
+        Commands::Geocode { query } => {
+            let geocoder = create_tomtom_geocoder(client);
+            let opts = GeocodeOptions::default();
+            match geocoder.geocode(query, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                            "address": item.address,
+                            "result_type": format!("{:?}", item.result_type),
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::ReverseGeocode { lat, lng } => {
+            let geocoder = create_tomtom_geocoder(client);
+            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = ReverseGeocodeOptions::default();
+            match geocoder.reverse_geocode(&coord, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Route { origin, destination, transport } => {
+            let router = create_tomtom_router(client);
+            let start = parse_coordinate(origin).unwrap_or_else(|e| {
+                eprintln!("Invalid origin: {}", e);
+                std::process::exit(1);
+            });
+            let end = parse_coordinate(destination).unwrap_or_else(|e| {
+                eprintln!("Invalid destination: {}", e);
+                std::process::exit(1);
+            });
+            let transport_mode = parse_transport_mode(transport);
+            let opts = RouteOptions { transport_mode: Some(transport_mode), ..Default::default() };
+            match router.calculate_route(&start, &end, &opts).await {
+                Ok(res) => {
+                    let routes: Vec<serde_json::Value> = res.routes.iter().map(|r| {
+                        serde_json::json!({ "distance_m": r.distance, "duration_s": r.duration, "points": r.geometry.points.len() })
+                    }).collect();
+                    print_output(&serde_json::json!({ "routes": routes }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Traffic { lat, lng } => {
+            let traffic = create_tomtom_traffic_provider(client);
+            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = TrafficOptions::default();
+            match traffic.get_traffic(&coord, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "flows": res.flows.len(), "incidents": res.incidents.len() }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Position => {
+            let positioner = create_tomtom_positioner();
+            let opts = PositioningOptions::default();
+            match positioner.get_position(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Isoline { lat, lng, range } => {
+            let isoline = create_tomtom_isoline_provider(client);
+            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = IsolineOptions { range_type: Some(CoreRangeType::Distance), ..Default::default() };
+            match isoline.get_isoline(&center, *range, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "isolines": res.isolines.len() }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MatchRoute { trace } => {
+            let matcher = create_tomtom_route_matcher(client);
+            let points: Vec<Coordinate> = trace.split(';')
+                .filter_map(|p| parse_coordinate(p.trim()).ok())
+                .collect();
+            if points.is_empty() {
+                eprintln!("Error: No valid coordinates in trace");
+                std::process::exit(1);
+            }
+            let opts = MatchingOptions::default();
+            match matcher.match_route(&points, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "matched_points": res.matched_points.len(), "distance_m": res.distance }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tour { stops } => {
+            let planner = create_tomtom_tour_planner(client);
+            let coordinates: Vec<Coordinate> = stops.iter()
+                .filter_map(|s| parse_coordinate(s).ok())
+                .collect();
+            if coordinates.len() < 2 {
+                eprintln!("Error: At least 2 stops required");
+                std::process::exit(1);
+            }
+            let opts = TourOptions::default();
+            match planner.optimize_tour(&coordinates, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "stops": res.stops.len(), "total_distance": res.total_distance, "total_duration": res.total_duration }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tile { z, x, y } => {
+            let tile_provider = create_tomtom_tile_provider(client);
+            let opts = TileOptions::default();
+            match tile_provider.get_tile(*z, *x, *y, &opts).await {
+                Ok(res) => {
+                    println!("Retrieved tile ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Attributes { .. } => {
+            let attr_provider = create_tomtom_attribute_provider();
+            let opts = AttributeOptions::default();
+            match attr_provider.get_attributes(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MapImage { lat, lng, zoom } => {
+            let image_provider = create_tomtom_image_provider(client);
+            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = ImageOptions::default();
+            match image_provider.get_image(&center, *zoom, (800, 600), &opts).await {
+                Ok(res) => {
+                    println!("Retrieved map image ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceSearch { .. } => {
+            eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceCreate { .. } => {
+            eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceGet { .. } => {
+            eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceDelete { .. } => {
+            eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripCreate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripUpdate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripGet { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::FraudCheck { .. } => {
+            eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar");
+        }
+    }
+}
+
+async fn run_mapbox_commands(cli: &Cli, client: Arc<MapBoxClient>, fmt: &output::OutputFormat) {
+    match &cli.command {
+        Commands::Geocode { query } => {
+            let geocoder = create_mapbox_geocoder(client);
+            let opts = GeocodeOptions::default();
+            match geocoder.geocode(query, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                            "result_type": format!("{:?}", item.result_type),
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::ReverseGeocode { lat, lng } => {
+            let geocoder = create_mapbox_geocoder(client);
+            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = ReverseGeocodeOptions::default();
+            match geocoder.reverse_geocode(&coord, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Route { origin, destination, transport } => {
+            let router = create_mapbox_router(client);
+            let start = parse_coordinate(origin).unwrap_or_else(|e| {
+                eprintln!("Invalid origin: {}", e);
+                std::process::exit(1);
+            });
+            let end = parse_coordinate(destination).unwrap_or_else(|e| {
+                eprintln!("Invalid destination: {}", e);
+                std::process::exit(1);
+            });
+            let transport_mode = parse_transport_mode(transport);
+            let opts = RouteOptions { transport_mode: Some(transport_mode), ..Default::default() };
+            match router.calculate_route(&start, &end, &opts).await {
+                Ok(res) => {
+                    let routes: Vec<serde_json::Value> = res.routes.iter().map(|r| {
+                        serde_json::json!({ "distance_m": r.distance, "duration_s": r.duration })
+                    }).collect();
+                    print_output(&serde_json::json!({ "routes": routes }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Traffic { .. } => {
+            let traffic = create_mapbox_traffic();
+            let opts = TrafficOptions::default();
+            match traffic.get_traffic(&Coordinate::ORIGIN, &opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Position => {
+            let positioner = create_mapbox_positioner();
+            let opts = PositioningOptions::default();
+            match positioner.get_position(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Isoline { lat, lng, range } => {
+            let isoline = create_mapbox_isoline_provider(client);
+            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = IsolineOptions { range_type: Some(CoreRangeType::Time), ..Default::default() };
+            match isoline.get_isoline(&center, *range, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "isolines": res.isolines.len() }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MatchRoute { trace } => {
+            let matcher = create_mapbox_route_matcher(client);
+            let points: Vec<Coordinate> = trace.split(';')
+                .filter_map(|p| parse_coordinate(p.trim()).ok())
+                .collect();
+            if points.is_empty() {
+                eprintln!("Error: No valid coordinates in trace");
+                std::process::exit(1);
+            }
+            let opts = MatchingOptions::default();
+            match matcher.match_route(&points, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "matched_points": res.matched_points.len(), "distance_m": res.distance }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tour { stops } => {
+            let planner = create_mapbox_tour_planner(client);
+            let coordinates: Vec<Coordinate> = stops.iter()
+                .filter_map(|s| parse_coordinate(s).ok())
+                .collect();
+            if coordinates.len() < 2 {
+                eprintln!("Error: At least 2 stops required");
+                std::process::exit(1);
+            }
+            let opts = TourOptions::default();
+            match planner.optimize_tour(&coordinates, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "stops": res.stops.len(), "total_distance": res.total_distance, "total_duration": res.total_duration }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tile { z, x, y } => {
+            let tile_provider = create_mapbox_tile_provider(client);
+            let opts = TileOptions::default();
+            match tile_provider.get_tile(*z, *x, *y, &opts).await {
+                Ok(res) => {
+                    println!("Retrieved tile ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Attributes { .. } => {
+            let attr_provider = create_mapbox_attribute_provider();
+            let opts = AttributeOptions::default();
+            match attr_provider.get_attributes(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MapImage { lat, lng, zoom } => {
+            let image_provider = create_mapbox_image_provider(client);
+            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = ImageOptions::default();
+            match image_provider.get_image(&center, *zoom, (800, 600), &opts).await {
+                Ok(res) => {
+                    println!("Retrieved map image ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceSearch { .. } => {
+            eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceCreate { .. } => {
+            eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceGet { .. } => {
+            eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar");
+        }
+        Commands::GeofenceDelete { .. } => {
+            eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripCreate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripUpdate { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::TripGet { .. } => {
+            eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+        }
+        Commands::FraudCheck { .. } => {
+            eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar");
+        }
+    }
+}
+
+async fn run_radar_commands(cli: &Cli, client: Arc<RadarClient>, fmt: &output::OutputFormat) {
+    match &cli.command {
+        Commands::Geocode { query } => {
+            let geocoder = create_radar_geocoder(client);
+            let opts = GeocodeOptions::default();
+            match geocoder.geocode(query, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                            "address": item.address,
+                            "result_type": format!("{:?}", item.result_type),
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::ReverseGeocode { lat, lng } => {
+            let geocoder = create_radar_geocoder(client);
+            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = ReverseGeocodeOptions::default();
+            match geocoder.reverse_geocode(&coord, &opts).await {
+                Ok(res) => {
+                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+                        serde_json::json!({
+                            "id": item.id,
+                            "title": item.title,
+                            "coordinate": { "lat": item.coordinate.lat, "lng": item.coordinate.lng },
+                            "address": item.address,
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "results": output }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Route { origin, destination, transport } => {
+            let router = create_radar_router(client);
+            let start = parse_coordinate(origin).unwrap_or_else(|e| {
+                eprintln!("Invalid origin: {}", e);
+                std::process::exit(1);
+            });
+            let end = parse_coordinate(destination).unwrap_or_else(|e| {
+                eprintln!("Invalid destination: {}", e);
+                std::process::exit(1);
+            });
+            let transport_mode = parse_transport_mode(transport);
+            let opts = RouteOptions { transport_mode: Some(transport_mode), ..Default::default() };
+            match router.calculate_route(&start, &end, &opts).await {
+                Ok(res) => {
+                    let routes: Vec<serde_json::Value> = res.routes.iter().map(|r| {
+                        serde_json::json!({ "distance_m": r.distance, "duration_s": r.duration, "points": r.geometry.points.len() })
+                    }).collect();
+                    print_output(&serde_json::json!({ "routes": routes }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Traffic { .. } => {
+            let traffic = create_radar_traffic();
+            let opts = TrafficOptions::default();
+            match traffic.get_traffic(&Coordinate::ORIGIN, &opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Position => {
+            let positioner = create_radar_positioner();
+            let opts = PositioningOptions::default();
+            match positioner.get_position(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Isoline { .. } => {
+            let isoline = create_radar_isoline();
+            let opts = IsolineOptions::default();
+            match isoline.get_isoline(&Coordinate::ORIGIN, 1000.0, &opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MatchRoute { trace } => {
+            let matcher = create_radar_route_matcher(client);
+            let points: Vec<Coordinate> = trace.split(';')
+                .filter_map(|p| parse_coordinate(p.trim()).ok())
+                .collect();
+            if points.is_empty() {
+                eprintln!("Error: No valid coordinates in trace");
+                std::process::exit(1);
+            }
+            let opts = MatchingOptions::default();
+            match matcher.match_route(&points, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "matched_points": res.matched_points.len(), "distance_m": res.distance }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tour { stops } => {
+            let planner = create_radar_tour_planner(client);
+            let coordinates: Vec<Coordinate> = stops.iter()
+                .filter_map(|s| parse_coordinate(s).ok())
+                .collect();
+            if coordinates.len() < 2 {
+                eprintln!("Error: At least 2 stops required");
+                std::process::exit(1);
+            }
+            let opts = TourOptions::default();
+            match planner.optimize_tour(&coordinates, &opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({ "stops": res.stops.len(), "total_distance": res.total_distance, "total_duration": res.total_duration }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Tile { z, x, y } => {
+            let tile_provider = create_radar_tile_provider();
+            let opts = TileOptions::default();
+            match tile_provider.get_tile(*z, *x, *y, &opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::Attributes { .. } => {
+            let attr_provider = create_radar_attribute_provider();
+            let opts = AttributeOptions::default();
+            match attr_provider.get_attributes(&opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::MapImage { .. } => {
+            let image_provider = create_radar_image_provider();
+            let opts = ImageOptions::default();
+            match image_provider.get_image(&Coordinate::ORIGIN, 14, (800, 600), &opts).await {
+                Ok(_) => unreachable!(),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceSearch { lat, lng, radius, tags, limit } => {
+            let provider = create_radar_geofence_provider(client);
+            let near = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = GeofenceOptions {
+                near: Some(near),
+                radius: *radius,
+                tags: tags.as_ref().map(|t| t.split(',').map(String::from).collect()).unwrap_or_default(),
+                limit: *limit,
+                ..Default::default()
+            };
+            match provider.search_geofences(&opts).await {
+                Ok(res) => {
+                    let geofences: Vec<serde_json::Value> = res.geofences.iter().map(|g| {
+                        serde_json::json!({
+                            "id": g.id,
+                            "tag": g.tag,
+                            "description": g.description,
+                            "enabled": g.enabled,
+                        })
+                    }).collect();
+                    print_output(&serde_json::json!({ "geofences": geofences }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceCreate { lat, lng, radius, tag, description } => {
+            let provider = create_radar_geofence_provider(client);
+            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| {
+                eprintln!("Invalid coordinates: {}", e);
+                std::process::exit(1);
+            });
+            let opts = GeofenceCreateOptions {
+                center: Some(center),
+                radius: Some(*radius),
+                tag: tag.clone(),
+                description: description.clone(),
+                geofence_type: Some(GeofenceType::Circle),
+                ..Default::default()
+            };
+            match provider.create_geofence(&opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "id": res.id,
+                        "tag": res.tag,
+                        "description": res.description,
+                        "enabled": res.enabled,
+                    }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceGet { id } => {
+            let provider = create_radar_geofence_provider(client);
+            match provider.get_geofence(id).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "id": res.id,
+                        "tag": res.tag,
+                        "description": res.description,
+                        "enabled": res.enabled,
+                    }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::GeofenceDelete { id } => {
+            let provider = create_radar_geofence_provider(client);
+            match provider.delete_geofence(id).await {
+                Ok(()) => println!("Geofence '{}' deleted", id),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::TripCreate { origin, destination, mode, external_id, tag } => {
+            let tracker = create_radar_trip_tracker(client);
+            let opts = TripCreateOptions {
+                origin: origin.as_ref().and_then(|o| parse_coordinate(o).ok()),
+                destination: destination.as_ref().and_then(|d| parse_coordinate(d).ok()),
+                mode: Some(mode.clone()),
+                external_id: external_id.clone(),
+                tag: tag.clone(),
+                ..Default::default()
+            };
+            match tracker.create_trip(&opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "id": res.id,
+                        "status": format!("{:?}", res.status),
+                        "mode": res.mode,
+                        "eta": res.eta,
+                    }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::TripUpdate { trip_id, status } => {
+            let tracker = create_radar_trip_tracker(client);
+            let trip_status = match status.as_str() {
+                "pending" => Some(TripStatus::Pending),
+                "started" => Some(TripStatus::Started),
+                "approaching" => Some(TripStatus::Approaching),
+                "arrived" => Some(TripStatus::Arrived),
+                "completed" => Some(TripStatus::Completed),
+                _ => None,
+            };
+            let opts = TripUpdateOptions {
+                trip_id: trip_id.clone(),
+                status: trip_status,
+                ..Default::default()
+            };
+            match tracker.update_trip(&opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "id": res.id,
+                        "status": format!("{:?}", res.status),
+                    }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::TripGet { id } => {
+            let tracker = create_radar_trip_tracker(client);
+            match tracker.get_trip(id).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "id": res.id,
+                        "status": format!("{:?}", res.status),
+                        "mode": res.mode,
+                        "eta": res.eta,
+                    }), fmt);
+                }
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Commands::FraudCheck { device_id, lat, lng, accuracy, user_id } => {
+            let detector = create_radar_fraud_detector(client);
+            let opts = FraudCheckOptions {
+                device_id: device_id.clone(),
+                latitude: *lat,
+                longitude: *lng,
+                accuracy: *accuracy,
+                user_id: user_id.clone(),
+                ..Default::default()
+            };
+            match detector.check_fraud(&opts).await {
+                Ok(res) => {
+                    print_output(&serde_json::json!({
+                        "verified": res.verified,
+                        "passed": res.passed,
+                        "mocked": res.mocked,
+                        "jumped": res.jumped,
+                        "compromised": res.compromised,
+                        "inaccurate": res.inaccurate,
+                        "proxy": res.proxy,
+                        "blocked": res.blocked,
+                    }), fmt);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }

@@ -33,8 +33,8 @@ pub struct HereImageOptions {
 
 /// Implementation of MapImageProvider for HERE Technologies.
 pub struct HereMapImageProvider {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereMapImageProvider {

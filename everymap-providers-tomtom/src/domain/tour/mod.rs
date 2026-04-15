@@ -13,8 +13,8 @@ const ROUTING_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of TourPlanner for TomTom Waypoint Optimization API.
 pub struct TomTomTourPlanner {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomTourPlanner {
@@ -59,8 +59,8 @@ impl TourPlanner for TomTomTourPlanner {
 
         let tour_stops: Vec<TourStop> = result.optimized_waypoints.into_iter().map(|wp| {
             TourStop {
-                coordinate: wp.point.map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
-                    .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap()),
+                coordinate: wp.point.map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN))
+                    .unwrap_or(Coordinate::ORIGIN),
                 arrival_time: None,
                 departure_time: None,
                 duration: None,

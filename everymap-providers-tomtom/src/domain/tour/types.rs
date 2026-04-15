@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// Response from TomTom Waypoint Optimization API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomOptimizationResponse {
-    #[serde(default)]
+    #[serde(default, rename = "optimizedWaypoints")]
     pub optimized_waypoints: Vec<TomTomOptimizedWaypoint>,
     #[serde(default)]
     pub summary: Option<TomTomOptimizationSummary>,

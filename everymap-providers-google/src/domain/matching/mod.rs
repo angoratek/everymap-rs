@@ -15,8 +15,8 @@ const ROADS_BASE_URL: &str = "https://roads.googleapis.com/v1";
 ///
 /// Uses the `snapToRoads` endpoint to snap GPS points to the road network.
 pub struct GoogleRouteMatcher {
-    client: Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GoogleRouteMatcher {
@@ -76,7 +76,7 @@ impl RouteMatcher for GoogleRouteMatcher {
         let matched_points: Vec<MatchedPoint> = res.snapped_points.into_iter().map(|sp| {
             MatchedPoint {
                 coordinate: Coordinate::new(sp.location.latitude, sp.location.longitude)
-                    .unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+                    .unwrap_or(Coordinate::ORIGIN),
                 confidence: None, // Google doesn't provide confidence scores
                 road_name: sp.place_id, // Use place_id as an identifier
             }

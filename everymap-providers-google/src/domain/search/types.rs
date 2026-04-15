@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use everymap_core::domains::search::{SearchResponse, SearchResult};
 use crate::domain::geo::{GoogleLatLng, GoogleBounds};
 
 // ============================================================================
@@ -66,4 +67,12 @@ pub struct GooglePlusCode {
     pub compound_code: Option<String>,
     #[serde(default)]
     pub global_code: Option<String>,
+}
+
+impl From<GoogleGeocodeResponse> for SearchResponse {
+    fn from(res: GoogleGeocodeResponse) -> Self {
+        SearchResponse {
+            items: res.results.into_iter().map(SearchResult::from).collect(),
+        }
+    }
 }

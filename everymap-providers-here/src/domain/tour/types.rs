@@ -13,7 +13,7 @@ pub struct TourProblem {
     pub configuration: Option<Configuration>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub objectives: Option<Vec<Objective>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none", rename = "advancedObjectives")]
     pub advanced_objectives: Option<Vec<Vec<MultiObjective>>>,
 }
 
@@ -45,6 +45,7 @@ pub enum Profile {
     Car {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -52,6 +53,7 @@ pub enum Profile {
     Truck {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -59,6 +61,7 @@ pub enum Profile {
     Scooter {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -66,6 +69,7 @@ pub enum Profile {
     Bicycle {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -73,6 +77,7 @@ pub enum Profile {
     Pedestrian {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -80,6 +85,7 @@ pub enum Profile {
     Bus {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -87,6 +93,7 @@ pub enum Profile {
     PrivateBus {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -94,6 +101,7 @@ pub enum Profile {
     Taxi {
         name: String,
         #[serde(skip_serializing_if = "Option::is_none")]
+        #[serde(rename = "departureTime")]
         departure_time: Option<String>,
         #[serde(skip_serializing_if = "Option::is_none")]
         traffic: Option<ProfileTraffic>,
@@ -115,6 +123,7 @@ pub enum ProfileTraffic {
 
 /// Vehicle type definition.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleType {
     pub id: String,
     pub profile: String,
@@ -151,6 +160,7 @@ pub struct VehicleCosts {
 
 /// Vehicle shift definition.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleShift {
     pub start: ShiftStart,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -203,6 +213,7 @@ pub struct Reload {
 
 /// Vehicle limits.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VehicleLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_distance: Option<u32>,
@@ -234,6 +245,7 @@ pub struct Plan {
 
 /// Job definition.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Job {
     pub id: String,
     pub tasks: JobTasks,
@@ -271,6 +283,7 @@ pub struct JobTask {
 
 /// Job place with location, duration, and time windows.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct JobPlace {
     pub location: TourLocation,
     pub duration: u32,
@@ -313,6 +326,7 @@ pub struct MaxTimeOnVehicle {
 
 /// Relation between jobs.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Relation {
     #[serde(rename = "type")]
     pub relation_type: RelationType,
@@ -348,6 +362,7 @@ pub enum PlanClustering {
 
 /// Job group (BETA).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Group {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -367,6 +382,7 @@ pub enum GroupPlacement {
 
 /// Pick-up/drop-off point.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Pudo {
     pub id: String,
     pub assign_at: PudoAssignAt,
@@ -385,6 +401,7 @@ pub enum PudoAssignAt {
 
 /// PUDO place.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PudoPlace {
     pub location: TourLocation,
     pub duration: u32,
@@ -412,6 +429,7 @@ pub struct Parking {
 
 /// Parking place.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ParkingPlace {
     pub duration: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -420,6 +438,7 @@ pub struct ParkingPlace {
 
 /// Solver configuration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Configuration {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub termination: Option<Termination>,
@@ -431,6 +450,7 @@ pub struct Configuration {
 
 /// Termination settings for the solver.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Termination {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_time: Option<u32>,

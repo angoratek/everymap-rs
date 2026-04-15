@@ -3,6 +3,9 @@ name = "everymap-core"
 version = "0.2.0"
 edition = "2021"
 
+[features]
+integration = []
+
 [dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }
@@ -12,3 +15,9 @@ reqwest = { workspace = true }
 thiserror = { workspace = true }
 futures = { workspace = true }
 flexpolyline = { workspace = true }
+
+[dev-dependencies]
+everymap-providers-here = { path = "../everymap-providers-here" }
+everymap-providers-google = { path = "../everymap-providers-google" }
+everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
+everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }

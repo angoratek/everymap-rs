@@ -1,5 +1,5 @@
 use everymap_core::types::Coordinate;
-use everymap_core::domains::search::{SearchResult, SearchResultType};
+use everymap_core::domains::search::{SearchResult, SearchResultType, SearchResponse};
 use crate::domain::geo::HereLatLng;
 use serde::{Deserialize, Serialize};
 
@@ -120,7 +120,16 @@ pub enum HereEvSupplyType {
 /// Full response from the HERE Geocoding & Search API v7.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HereSearchResponse {
+    #[serde(default)]
     pub items: Vec<HereSearchItem>,
+}
+
+impl From<HereSearchResponse> for SearchResponse {
+    fn from(res: HereSearchResponse) -> Self {
+        SearchResponse {
+            items: res.items.into_iter().map(SearchResult::from).collect(),
+        }
+    }
 }
 
 /// A single search result item from the HERE Search API.
@@ -150,7 +159,7 @@ pub struct HereSearchItem {
     pub food: Option<HereFood>,
     #[serde(default, rename = "mapView")]
     pub map_view: Option<HereMapView>,
-    #[serde(default)]
+    #[serde(default, rename = "ontologyId")]
     pub ontology_id: Option<String>,
     #[serde(default)]
     pub chains: Vec<HereChain>,
@@ -168,7 +177,7 @@ impl From<HereSearchItem> for SearchResult {
     fn from(item: HereSearchItem) -> Self {
         let coordinate = item.position
             .map(Coordinate::from)
-            .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
+            .unwrap_or(Coordinate::ORIGIN);
         let address = item.address
             .map(everymap_core::types::Address::from)
             .unwrap_or_default();
@@ -453,7 +462,7 @@ pub struct HereAutosuggestItem {
 pub struct HereQueryTerm {
     #[serde(default)]
     pub term: Option<String>,
-    #[serde(default)]
+    #[serde(default, rename = "displayText")]
     pub display_text: Option<String>,
 }
 

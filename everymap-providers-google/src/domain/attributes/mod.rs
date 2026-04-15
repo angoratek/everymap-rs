@@ -15,8 +15,8 @@ const ROADS_BASE_URL: &str = "https://roads.googleapis.com/v1";
 /// Google's attribute coverage is limited to speed limits via the Roads API.
 /// For richer attribute data (road class, lanes, etc.), use HERE or TomTom.
 pub struct GoogleAttributeProvider {
-    client: Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GoogleAttributeProvider {

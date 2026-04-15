@@ -35,8 +35,8 @@ pub struct HereAttributeOptions {
 
 /// Implementation of AttributeProvider for HERE Technologies.
 pub struct HereAttributeProvider {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereAttributeProvider {

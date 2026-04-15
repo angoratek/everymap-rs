@@ -9,8 +9,8 @@ const STATIC_MAPS_BASE_URL: &str = "https://maps.googleapis.com/maps/api/staticm
 
 /// Implementation of MapImageProvider for Google Static Maps API.
 pub struct GoogleMapImageProvider {
-    client: Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GoogleMapImageProvider {

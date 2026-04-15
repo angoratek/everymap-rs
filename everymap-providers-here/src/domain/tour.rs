@@ -19,7 +19,7 @@ impl From<TourSolution> for TourResponse {
                 tour.stops.iter()
                     .filter_map(|s| {
                         s.location.as_ref().map(|loc| {
-                            Coordinate::new(loc.lat, loc.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap())
+                            Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN)
                         }).map(|coord| CoreTourStop {
                             coordinate: coord,
                             arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
@@ -51,8 +51,8 @@ pub struct HereTourOptions {
 
 /// Implementation of TourPlanner for HERE Technologies.
 pub struct HereTourPlanner {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereTourPlanner {

@@ -9,8 +9,8 @@ const MAP_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of MapImageProvider for TomTom Map Display API (static image).
 pub struct TomTomMapImageProvider {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomMapImageProvider {

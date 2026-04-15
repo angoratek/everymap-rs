@@ -13,8 +13,8 @@ const SEARCH_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of Geocoder for TomTom Search API.
 pub struct TomTomGeocoder {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomGeocoder {
@@ -46,8 +46,8 @@ fn classify_result_type(result_type: &str) -> SearchResultType {
 impl From<TomTomSearchResult> for SearchResult {
     fn from(r: TomTomSearchResult) -> Self {
         let coordinate = r.position
-            .map(|p| Coordinate::new(p.lat, p.lon).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
-            .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
+            .map(|p| Coordinate::new(p.lat, p.lon).unwrap_or(Coordinate::ORIGIN))
+            .unwrap_or(Coordinate::ORIGIN);
 
         let title = r.address.as_ref().and_then(|a| a.freeform_address.clone());
 

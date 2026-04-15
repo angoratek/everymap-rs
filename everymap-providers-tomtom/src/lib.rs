@@ -1,7 +1,11 @@
 pub mod client;
 pub mod domain;
+pub mod ext;
 
 pub use client::TomTomClient;
+
+// Extension traits
+pub use ext::{TomTomGeocoderExt, TomTomTrafficExt};
 
 // Shared types
 pub use domain::geo::{TomTomLatLng, TomTomBounds};

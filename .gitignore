@@ -23,4 +23,5 @@ Thumbs.db
 .claude/
 
 # Temp files
-tmp/
+tmp
+tmp/.env

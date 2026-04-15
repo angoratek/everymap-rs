@@ -13,8 +13,8 @@ const ROADS_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of RouteMatcher for TomTom Snap to Roads API.
 pub struct TomTomRouteMatcher {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomRouteMatcher {
@@ -56,14 +56,9 @@ impl RouteMatcher for TomTomRouteMatcher {
 
         let result: TomTomSnapResponse = self.client.request_json(builder).await?;
 
-        let matched_points: Vec<MatchedPoint> = result.snapped_points.into_iter().map(|sp| {
-            MatchedPoint {
-                coordinate: sp.coordinate.map(|c| Coordinate::new(c.latitude, c.longitude).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
-                    .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap()),
-                confidence: None,
-                road_name: None,
-            }
-        }).collect();
+        let matched_points: Vec<MatchedPoint> = result.snapped_points.into_iter()
+            .map(MatchedPoint::from)
+            .collect();
 
         Ok(TraceResponse {
             matched_points,

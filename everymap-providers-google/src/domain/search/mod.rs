@@ -11,8 +11,8 @@ const GEOCODING_BASE_URL: &str = "https://maps.googleapis.com/maps/api/geocode/j
 
 /// Implementation of `Geocoder` for Google Maps Geocoding API.
 pub struct GoogleGeocoder {
-    client: std::sync::Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: std::sync::Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GoogleGeocoder {
@@ -33,15 +33,15 @@ impl From<GoogleGeocodeResult> for SearchResult {
         let coordinate = result.geometry
             .as_ref()
             .and_then(|g| g.location.as_ref())
-            .map(|loc| Coordinate::new(loc.lat, loc.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
-            .unwrap_or_else(|| Coordinate::new(0.0, 0.0).unwrap());
+            .map(|loc| Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN))
+            .unwrap_or(Coordinate::ORIGIN);
 
         let bounding_box = result.geometry
             .as_ref()
             .and_then(|g| g.viewport.as_ref())
             .map(|v| BoundingBox::new(
-                Coordinate::new(v.northeast.lat, v.northeast.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
-                Coordinate::new(v.southwest.lat, v.southwest.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+                Coordinate::new(v.northeast.lat, v.northeast.lng).unwrap_or(Coordinate::ORIGIN),
+                Coordinate::new(v.southwest.lat, v.southwest.lng).unwrap_or(Coordinate::ORIGIN),
             ));
 
         let address = Address {

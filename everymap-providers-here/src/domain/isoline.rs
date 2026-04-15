@@ -88,8 +88,8 @@ pub enum TrafficMode {
 
 /// Implementation of IsolineProvider for HERE Technologies.
 pub struct HereIsoline {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HereIsoline {
@@ -267,7 +267,7 @@ impl IsolineProvider for HereIsoline {
         ];
 
         if let Some(opt) = &here_opts.optimize_for {
-            let val = serde_json::to_value(opt).unwrap().as_str().unwrap().to_string();
+            let val = crate::util::enum_as_str(opt);
             params.push(("optimizeFor", val));
         }
         if let Some(dt) = &here_opts.departure_time {
@@ -283,7 +283,7 @@ impl IsolineProvider for HereIsoline {
             params.push(("exclude", exclude.join(",")));
         }
         if let Some(traffic) = &here_opts.traffic {
-            params.push(("traffic", serde_json::to_value(traffic).unwrap().as_str().unwrap().to_string()));
+            params.push(("traffic", crate::util::enum_as_str(traffic)));
         }
         if let Some(bt) = &here_opts.billing_tag {
             params.push(("billingTag", bt.clone()));

@@ -9,6 +9,10 @@ pub struct Coordinate {
 }
 
 impl Coordinate {
+    /// The origin coordinate (0°, 0°), also known as "Null Island".
+    /// Used as a fallback when real coordinate data is missing.
+    pub const ORIGIN: Self = Self { lat: 0.0, lng: 0.0 };
+
     pub fn new(lat: f64, lng: f64) -> Result<Self, CoordinateError> {
         if !(-90.0..=90.0).contains(&lat) {
             return Err(CoordinateError::InvalidLatitude(lat));

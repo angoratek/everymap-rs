@@ -37,8 +37,8 @@ impl From<HerePositioningOptions> for PositionRequestBody {
 
 /// Implementation of NetworkPositioner for HERE Technologies.
 pub struct HerePositioner {
-    client: Arc<HereClient>,
-    base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) base_url: String,
 }
 
 impl HerePositioner {
@@ -85,7 +85,7 @@ impl From<PositioningResponse> for CorePositioningResponse {
         let coordinate = everymap_core::types::Coordinate::new(
             res.location.lat,
             res.location.lng,
-        ).unwrap_or_else(|_| everymap_core::types::Coordinate::new(0.0, 0.0).unwrap());
+        ).unwrap_or(everymap_core::types::Coordinate::ORIGIN);
         Self {
             coordinate,
             accuracy: res.location.accuracy,

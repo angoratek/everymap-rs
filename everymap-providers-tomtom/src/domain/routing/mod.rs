@@ -13,8 +13,8 @@ const ROUTING_BASE_URL: &str = "https://api.tomtom.com";
 
 /// Implementation of Router for TomTom Routing API.
 pub struct TomTomRouter {
-    client: Arc<TomTomClient>,
-    base_url: String,
+    pub(crate) client: Arc<TomTomClient>,
+    pub(crate) base_url: String,
 }
 
 impl TomTomRouter {
@@ -49,7 +49,7 @@ impl From<TomTomRoute> for RouteResult {
         let summary = route.summary.unwrap_or_default();
         let points: Vec<Coordinate> = route.legs.iter()
             .flat_map(|leg| leg.points.iter())
-            .map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()))
+            .map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN))
             .collect();
 
         RouteResult {

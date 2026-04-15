@@ -5,6 +5,9 @@ members = [
     "everymap-providers-google",
     "everymap-cli",
     "everymap-providers-tomtom",
+    "everymap-providers-mapbox",
+    "everymap-providers-radar",
+    "everymap-bench",
 ]
 resolver = "2"
 

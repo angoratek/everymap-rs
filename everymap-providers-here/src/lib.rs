@@ -1,6 +1,7 @@
 pub mod client;
 pub mod domain;
 pub mod ext;
+pub mod util;
 
 pub use client::HereClient;
 pub use domain::search::{

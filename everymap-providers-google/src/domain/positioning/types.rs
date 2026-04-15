@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// Options for Google Geolocation API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GooglePositioningOptions {
     /// Whether to return the IP-based location as a fallback.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -16,6 +17,7 @@ pub struct GooglePositioningOptions {
 
 /// WiFi access point observation for Google Geolocation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GoogleWifiAccessPoint {
     /// MAC address (BSSID) of the access point.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -36,6 +38,7 @@ pub struct GoogleWifiAccessPoint {
 
 /// Cell tower observation for Google Geolocation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GoogleCellTower {
     /// Mobile Country Code.
     #[serde(skip_serializing_if = "Option::is_none")]

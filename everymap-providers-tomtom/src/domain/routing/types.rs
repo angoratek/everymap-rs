@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomRouteResponse {
     /// List of routes.
-    #[serde(default, rename = "routes")]
+    #[serde(default)]
     pub routes: Vec<TomTomRoute>,
     /// Format version.
-    #[serde(default)]
+    #[serde(default, rename = "formatVersion")]
     pub format_version: Option<String>,
 }
 

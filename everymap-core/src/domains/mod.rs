@@ -8,6 +8,9 @@ pub mod tiling;
 pub mod positioning;
 pub mod attributes;
 pub mod imaging;
+pub mod geofencing;
+pub mod tracking;
+pub mod fraud;
 
 pub use search::*;
 pub use routing::*;
@@ -19,3 +22,6 @@ pub use tiling::*;
 pub use positioning::*;
 pub use attributes::*;
 pub use imaging::*;
+pub use geofencing::*;
+pub use tracking::*;
+pub use fraud::*;

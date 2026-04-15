@@ -56,10 +56,10 @@ pub struct AutosuggestRequest {
 /// In addition to the core `Geocoder` trait methods (geocode, reverse_geocode),
 /// this struct provides HERE-specific methods: `discover` and `autosuggest`.
 pub struct HereGeocoder {
-    client: Arc<HereClient>,
-    geocode_base_url: String,
-    discover_base_url: String,
-    autosuggest_base_url: String,
+    pub(crate) client: Arc<HereClient>,
+    pub(crate) geocode_base_url: String,
+    pub(crate) discover_base_url: String,
+    pub(crate) autosuggest_base_url: String,
 }
 
 impl HereGeocoder {
@@ -304,61 +304,61 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
         params.push(("politicalView", pv.clone()));
     }
     if let Some(anm) = &opts.address_names_mode {
-        let val = serde_json::to_value(anm).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(anm);
         params.push(("addressNamesMode", val));
     }
     if let Some(anv) = &opts.address_names_variant {
         params.push(("addressNamesVariant", anv.clone()));
     }
     if let Some(pcm) = &opts.postal_code_mode {
-        let val = serde_json::to_value(pcm).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(pcm);
         params.push(("postalCodeMode", val));
     }
     if let Some(types) = &opts.types {
         let val = types.iter()
-            .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("types", val));
     }
     if let Some(with) = &opts.with {
         let val = with.iter()
-            .map(|w| serde_json::to_value(w).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("with", val));
     }
     if let Some(show) = &opts.show {
         let val = show.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("show", val));
     }
     if let Some(smr) = &opts.show_map_references {
         let val = smr.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("showMapReferences", val));
     }
     if let Some(sna) = &opts.show_nav_attributes {
         let val = sna.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("showNavAttributes", val));
     }
     if let Some(sr) = &opts.show_related {
         let val = sr.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("showRelated", val));
     }
     if let Some(st) = &opts.show_translations {
         let val = st.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("showTranslations", val));
@@ -387,31 +387,31 @@ fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, St
     }
     if let Some(types) = &opts.types {
         let val = types.iter()
-            .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("types", val));
     }
     if let Some(with) = &opts.with {
         let val = with.iter()
-            .map(|w| serde_json::to_value(w).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("with", val));
     }
     if let Some(show) = &opts.show {
         let val = show.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("show", val));
     }
     if let Some(mobility) = &opts.mobility_mode {
-        let val = serde_json::to_value(mobility).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(mobility);
         params.push(("mobilityMode", val));
     }
     if let Some(ranking) = &opts.ranking {
-        let val = serde_json::to_value(ranking).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(ranking);
         params.push(("ranking", val));
     }
     if let Some(offset) = opts.offset {
@@ -438,38 +438,38 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
     }
     if let Some(types) = &opts.types {
         let val = types.iter()
-            .map(|t| serde_json::to_value(t).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("types", val));
     }
     if let Some(with) = &opts.with {
         let val = with.iter()
-            .map(|w| serde_json::to_value(w).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("with", val));
     }
     if let Some(show) = &opts.show {
         let val = show.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("show", val));
     }
     if let Some(smr) = &opts.show_map_references {
         let val = smr.iter()
-            .map(|s| serde_json::to_value(s).unwrap().as_str().unwrap().to_string())
+            .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
         params.push(("showMapReferences", val));
     }
     if let Some(mobility) = &opts.mobility_mode {
-        let val = serde_json::to_value(mobility).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(mobility);
         params.push(("mobilityMode", val));
     }
     if let Some(ranking) = &opts.ranking {
-        let val = serde_json::to_value(ranking).unwrap().as_str().unwrap().to_string();
+        let val = crate::util::enum_as_str(ranking);
         params.push(("ranking", val));
     }
     if let Some(terms_limit) = opts.terms_limit {

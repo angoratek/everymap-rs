@@ -1,10 +1,6 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
 use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_core::error::EveryMapError;
 use everymap_providers_tomtom::{TomTomPositioner, TomTomAttributeProvider};
-use std::sync::Arc;
 
 #[tokio::test]
 async fn test_unsupported_positioning() {

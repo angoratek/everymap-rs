@@ -11,8 +11,8 @@ const DIRECTIONS_BASE_URL: &str = "https://maps.googleapis.com/maps/api/directio
 
 /// Implementation of `Router` for Google Maps Directions API.
 pub struct GoogleRouter {
-    client: std::sync::Arc<GoogleClient>,
-    base_url: String,
+    pub(crate) client: std::sync::Arc<GoogleClient>,
+    pub(crate) base_url: String,
 }
 
 impl GoogleRouter {
@@ -50,17 +50,17 @@ impl From<GoogleRoute> for RouteResult {
                     distance: s.distance.as_ref().map(|d| d.value as f64),
                     duration: s.duration.as_ref().map(|d| d.value as f64),
                     start_coordinate: s.start_location.as_ref()
-                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap())),
+                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)),
                     end_coordinate: s.end_location.as_ref()
-                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap())),
+                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)),
                 }
             }).collect())
             .unwrap_or_default();
 
         let bounding_box = route.bounds
             .map(|b| BoundingBox::new(
-                Coordinate::new(b.northeast.lat, b.northeast.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
-                Coordinate::new(b.southwest.lat, b.southwest.lng).unwrap_or_else(|_| Coordinate::new(0.0, 0.0).unwrap()),
+                Coordinate::new(b.northeast.lat, b.northeast.lng).unwrap_or(Coordinate::ORIGIN),
+                Coordinate::new(b.southwest.lat, b.southwest.lng).unwrap_or(Coordinate::ORIGIN),
             ));
 
         Self {
