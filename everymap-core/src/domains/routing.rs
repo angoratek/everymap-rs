@@ -159,4 +159,213 @@ mod tests {
         assert_eq!(result.duration, 1800.0);
         assert_eq!(result.transport_mode, Some(TransportMode::Car));
     }
+
+    // --- AvoidType all 5 variants serde roundtrip ---
+
+    #[test]
+    fn test_avoid_type_all_variants_serde() {
+        let variants = [
+            AvoidType::Tolls,
+            AvoidType::Ferries,
+            AvoidType::Tunnels,
+            AvoidType::Highways,
+            AvoidType::DirtRoads,
+        ];
+        for v in &variants {
+            let json = serde_json::to_string(v).unwrap();
+            let back: AvoidType = serde_json::from_str(&json).unwrap();
+            assert_eq!(*v, back, "Failed roundtrip for {:?}", v);
+        }
+    }
+
+    #[test]
+    fn test_avoid_type_all_variants_distinct() {
+        let variants = [
+            AvoidType::Tolls,
+            AvoidType::Ferries,
+            AvoidType::Tunnels,
+            AvoidType::Highways,
+            AvoidType::DirtRoads,
+        ];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- TransportMode all 8 variants serde roundtrip ---
+
+    #[test]
+    fn test_transport_mode_all_variants_serde() {
+        let variants = [
+            TransportMode::Car,
+            TransportMode::Truck,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+            TransportMode::Scooter,
+            TransportMode::Bus,
+            TransportMode::Taxi,
+            TransportMode::Unknown,
+        ];
+        for v in &variants {
+            let json = serde_json::to_string(v).unwrap();
+            let back: TransportMode = serde_json::from_str(&json).unwrap();
+            assert_eq!(*v, back, "Failed roundtrip for {:?}", v);
+        }
+    }
+
+    #[test]
+    fn test_transport_mode_all_variants_distinct() {
+        let variants = [
+            TransportMode::Car,
+            TransportMode::Truck,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+            TransportMode::Scooter,
+            TransportMode::Bus,
+            TransportMode::Taxi,
+            TransportMode::Unknown,
+        ];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- RouteResponse serde roundtrip ---
+
+    #[test]
+    fn test_route_response_serde_roundtrip() {
+        let response = RouteResponse {
+            routes: vec![RouteResult {
+                distance: 15000.0,
+                duration: 1800.0,
+                geometry: Polyline::new(vec![]),
+                transport_mode: Some(TransportMode::Car),
+                steps: vec![],
+                bounding_box: None,
+                raw: None,
+            }],
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: RouteResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.routes.len(), 1);
+        assert_eq!(back.routes[0].distance, 15000.0);
+        assert_eq!(back.routes[0].transport_mode, Some(TransportMode::Car));
+    }
+
+    #[test]
+    fn test_route_response_empty_routes() {
+        let response = RouteResponse { routes: vec![] };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: RouteResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.routes.is_empty());
+    }
+
+    // --- RouteOptions with provider_extra serde roundtrip ---
+
+    #[test]
+    fn test_route_options_serde_roundtrip() {
+        let opts = RouteOptions {
+            transport_mode: Some(TransportMode::Truck),
+            alternatives: Some(2),
+            avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
+            departure_time: Some("2024-06-01T08:00:00".to_string()),
+            arrival_time: None,
+            language: Some("en".to_string()),
+            provider_extra: Some(serde_json::json!({"routing_mode": "fast", "truck": {"weight": 18}})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: RouteOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.transport_mode, Some(TransportMode::Truck));
+        assert_eq!(back.alternatives, Some(2));
+        assert_eq!(back.avoid.len(), 2);
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- RouteStep serde roundtrip ---
+
+    #[test]
+    fn test_route_step_serde_roundtrip() {
+        let step = RouteStep {
+            instruction: Some("Turn right onto Main St".to_string()),
+            distance: Some(500.0),
+            duration: Some(60.0),
+            start_coordinate: Some(Coordinate::new(52.5, 13.4).unwrap()),
+            end_coordinate: Some(Coordinate::new(52.51, 13.41).unwrap()),
+        };
+        let json = serde_json::to_string(&step).unwrap();
+        let back: RouteStep = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.instruction.as_deref(), Some("Turn right onto Main St"));
+        assert_eq!(back.distance, Some(500.0));
+        assert_eq!(back.duration, Some(60.0));
+    }
+
+    // --- RouteResult with all fields populated ---
+
+    #[test]
+    fn test_route_result_full_serde_roundtrip() {
+        let result = RouteResult {
+            distance: 0.0,
+            duration: 0.0,
+            geometry: Polyline::new(vec![Coordinate::new(52.5, 13.4).unwrap()]),
+            transport_mode: Some(TransportMode::Pedestrian),
+            steps: vec![RouteStep {
+                instruction: Some("Walk north".to_string()),
+                distance: Some(100.0),
+                duration: Some(120.0),
+                start_coordinate: None,
+                end_coordinate: None,
+            }],
+            bounding_box: Some(BoundingBox::new(
+                Coordinate::new(52.6, 13.5).unwrap(),
+                Coordinate::new(52.4, 13.3).unwrap(),
+            )),
+            raw: Some(serde_json::json!({"legs": []})),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: RouteResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.distance, 0.0);
+        assert_eq!(back.steps.len(), 1);
+        assert!(back.bounding_box.is_some());
+        assert!(back.raw.is_some());
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_route_result_zero_distance_duration() {
+        let result = RouteResult {
+            distance: 0.0,
+            duration: 0.0,
+            geometry: Polyline::new(vec![]),
+            transport_mode: None,
+            steps: vec![],
+            bounding_box: None,
+            raw: None,
+        };
+        assert_eq!(result.distance, 0.0);
+        assert_eq!(result.duration, 0.0);
+    }
+
+    #[test]
+    fn test_route_options_all_avoid_types() {
+        let opts = RouteOptions {
+            avoid: vec![
+                AvoidType::Tolls,
+                AvoidType::Ferries,
+                AvoidType::Tunnels,
+                AvoidType::Highways,
+                AvoidType::DirtRoads,
+            ],
+            ..Default::default()
+        };
+        assert_eq!(opts.avoid.len(), 5);
+    }
 }

@@ -1,70 +1,190 @@
-use serde::{Deserialize, Serialize};
+use everymap_core::types::Coordinate;
 
-/// A benchmark scenario defining a test case.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BenchmarkScenario {
-    pub domain: String,
-    pub name: String,
-    pub description: String,
+/// Typed parameters for a benchmark scenario.
+#[derive(Debug, Clone)]
+pub enum ScenarioParams {
+    Geocode { query: String },
+    ReverseGeocode { coord: Coordinate },
+    Route { start: Coordinate, end: Coordinate },
+    Isoline { center: Coordinate, range: f64 },
+    Matching { points: Vec<Coordinate> },
+    Tour { stops: Vec<Coordinate> },
+    Traffic { location: Coordinate },
+    Tile { z: u32, x: u32, y: u32 },
+    Positioning,
+    Attributes { bbox: String },
+    Image { center: Coordinate, zoom: u32 },
+    GeofenceSearch { near: Coordinate, radius: f64 },
+    TripCreate { origin: Coordinate, destination: Coordinate },
+    FraudCheck { lat: f64, lng: f64 },
 }
 
-/// Predefined benchmark scenarios per domain.
+impl ScenarioParams {
+    /// Returns the domain name for this scenario variant.
+    pub fn domain(&self) -> &'static str {
+        match self {
+            ScenarioParams::Geocode { .. } | ScenarioParams::ReverseGeocode { .. } => "geocoder",
+            ScenarioParams::Route { .. } => "routing",
+            ScenarioParams::Isoline { .. } => "isoline",
+            ScenarioParams::Matching { .. } => "matching",
+            ScenarioParams::Tour { .. } => "tour",
+            ScenarioParams::Traffic { .. } => "traffic",
+            ScenarioParams::Tile { .. } => "tiling",
+            ScenarioParams::Positioning => "positioning",
+            ScenarioParams::Attributes { .. } => "attributes",
+            ScenarioParams::Image { .. } => "imaging",
+            ScenarioParams::GeofenceSearch { .. } => "geofencing",
+            ScenarioParams::TripCreate { .. } => "tracking",
+            ScenarioParams::FraudCheck { .. } => "fraud",
+        }
+    }
+}
+
+/// A benchmark scenario defining a test case.
+#[derive(Debug, Clone)]
+#[allow(dead_code)]
+pub struct BenchmarkScenario {
+    pub name: String,
+    pub description: String,
+    pub params: ScenarioParams,
+}
+
+/// Predefined benchmark scenarios for all 13 domains.
 pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
     let all = vec![
+        // Geocoder
         BenchmarkScenario {
-            domain: "geocoder".to_string(),
             name: "Berlin Brandenburg Gate".to_string(),
             description: "Forward geocode for 'Brandenburg Gate, Berlin'".to_string(),
+            params: ScenarioParams::Geocode {
+                query: "Brandenburg Gate, Berlin".to_string(),
+            },
         },
         BenchmarkScenario {
-            domain: "geocoder".to_string(),
-            name: "Reverse 52.5163,13.3777".to_string(),
-            description: "Reverse geocode for Brandenburg Gate coordinates".to_string(),
+            name: "Reverse Berlin center".to_string(),
+            description: "Reverse geocode at Berlin center (52.52,13.38)".to_string(),
+            params: ScenarioParams::ReverseGeocode {
+                coord: Coordinate::new(52.5163, 13.3777).unwrap(),
+            },
         },
+        // Routing
         BenchmarkScenario {
-            domain: "routing".to_string(),
             name: "Berlin to Paris".to_string(),
-            description: "Route from Berlin (52.5163,13.3777) to Paris (48.8566,2.3522)".to_string(),
+            description: "Route from Berlin (52.52,13.38) to Paris (48.86,2.35)".to_string(),
+            params: ScenarioParams::Route {
+                start: Coordinate::new(52.5163, 13.3777).unwrap(),
+                end: Coordinate::new(48.8566, 2.3522).unwrap(),
+            },
         },
         BenchmarkScenario {
-            domain: "routing".to_string(),
             name: "NYC to LA".to_string(),
-            description: "Route from NYC (40.7128,-74.0060) to LA (34.0522,-118.2437)".to_string(),
+            description: "Route from NYC (40.71,-74.01) to LA (34.05,-118.24)".to_string(),
+            params: ScenarioParams::Route {
+                start: Coordinate::new(40.7128, -74.0060).unwrap(),
+                end: Coordinate::new(34.0522, -118.2437).unwrap(),
+            },
         },
+        // Isoline
         BenchmarkScenario {
-            domain: "isoline".to_string(),
-            name: "30min drive from Berlin center".to_string(),
-            description: "Isoline: 30-minute drive from Berlin center (52.5163,13.3777)".to_string(),
+            name: "30min drive from Berlin".to_string(),
+            description: "30-minute driving isoline from Berlin center".to_string(),
+            params: ScenarioParams::Isoline {
+                center: Coordinate::new(52.5163, 13.3777).unwrap(),
+                range: 1800.0,
+            },
         },
+        // Matching
         BenchmarkScenario {
-            domain: "matching".to_string(),
             name: "Berlin straight line".to_string(),
-            description: "Match GPS trace: 52.5,13.4 -> 52.6,13.5".to_string(),
+            description: "Match 4 GPS points along Berlin roads".to_string(),
+            params: ScenarioParams::Matching {
+                points: vec![
+                    Coordinate::new(52.5200, 13.4050).unwrap(),
+                    Coordinate::new(52.5250, 13.4100).unwrap(),
+                    Coordinate::new(52.5300, 13.4150).unwrap(),
+                    Coordinate::new(52.5350, 13.4200).unwrap(),
+                ],
+            },
         },
+        // Tour
         BenchmarkScenario {
-            domain: "tour".to_string(),
             name: "5 Berlin landmarks".to_string(),
-            description: "Optimize tour through 5 Berlin coordinates".to_string(),
+            description: "Optimize tour through 5 Berlin landmarks".to_string(),
+            params: ScenarioParams::Tour {
+                stops: vec![
+                    Coordinate::new(52.5163, 13.3777).unwrap(),
+                    Coordinate::new(52.5162, 13.3739).unwrap(),
+                    Coordinate::new(52.5200, 13.3966).unwrap(),
+                    Coordinate::new(52.5076, 13.3456).unwrap(),
+                    Coordinate::new(52.5145, 13.3500).unwrap(),
+                ],
+            },
         },
+        // Traffic
         BenchmarkScenario {
-            domain: "geocoder".to_string(),
-            name: "NYC Empire State Building (Radar)".to_string(),
-            description: "Forward geocode for 'Empire State Building, NYC' via Radar".to_string(),
+            name: "Berlin traffic".to_string(),
+            description: "Traffic flow near Berlin center".to_string(),
+            params: ScenarioParams::Traffic {
+                location: Coordinate::new(52.5163, 13.3777).unwrap(),
+            },
         },
+        // Tiling
         BenchmarkScenario {
-            domain: "routing".to_string(),
-            name: "NYC to Boston (Radar)".to_string(),
-            description: "Route from NYC (40.7128,-74.0060) to Boston (42.3601,-71.0589) via Radar".to_string(),
+            name: "Berlin tile z10".to_string(),
+            description: "Fetch map tile at zoom 10 covering Berlin".to_string(),
+            params: ScenarioParams::Tile { z: 10, x: 550, y: 335 },
         },
+        // Positioning
         BenchmarkScenario {
-            domain: "geofencing".to_string(),
+            name: "Default positioning".to_string(),
+            description: "Default network positioning request".to_string(),
+            params: ScenarioParams::Positioning,
+        },
+        // Attributes
+        BenchmarkScenario {
+            name: "Berlin attributes".to_string(),
+            description: "Road attributes near Berlin center (bbox)".to_string(),
+            params: ScenarioParams::Attributes {
+                bbox: "13.3,52.5,13.4,52.52".to_string(),
+            },
+        },
+        // Imaging
+        BenchmarkScenario {
+            name: "Berlin map image".to_string(),
+            description: "Static map image of Berlin center at zoom 12".to_string(),
+            params: ScenarioParams::Image {
+                center: Coordinate::new(52.5163, 13.3777).unwrap(),
+                zoom: 12,
+            },
+        },
+        // Geofencing (Radar-only)
+        BenchmarkScenario {
             name: "Geofence search near NYC".to_string(),
-            description: "Search geofences near NYC (40.7128,-74.0060)".to_string(),
+            description: "Search geofences near NYC (40.71,-74.01) r=1000m".to_string(),
+            params: ScenarioParams::GeofenceSearch {
+                near: Coordinate::new(40.7128, -74.0060).unwrap(),
+                radius: 1000.0,
+            },
+        },
+        // Tracking (Radar-only)
+        BenchmarkScenario {
+            name: "Trip NYC to Boston".to_string(),
+            description: "Create a trip from NYC to Boston via Radar".to_string(),
+            params: ScenarioParams::TripCreate {
+                origin: Coordinate::new(40.7128, -74.0060).unwrap(),
+                destination: Coordinate::new(42.3601, -71.0589).unwrap(),
+            },
+        },
+        // Fraud (Radar-only)
+        BenchmarkScenario {
+            name: "Fraud check NYC".to_string(),
+            description: "Fraud check at NYC coordinates via Radar".to_string(),
+            params: ScenarioParams::FraudCheck { lat: 40.7128, lng: -74.0060 },
         },
     ];
 
     match domain {
-        Some(d) => all.into_iter().filter(|s| s.domain == d).collect(),
+        Some(d) => all.into_iter().filter(|s| s.params.domain() == d).collect(),
         None => all,
     }
 }

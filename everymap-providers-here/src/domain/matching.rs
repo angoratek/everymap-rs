@@ -128,22 +128,56 @@ impl HereRouteMatcher {
     }
 }
 
-// Internal deserialization for backward-compatible core trait
+// Internal deserialization for the real API response format
+// The HERE Route Matching API v8 returns:
+// {"response": {"route": [{"waypoint": [...], "leg": [...], "mode": {...}}]}}
 #[derive(Debug, Deserialize)]
-struct HereLegacyMatchResponse {
-    trace: Vec<HereLegacyPoint>,
-    summary: HereLegacySummary,
+struct HereMatchApiResponseWrapper {
+    #[serde(default)]
+    response: HereMatchApiResponseInner,
 }
 
-#[derive(Debug, Deserialize)]
-struct HereLegacyPoint {
-    lat: f64,
-    lng: f64,
+#[derive(Debug, Default, Deserialize)]
+struct HereMatchApiResponseInner {
+    #[serde(default)]
+    route: Vec<HereMatchApiRoute>,
 }
 
-#[derive(Debug, Deserialize)]
-struct HereLegacySummary {
+#[derive(Debug, Default, Deserialize)]
+struct HereMatchApiRoute {
+    #[serde(default)]
+    waypoint: Vec<HereMatchApiWaypoint>,
+    #[serde(default)]
+    leg: Vec<HereMatchApiLeg>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[allow(dead_code)]
+struct HereMatchApiWaypoint {
+    #[serde(default, rename = "mappedPosition")]
+    mapped_position: Option<HereMatchApiPosition>,
+    #[serde(default, rename = "originalPosition")]
+    original_position: Option<HereMatchApiPosition>,
+    #[serde(default, rename = "confidenceValue")]
+    confidence_value: Option<f64>,
+    #[serde(default, rename = "matchDistance")]
+    match_distance: Option<f64>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct HereMatchApiPosition {
+    #[serde(default)]
+    latitude: f64,
+    #[serde(default)]
+    longitude: f64,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct HereMatchApiLeg {
+    #[serde(default)]
     length: f64,
+    #[serde(default, rename = "travelTime")]
+    travel_time: f64,
 }
 
 impl From<HereMatchedPoint> for MatchedPoint {
@@ -424,12 +458,16 @@ impl RouteMatcher for HereRouteMatcher {
     async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
         let opts = matching_options_from_core(options);
 
-        let points_str = points.iter()
-            .map(|p| format!("{},{}", p.lat, p.lng))
-            .collect::<Vec<_>>()
-            .join(";");
+        // Use waypointN format: waypoint0=lat,lng&waypoint1=lat,lng&...
+        let mut params: Vec<(String, String)> = vec![];
+        for (i, p) in points.iter().enumerate() {
+            params.push((format!("waypoint{}", i), format!("{},{}", p.lat, p.lng)));
+        }
 
-        let mut params: Vec<(String, String)> = vec![("trace".to_string(), points_str)];
+        // Default to routeMatch=1 if not specified
+        if opts.route_match.is_none() {
+            params.push(("routeMatch".to_string(), "1".to_string()));
+        }
 
         let opts = &opts;
 
@@ -547,20 +585,33 @@ impl RouteMatcher for HereRouteMatcher {
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let here_res: HereLegacyMatchResponse = self.client.request_json(builder).await?;
+        let here_res: HereMatchApiResponseWrapper = self.client.request_json(builder).await?;
 
-        let matched_points = here_res.trace.into_iter()
-            .map(|p| MatchedPoint {
-                coordinate: Coordinate::new(p.lat, p.lng).unwrap_or(Coordinate::ORIGIN),
-                confidence: None,
-                road_name: None,
-            })
-            .collect();
+        // Extract matched points and total distance from the API response
+        let route = here_res.response.route.into_iter().next();
+        let (matched_points, distance, duration) = match route {
+            Some(r) => {
+                let points = r.waypoint.into_iter()
+                    .filter_map(|wp| {
+                        let pos = wp.mapped_position.or(wp.original_position)?;
+                        Some(MatchedPoint {
+                            coordinate: Coordinate::new(pos.latitude, pos.longitude).unwrap_or(Coordinate::ORIGIN),
+                            confidence: wp.confidence_value,
+                            road_name: None,
+                        })
+                    })
+                    .collect();
+                let total_length: f64 = r.leg.iter().map(|l| l.length).sum();
+                let total_time: f64 = r.leg.iter().map(|l| l.travel_time).sum();
+                (points, total_length, if total_time > 0.0 { Some(total_time) } else { None })
+            }
+            None => (vec![], 0.0, None),
+        };
 
         Ok(TraceResponse {
             matched_points,
-            distance: here_res.summary.length,
-            duration: None,
+            distance,
+            duration,
             raw: None,
         })
     }

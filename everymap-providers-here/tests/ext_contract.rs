@@ -435,8 +435,8 @@ async fn test_attribute_ext_get_road_attributes() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
-        .and(query_param("bbox", "52.5,13.4;52.6,13.5"))
+        .and(path("/maps/attributes"))
+        .and(query_param("in", "bbox:52.5,13.4,52.6,13.5"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -447,7 +447,7 @@ async fn test_attribute_ext_get_road_attributes() {
 
     // Call through extension trait
     let res: HereRoadAttributesResponse = HereAttributeExt::get_road_attributes(
-        &provider, "52.5,13.4;52.6,13.5", None,
+        &provider, "52.5,13.4,52.6,13.5", None,
     ).await.unwrap();
 
     assert_eq!(res.features.len(), 1);
@@ -478,7 +478,7 @@ async fn test_attribute_ext_get_segment_attributes() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/segments"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -517,7 +517,7 @@ async fn test_attribute_ext_get_admin_areas() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/adminAreas"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -555,7 +555,7 @@ async fn test_attribute_ext_get_buildings() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/buildings"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -594,7 +594,7 @@ async fn test_attribute_ext_get_landmarks() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/landmarks"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -631,7 +631,7 @@ async fn test_attribute_ext_get_road_attributes_by_ids() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
+        .and(path("/maps/attributes"))
         .and(query_param("ids", "ext_id_1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
@@ -674,8 +674,9 @@ async fn test_attribute_ext_get_speed_limits() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
-        .and(query_param("bbox", "52.5,13.4;52.6,13.5"))
+        .and(path("/maps/attributes"))
+        .and(query_param("in", "bbox:52.5,13.4,52.6,13.5"))
+        .and(query_param("layers", "SPEED_LIMITS_FCn"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;

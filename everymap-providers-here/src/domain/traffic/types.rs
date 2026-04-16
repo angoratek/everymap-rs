@@ -83,8 +83,33 @@ pub struct HereTrafficLocation {
     pub length: Option<f64>,
     #[serde(default, rename = "functionalClass")]
     pub functional_class: Option<u32>,
+    /// Shape data from the Traffic API v7.
+    /// The real API returns `{"links": [{"points": [...], "length": N}]}`,
+    /// but earlier versions returned a flat array of points.
+    /// We use `serde(untagged)` to support both formats.
     #[serde(default)]
-    pub shape: Option<Vec<HereTrafficShapePoint>>,
+    pub shape: Option<HereTrafficShape>,
+}
+
+/// Shape data for a traffic location.
+/// The real HERE Traffic API v7 returns shape as an object with `links`,
+/// but the contract tests use a flat array of points.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HereTrafficShape {
+    /// V7 format: `{"links": [{"points": [...], "length": N}]}`
+    Links { links: Vec<HereTrafficShapeLink> },
+    /// Legacy/simple format: flat array of points
+    Points(Vec<HereTrafficShapePoint>),
+}
+
+/// A link in the traffic shape data.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct HereTrafficShapeLink {
+    #[serde(default)]
+    pub points: Vec<HereTrafficShapePoint>,
+    #[serde(default)]
+    pub length: Option<f64>,
 }
 
 /// A shape point in a traffic location.

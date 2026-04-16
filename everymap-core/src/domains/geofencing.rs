@@ -207,4 +207,168 @@ mod tests {
         assert_eq!(opts.radius.unwrap(), 500.0);
         assert!(opts.metadata.unwrap().contains_key("level"));
     }
+
+    // --- GeofenceType all 3 variants serde roundtrip ---
+
+    #[test]
+    fn test_geofence_type_circle_serde() {
+        let json = serde_json::to_string(&GeofenceType::Circle).unwrap();
+        let back: GeofenceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, GeofenceType::Circle);
+    }
+
+    #[test]
+    fn test_geofence_type_polygon_serde() {
+        let json = serde_json::to_string(&GeofenceType::Polygon).unwrap();
+        let back: GeofenceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, GeofenceType::Polygon);
+    }
+
+    #[test]
+    fn test_geofence_type_isochrone_serde() {
+        let json = serde_json::to_string(&GeofenceType::Isochrone).unwrap();
+        let back: GeofenceType = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, GeofenceType::Isochrone);
+    }
+
+    #[test]
+    fn test_geofence_type_all_variants_distinct() {
+        let variants = [GeofenceType::Circle, GeofenceType::Polygon, GeofenceType::Isochrone];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- GeofenceResponse serde roundtrip ---
+
+    #[test]
+    fn test_geofence_response_serde_roundtrip() {
+        let response = GeofenceResponse {
+            geofences: vec![GeofenceResult {
+                id: "gf_1".to_string(),
+                tag: Some("warehouse".to_string()),
+                external_id: Some("ext_wh_1".to_string()),
+                description: Some("Main warehouse zone".to_string()),
+                geofence_type: Some(GeofenceType::Polygon),
+                geometry_center: Some(Coordinate::new(40.7128, -74.0060).unwrap()),
+                metadata: Some(serde_json::json!({"zone": "industrial"})),
+                enabled: Some(true),
+                raw: Some(serde_json::json!({"provider": "radar"})),
+            }],
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: GeofenceResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.geofences.len(), 1);
+        assert_eq!(back.geofences[0].id, "gf_1");
+        assert_eq!(back.geofences[0].geofence_type, Some(GeofenceType::Polygon));
+        assert!(back.geofences[0].raw.is_some());
+    }
+
+    #[test]
+    fn test_geofence_response_empty() {
+        let response = GeofenceResponse { geofences: vec![] };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: GeofenceResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.geofences.is_empty());
+    }
+
+    // --- GeofenceResult serde roundtrip ---
+
+    #[test]
+    fn test_geofence_result_serde_roundtrip() {
+        let result = GeofenceResult {
+            id: "gf_99".to_string(),
+            tag: None,
+            external_id: None,
+            description: None,
+            geofence_type: Some(GeofenceType::Isochrone),
+            geometry_center: Some(Coordinate::ORIGIN),
+            metadata: None,
+            enabled: Some(false),
+            raw: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: GeofenceResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, "gf_99");
+        assert_eq!(back.geofence_type, Some(GeofenceType::Isochrone));
+        assert_eq!(back.enabled, Some(false));
+    }
+
+    // --- GeofenceOptions serde roundtrip ---
+
+    #[test]
+    fn test_geofence_options_serde_roundtrip() {
+        let opts = GeofenceOptions {
+            near: Some(Coordinate::new(40.7128, -74.0060).unwrap()),
+            radius: Some(5000.0),
+            tags: vec!["delivery".to_string()],
+            limit: Some(50),
+            include_geometry: Some(true),
+            provider_extra: Some(serde_json::json!({"rule": "any"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: GeofenceOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.tags.len(), 1);
+        assert_eq!(back.radius, Some(5000.0));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- GeofenceCreateOptions serde roundtrip ---
+
+    #[test]
+    fn test_geofence_create_options_serde_roundtrip() {
+        let opts = GeofenceCreateOptions {
+            tag: Some("parking".to_string()),
+            external_id: Some("ext_p1".to_string()),
+            description: Some("Parking lot A".to_string()),
+            geofence_type: Some(GeofenceType::Circle),
+            geometry: Some(serde_json::json!({"type": "Circle", "radius": 200})),
+            center: Some(Coordinate::new(51.5074, -0.1278).unwrap()),
+            radius: Some(200.0),
+            metadata: None,
+            enabled: Some(true),
+            provider_extra: Some(serde_json::json!({"color": "blue"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: GeofenceCreateOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.tag, Some("parking".to_string()));
+        assert!(back.geometry.is_some());
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_geofence_result_no_optional_fields() {
+        let result = GeofenceResult {
+            id: "gf_empty".to_string(),
+            tag: None,
+            external_id: None,
+            description: None,
+            geofence_type: None,
+            geometry_center: None,
+            metadata: None,
+            enabled: None,
+            raw: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: GeofenceResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, "gf_empty");
+        assert!(back.tag.is_none());
+        assert!(back.geofence_type.is_none());
+    }
+
+    #[test]
+    fn test_geofence_create_options_zero_radius() {
+        let opts = GeofenceCreateOptions {
+            radius: Some(0.0),
+            center: Some(Coordinate::ORIGIN),
+            ..Default::default()
+        };
+        assert_eq!(opts.radius, Some(0.0));
+    }
 }

@@ -62,4 +62,58 @@ mod tests {
         assert_eq!(response.data.len(), 4);
         assert_eq!(response.content_type, Some("image/png".to_string()));
     }
+
+    // --- ImageOptions serde roundtrip ---
+
+    #[test]
+    fn test_image_options_serde_roundtrip() {
+        let opts = ImageOptions {
+            format: Some("jpg".to_string()),
+            language: Some("ja".to_string()),
+            provider_extra: Some(serde_json::json!({"maptype": "satellite", "markers": [{"lat": 35.6762, "lng": 139.6503}]})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: ImageOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.format, Some("jpg".to_string()));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- ImageResponse edge cases ---
+
+    #[test]
+    fn test_image_response_empty_data() {
+        let response = ImageResponse::new(vec![], None);
+        assert!(response.data.is_empty());
+        assert!(response.content_type.is_none());
+    }
+
+    #[test]
+    fn test_image_response_no_content_type() {
+        let response = ImageResponse::new(vec![0xFF, 0xD8, 0xFF], None);
+        assert_eq!(response.data.len(), 3);
+        assert!(response.content_type.is_none());
+    }
+
+    #[test]
+    fn test_image_response_jpeg_content_type() {
+        let response = ImageResponse::new(vec![0xFF, 0xD8, 0xFF, 0xE0], Some("image/jpeg".to_string()));
+        assert_eq!(response.content_type, Some("image/jpeg".to_string()));
+    }
+
+    #[test]
+    fn test_image_response_large_data() {
+        let data: Vec<u8> = (0..1024).map(|i| (i % 256) as u8).collect();
+        let response = ImageResponse::new(data, Some("image/png".to_string()));
+        assert_eq!(response.data.len(), 1024);
+    }
+
+    // --- ImageResponse Clone ---
+
+    #[test]
+    fn test_image_response_clone() {
+        let response = ImageResponse::new(vec![1, 2, 3], Some("image/png".to_string()));
+        let cloned = response.clone();
+        assert_eq!(cloned.data, response.data);
+        assert_eq!(cloned.content_type, response.content_type);
+    }
 }

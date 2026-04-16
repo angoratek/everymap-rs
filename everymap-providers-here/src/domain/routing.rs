@@ -21,10 +21,10 @@ impl From<HereRoute> for RouteResult {
             Some(s) => {
                 let dist = s.summary.as_ref().and_then(|sum| sum.length).unwrap_or(0.0);
                 let dur = s.summary.as_ref().and_then(|sum| sum.duration).unwrap_or(0.0);
-                let geom = s.polyline.as_ref()
-                    .and_then(|p| p.polyline.as_ref())
+                let geom = s.polyline.clone()
+                    .and_then(|p| p.into_polyline_string())
                     .map(|encoded| {
-                        everymap_core::types::FlexiblePolyline::decode(encoded)
+                        everymap_core::types::FlexiblePolyline::decode(&encoded)
                             .map(Polyline::new)
                             .unwrap_or_else(|_| Polyline::new(vec![]))
                     })
@@ -58,10 +58,10 @@ impl From<HereRouteSection> for RouteResult {
     fn from(section: HereRouteSection) -> Self {
         let distance = section.summary.as_ref().and_then(|s| s.length).unwrap_or(0.0);
         let duration = section.summary.as_ref().and_then(|s| s.duration).unwrap_or(0.0);
-        let geometry = section.polyline.as_ref()
-            .and_then(|p| p.polyline.as_ref())
+        let geometry = section.polyline
+            .and_then(|p| p.into_polyline_string())
             .map(|encoded| {
-                everymap_core::types::FlexiblePolyline::decode(encoded)
+                everymap_core::types::FlexiblePolyline::decode(&encoded)
                     .map(Polyline::new)
                     .unwrap_or_else(|_| Polyline::new(vec![]))
             })

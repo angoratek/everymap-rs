@@ -35,7 +35,7 @@ pub struct HereRouteSection {
     #[serde(default)]
     pub summary: Option<HereRouteSummary>,
     #[serde(default)]
-    pub polyline: Option<HerePolylineData>,
+    pub polyline: Option<HerePolylineField>,
     #[serde(default)]
     pub actions: Vec<HereRouteAction>,
     #[serde(default, rename = "turnByTurnActions")]
@@ -101,10 +101,37 @@ pub struct HereWaypointInfo {
 }
 
 /// Polyline data in a route section.
+/// The HERE Routing API v8 returns the polyline as a plain string,
+/// not as an object: `"polyline": "BGoz5xJ67i1B1B7PzIhaxL7Y"`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HerePolylineData {
     #[serde(default)]
     pub polyline: Option<String>,
+}
+
+/// Wrapper that deserializes a polyline that may be either:
+/// - a plain string: `"polyline": "BGoz5xJ67i1B1B7PzIhaxL7Y"`
+/// - an object: `"polyline": { "polyline": "BGoz5xJ67i1B1B7PzIhaxL7Y" }`
+///
+/// The real HERE Routing API v8 returns a plain string, but the contract
+/// tests use the object form for backward compatibility.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum HerePolylineField {
+    /// The polyline is a plain flexible-polyline encoded string.
+    String(String),
+    /// The polyline is an object with a nested `polyline` field.
+    Object(HerePolylineData),
+}
+
+impl HerePolylineField {
+    /// Extract the encoded polyline string from either variant.
+    pub fn into_polyline_string(self) -> Option<String> {
+        match self {
+            HerePolylineField::String(s) => Some(s),
+            HerePolylineField::Object(obj) => obj.polyline,
+        }
+    }
 }
 
 /// A route action (maneuver).

@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 pub use types::*;
 
-const IMAGING_BASE_URL: &str = "https://image.maps.hereapi.com/mia/v3";
+const IMAGING_BASE_URL: &str = "https://maps.hereapi.com/mia/v3";
 
 /// Options for HERE Map Image API v3.
 #[derive(Debug, Clone, Default)]
@@ -112,19 +112,17 @@ impl MapImageProvider for HereMapImageProvider {
         };
 
         let url = format!(
-            "{}/maptile/{}/center/{},{}/{}",
+            "{}/base/mc/center:{},{};zoom={}/{}x{}/{}",
             self.base_url,
-            zoom,
             center.lat,
             center.lng,
-            size.0
+            zoom,
+            size.0,
+            size.1,
+            format_ext
         );
 
-        let mut params: Vec<(String, String)> = vec![
-            ("format".to_string(), format_ext.to_string()),
-            ("w".to_string(), size.0.to_string()),
-            ("h".to_string(), size.1.to_string()),
-        ];
+        let mut params: Vec<(String, String)> = vec![];
 
         if let Some(style) = &here_opts.style {
             params.push(("style".to_string(), style.clone()));

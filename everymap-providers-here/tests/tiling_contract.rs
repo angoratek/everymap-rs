@@ -14,7 +14,7 @@ async fn test_tiling_contract() {
     let tile_data = b"mock_protobuf_tile_data";
 
     Mock::given(method("GET"))
-        .and(path("/vectortiles/mapbox/10/511/340.omv"))
+        .and(path("/vectortiles/mapbox/mc/10/511/340/omv"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("content-type", "application/x-protobuf")
@@ -47,7 +47,7 @@ async fn test_tiling_with_different_layer() {
     let tile_data = b"mock_base_tile_data";
 
     Mock::given(method("GET"))
-        .and(path("/vectortiles/base/12/2047/1361.omv"))
+        .and(path("/vectortiles/base/mc/12/2047/1361/omv"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("content-type", "application/x-protobuf")
@@ -79,7 +79,7 @@ async fn test_tiling_with_optional_params() {
     let tile_data = b"mock_tile_with_params";
 
     Mock::given(method("GET"))
-        .and(path("/vectortiles/mapbox/10/511/340.omv"))
+        .and(path("/vectortiles/mapbox/mc/10/511/340/omv"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("content-type", "application/x-protobuf")

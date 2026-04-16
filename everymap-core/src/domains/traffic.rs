@@ -131,4 +131,168 @@ mod tests {
         assert_eq!(response.flows.len(), 1);
         assert!(response.incidents.is_empty());
     }
+
+    // --- IncidentSeverity all 5 variants serde roundtrip ---
+
+    #[test]
+    fn test_incident_severity_all_variants_serde() {
+        let variants = [
+            IncidentSeverity::Low,
+            IncidentSeverity::Minor,
+            IncidentSeverity::Major,
+            IncidentSeverity::Critical,
+            IncidentSeverity::Unknown,
+        ];
+        for v in &variants {
+            let json = serde_json::to_string(v).unwrap();
+            let back: IncidentSeverity = serde_json::from_str(&json).unwrap();
+            assert_eq!(*v, back, "Failed roundtrip for {:?}", v);
+        }
+    }
+
+    #[test]
+    fn test_incident_severity_all_variants_distinct() {
+        let variants = [
+            IncidentSeverity::Low,
+            IncidentSeverity::Minor,
+            IncidentSeverity::Major,
+            IncidentSeverity::Critical,
+            IncidentSeverity::Unknown,
+        ];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- TrafficResponse serde roundtrip ---
+
+    #[test]
+    fn test_traffic_response_serde_roundtrip() {
+        let response = TrafficResponse {
+            flows: vec![TrafficFlow {
+                speed: Some(80.0),
+                free_flow_speed: Some(120.0),
+                jam_factor: Some(2.5),
+                confidence: Some(0.9),
+                road_name: Some("A9".to_string()),
+            }],
+            incidents: vec![TrafficIncident {
+                id: Some("inc-1".to_string()),
+                incident_type: Some("accident".to_string()),
+                severity: Some(IncidentSeverity::Major),
+                description: Some("Multi-vehicle accident".to_string()),
+                road_name: Some("A9".to_string()),
+                start_time: Some("2024-01-01T08:00:00".to_string()),
+                end_time: Some("2024-01-01T12:00:00".to_string()),
+            }],
+            raw: Some(serde_json::json!({"source": "here"})),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: TrafficResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.flows.len(), 1);
+        assert_eq!(back.incidents.len(), 1);
+        assert_eq!(back.incidents[0].severity, Some(IncidentSeverity::Major));
+        assert!(back.raw.is_some());
+    }
+
+    #[test]
+    fn test_traffic_response_empty() {
+        let response = TrafficResponse {
+            flows: vec![],
+            incidents: vec![],
+            raw: None,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: TrafficResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.flows.is_empty());
+        assert!(back.incidents.is_empty());
+    }
+
+    // --- TrafficOptions serde roundtrip ---
+
+    #[test]
+    fn test_traffic_options_serde_roundtrip() {
+        let opts = TrafficOptions {
+            radius: Some(5000.0),
+            language: Some("de".to_string()),
+            include_incidents: Some(true),
+            provider_extra: Some(serde_json::json!({"min_jam_factor": 4.0})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: TrafficOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.radius, Some(5000.0));
+        assert_eq!(back.include_incidents, Some(true));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- TrafficIncident serde roundtrip ---
+
+    #[test]
+    fn test_traffic_incident_serde_roundtrip() {
+        let incident = TrafficIncident {
+            id: Some("inc-42".to_string()),
+            incident_type: Some("construction".to_string()),
+            severity: Some(IncidentSeverity::Minor),
+            description: Some("Road work, lane closed".to_string()),
+            road_name: Some("B96".to_string()),
+            start_time: Some("2024-03-01T06:00:00".to_string()),
+            end_time: Some("2024-09-01T18:00:00".to_string()),
+        };
+        let json = serde_json::to_string(&incident).unwrap();
+        let back: TrafficIncident = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, incident.id);
+        assert_eq!(back.severity, incident.severity);
+        assert_eq!(back.description, incident.description);
+    }
+
+    // --- TrafficFlow serde roundtrip ---
+
+    #[test]
+    fn test_traffic_flow_serde_roundtrip() {
+        let flow = TrafficFlow {
+            speed: Some(0.0),
+            free_flow_speed: Some(100.0),
+            jam_factor: Some(10.0),
+            confidence: Some(0.5),
+            road_name: Some("A100".to_string()),
+        };
+        let json = serde_json::to_string(&flow).unwrap();
+        let back: TrafficFlow = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.speed, Some(0.0));
+        assert_eq!(back.jam_factor, Some(10.0));
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_traffic_flow_gridlock() {
+        let flow = TrafficFlow {
+            speed: Some(0.0),
+            free_flow_speed: Some(100.0),
+            jam_factor: Some(10.0),
+            confidence: Some(1.0),
+            road_name: None,
+        };
+        assert_eq!(flow.speed, Some(0.0));
+        assert_eq!(flow.jam_factor, Some(10.0));
+    }
+
+    #[test]
+    fn test_traffic_incident_all_none_optional_fields() {
+        let incident = TrafficIncident {
+            id: None,
+            incident_type: None,
+            severity: None,
+            description: None,
+            road_name: None,
+            start_time: None,
+            end_time: None,
+        };
+        assert!(incident.id.is_none());
+        assert!(incident.severity.is_none());
+    }
 }

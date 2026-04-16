@@ -100,4 +100,101 @@ mod tests {
         assert_eq!(response.distance, 5000.0);
         assert!(response.matched_points.is_empty());
     }
+
+    // --- TraceResponse serde roundtrip ---
+
+    #[test]
+    fn test_trace_response_serde_roundtrip() {
+        let response = TraceResponse {
+            matched_points: vec![MatchedPoint {
+                coordinate: Coordinate::new(52.5, 13.4).unwrap(),
+                confidence: Some(0.95),
+                road_name: Some("Friedrichstr".to_string()),
+            }],
+            distance: 12000.5,
+            duration: Some(900.0),
+            raw: Some(serde_json::json!({"trace_id": "t1"})),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: TraceResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.matched_points.len(), 1);
+        assert_eq!(back.distance, 12000.5);
+        assert_eq!(back.duration, Some(900.0));
+        assert!(back.raw.is_some());
+    }
+
+    #[test]
+    fn test_trace_response_empty_serde_roundtrip() {
+        let response = TraceResponse {
+            matched_points: vec![],
+            distance: 0.0,
+            duration: None,
+            raw: None,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: TraceResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.matched_points.is_empty());
+        assert_eq!(back.distance, 0.0);
+        assert!(back.duration.is_none());
+    }
+
+    // --- MatchingOptions serde roundtrip ---
+
+    #[test]
+    fn test_matching_options_serde_roundtrip() {
+        let opts = MatchingOptions {
+            transport_mode: Some(crate::domains::routing::TransportMode::Bicycle),
+            heading: Some(270.0),
+            departure_time: Some("2024-03-15T10:00:00".to_string()),
+            avoid: vec![crate::domains::routing::AvoidType::Highways],
+            provider_extra: Some(serde_json::json!({"map_match_radius": 30})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: MatchingOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.transport_mode, Some(crate::domains::routing::TransportMode::Bicycle));
+        assert_eq!(back.heading, Some(270.0));
+        assert_eq!(back.avoid.len(), 1);
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- MatchedPoint serde roundtrip ---
+
+    #[test]
+    fn test_matched_point_serde_roundtrip() {
+        let point = MatchedPoint {
+            coordinate: Coordinate::new(48.8566, 2.3522).unwrap(),
+            confidence: Some(0.88),
+            road_name: Some("Champs-Elysees".to_string()),
+        };
+        let json = serde_json::to_string(&point).unwrap();
+        let back: MatchedPoint = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.coordinate, point.coordinate);
+        assert_eq!(back.confidence, point.confidence);
+        assert_eq!(back.road_name, point.road_name);
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_matched_point_zero_confidence() {
+        let point = MatchedPoint {
+            coordinate: Coordinate::ORIGIN,
+            confidence: Some(0.0),
+            road_name: None,
+        };
+        assert_eq!(point.confidence, Some(0.0));
+        assert!(point.road_name.is_none());
+    }
+
+    #[test]
+    fn test_trace_response_zero_distance() {
+        let response = TraceResponse {
+            matched_points: vec![],
+            distance: 0.0,
+            duration: Some(0.0),
+            raw: None,
+        };
+        assert_eq!(response.distance, 0.0);
+        assert_eq!(response.duration, Some(0.0));
+    }
 }

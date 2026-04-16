@@ -5,7 +5,7 @@ mod scenarios;
 use clap::Parser;
 use everymap_core::auth::{AuthProvider, ApiKeyProvider};
 use everymap_core::auth::header::HeaderAuthProvider;
-use everymap_core::types::Coordinate;
+use scenarios::ScenarioParams;
 use std::sync::Arc;
 
 #[derive(Parser)]
@@ -15,12 +15,12 @@ struct Cli {
     #[arg(long)]
     all: bool,
 
-    /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour)
+    /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging, geofencing, tracking, fraud)
     #[arg(long)]
     domain: Option<String>,
 
     /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar)
-    #[arg(long, default_value = "here,google,tomtom,mapbox")]
+    #[arg(long, default_value = "here,google,tomtom,mapbox,radar")]
     providers: String,
 
     /// Output format (json, table, markdown)
@@ -76,7 +76,7 @@ fn get_key_param(provider: &str) -> &'static str {
 async fn main() {
     let cli = Cli::parse();
 
-    let providers: Vec<&str> = cli.providers.split(',')
+    let provider_names: Vec<&str> = cli.providers.split(',')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .collect();
@@ -88,91 +88,91 @@ async fn main() {
         std::process::exit(1);
     }
 
+    // Create BenchProviders for each configured provider
+    let mut provider_instances: Vec<benchmark::BenchProviders> = Vec::new();
+    for provider in &provider_names {
+        let key = match get_provider_key(provider, &cli) {
+            Some(k) => k,
+            None => {
+                eprintln!(
+                    "Skipping {}: no API key (set EVERYMAP_{}_API_KEY or EVERYMAP_API_KEY)",
+                    provider,
+                    provider.to_uppercase()
+                );
+                continue;
+            }
+        };
+
+        let auth: Arc<dyn AuthProvider> = if *provider == "radar" {
+            Arc::new(HeaderAuthProvider::new(key))
+        } else {
+            Arc::new(ApiKeyProvider::new(key, get_key_param(provider).to_string()))
+        };
+
+        match benchmark::BenchProviders::new(provider, auth) {
+            Ok(bp) => provider_instances.push(bp),
+            Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+        }
+    }
+
+    if provider_instances.is_empty() {
+        eprintln!("No providers available. Configure API keys and try again.");
+        std::process::exit(1);
+    }
+
+    // Run each scenario against each provider
     for scenario in &scenarios {
         let mut results = Vec::new();
 
-        for provider in &providers {
-            let key = match get_provider_key(provider, &cli) {
-                Some(k) => k,
-                None => {
-                    eprintln!("Skipping {}: no API key configured (set EVERYMAP_{}_API_KEY or EVERYMAP_API_KEY)", provider, provider.to_uppercase());
-                    results.push(benchmark::BenchmarkResult {
-                        provider: provider.to_string(),
-                        domain: scenario.domain.clone(),
-                        scenario: scenario.name.clone(),
-                        duration_ms: 0,
-                        success: false,
-                        error: Some("No API key".to_string()),
-                        result_count: 0,
-                        raw_response_size: None,
-                    });
-                    continue;
+        for providers in &provider_instances {
+            let result = match &scenario.params {
+                ScenarioParams::Geocode { query } => {
+                    benchmark::bench_geocode(providers, query).await
+                }
+                ScenarioParams::ReverseGeocode { coord } => {
+                    benchmark::bench_reverse_geocode(providers, coord).await
+                }
+                ScenarioParams::Route { start, end } => {
+                    benchmark::bench_route(providers, start, end).await
+                }
+                ScenarioParams::Isoline { center, range } => {
+                    benchmark::bench_isoline(providers, center, *range).await
+                }
+                ScenarioParams::Matching { points } => {
+                    benchmark::bench_matching(providers, points).await
+                }
+                ScenarioParams::Tour { stops } => {
+                    benchmark::bench_tour(providers, stops).await
+                }
+                ScenarioParams::Traffic { location } => {
+                    benchmark::bench_traffic(providers, location).await
+                }
+                ScenarioParams::Tile { z, x, y } => {
+                    benchmark::bench_tile(providers, *z, *x, *y).await
+                }
+                ScenarioParams::Positioning => {
+                    benchmark::bench_positioning(providers).await
+                }
+                ScenarioParams::Attributes { bbox } => {
+                    benchmark::bench_attributes(providers, bbox).await
+                }
+                ScenarioParams::Image { center, zoom } => {
+                    benchmark::bench_image(providers, center, *zoom).await
+                }
+                ScenarioParams::GeofenceSearch { near, radius } => {
+                    benchmark::bench_geofence_search(providers, near, *radius).await
+                }
+                ScenarioParams::TripCreate { origin, destination } => {
+                    benchmark::bench_trip_create(providers, origin, destination).await
+                }
+                ScenarioParams::FraudCheck { lat, lng } => {
+                    benchmark::bench_fraud_check(providers, *lat, *lng).await
                 }
             };
-
-            let auth: Arc<dyn AuthProvider> = if *provider == "radar" {
-                Arc::new(HeaderAuthProvider::new(key))
-            } else {
-                Arc::new(ApiKeyProvider::new(key, get_key_param(provider).to_string()))
-            };
-
-            let result = match scenario.domain.as_str() {
-                "geocoder" if scenario.name.starts_with("Reverse") => {
-                    // Parse coordinates from scenario name
-                    let coords: Vec<&str> = scenario.name.split_whitespace()
-                        .filter(|s| s.contains(','))
-                        .collect();
-                    if let Some(coord_str) = coords.first() {
-                        let parts: Vec<&str> = coord_str.split(',').collect();
-                        if parts.len() == 2 {
-                            if let (Ok(lat), Ok(lng)) = (parts[0].parse::<f64>(), parts[1].parse::<f64>()) {
-                                benchmark::bench_geocode(provider, auth, &format!("{},{}", lat, lng)).await
-                            } else {
-                                continue;
-                            }
-                        } else {
-                            continue;
-                        }
-                    } else {
-                        continue;
-                    }
-                }
-                "geocoder" => {
-                    let query = match scenario.name.as_str() {
-                        "Berlin Brandenburg Gate" => "Brandenburg Gate, Berlin",
-                        "NYC Empire State Building (Radar)" => "Empire State Building, NYC",
-                        _ => "Berlin",
-                    };
-                    benchmark::bench_geocode(provider, auth, query).await
-                }
-                "routing" => {
-                    let (start, end) = match scenario.name.as_str() {
-                        "Berlin to Paris" => (
-                            Coordinate::new(52.5163, 13.3777).unwrap(),
-                            Coordinate::new(48.8566, 2.3522).unwrap(),
-                        ),
-                        "NYC to LA" => (
-                            Coordinate::new(40.7128, -74.0060).unwrap(),
-                            Coordinate::new(34.0522, -118.2437).unwrap(),
-                        ),
-                        "NYC to Boston (Radar)" => (
-                            Coordinate::new(40.7128, -74.0060).unwrap(),
-                            Coordinate::new(42.3601, -71.0589).unwrap(),
-                        ),
-                        _ => continue,
-                    };
-                    benchmark::bench_route(provider, auth, &start, &end).await
-                }
-                _ => {
-                    eprintln!("Benchmark domain '{}' not yet implemented", scenario.domain);
-                    continue;
-                }
-            };
-
             results.push(result);
         }
 
-        let report = benchmark::build_report(&scenario.domain, &scenario.name, results);
+        let report = benchmark::build_report(scenario.params.domain(), &scenario.name, results);
 
         let output = match cli.output.as_str() {
             "json" => report::format_json(&report),

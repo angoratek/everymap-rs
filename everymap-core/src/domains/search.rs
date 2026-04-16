@@ -201,4 +201,177 @@ mod tests {
         assert_eq!(deserialized.items.len(), 1);
         assert_eq!(deserialized.items[0].id.as_deref(), Some("abc"));
     }
+
+    // --- SearchResultType all variants serde roundtrip ---
+
+    #[test]
+    fn test_search_result_type_all_variants_serde() {
+        let variants = [
+            SearchResultType::ExactMatch,
+            SearchResultType::Approximate,
+            SearchResultType::Interpolated,
+            SearchResultType::Unknown,
+        ];
+        for v in &variants {
+            let json = serde_json::to_string(v).unwrap();
+            let back: SearchResultType = serde_json::from_str(&json).unwrap();
+            assert_eq!(*v, back, "Failed roundtrip for {:?}", v);
+        }
+    }
+
+    #[test]
+    fn test_search_result_type_all_variants_distinct() {
+        let variants = [
+            SearchResultType::ExactMatch,
+            SearchResultType::Approximate,
+            SearchResultType::Interpolated,
+            SearchResultType::Unknown,
+        ];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- SearchResponse serde roundtrip (empty) ---
+
+    #[test]
+    fn test_search_response_empty_serde_roundtrip() {
+        let response = SearchResponse { items: vec![] };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: SearchResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.items.is_empty());
+    }
+
+    // --- SearchResponse serde roundtrip with full fields ---
+
+    #[test]
+    fn test_search_response_full_serde_roundtrip() {
+        let ne = crate::types::BoundingBox::new(
+            Coordinate::new(52.6, 13.5).unwrap(),
+            Coordinate::new(52.4, 13.3).unwrap(),
+        );
+        let response = SearchResponse {
+            items: vec![SearchResult {
+                id: Some("id-123".to_string()),
+                coordinate: Coordinate::new(52.52, 13.40).unwrap(),
+                address: Address::from_label("Brandenburg Gate".to_string()),
+                title: Some("Brandenburg Gate".to_string()),
+                result_type: SearchResultType::ExactMatch,
+                distance: Some(250.0),
+                confidence: Some(0.98),
+                categories: vec!["monument".to_string(), "landmark".to_string()],
+                bounding_box: Some(ne),
+                raw: Some(serde_json::json!({"source": "here"})),
+            }],
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: SearchResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.items.len(), 1);
+        assert_eq!(back.items[0].id.as_deref(), Some("id-123"));
+        assert_eq!(back.items[0].title.as_deref(), Some("Brandenburg Gate"));
+        assert_eq!(back.items[0].result_type, SearchResultType::ExactMatch);
+        assert_eq!(back.items[0].distance, Some(250.0));
+        assert_eq!(back.items[0].confidence, Some(0.98));
+        assert_eq!(back.items[0].categories.len(), 2);
+        assert!(back.items[0].bounding_box.is_some());
+        assert!(back.items[0].raw.is_some());
+    }
+
+    // --- GeocodeOptions with provider_extra serde roundtrip ---
+
+    #[test]
+    fn test_geocode_options_serde_roundtrip() {
+        let opts = GeocodeOptions {
+            limit: Some(5),
+            language: Some("de-DE".to_string()),
+            country_codes: vec!["DEU".to_string()],
+            bounding_box: Some(crate::types::BoundingBox::new(
+                Coordinate::new(52.6, 13.5).unwrap(),
+                Coordinate::new(52.4, 13.3).unwrap(),
+            )),
+            provider_extra: Some(serde_json::json!({"political_view": "ARG"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: GeocodeOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.limit, Some(5));
+        assert_eq!(back.language.as_deref(), Some("de-DE"));
+        assert_eq!(back.country_codes.len(), 1);
+        assert!(back.bounding_box.is_some());
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- ReverseGeocodeOptions serde roundtrip ---
+
+    #[test]
+    fn test_reverse_geocode_options_serde_roundtrip() {
+        let opts = ReverseGeocodeOptions {
+            limit: Some(1),
+            language: Some("fr".to_string()),
+            radius: Some(500.0),
+            provider_extra: Some(serde_json::json!({"include_shapes": true})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: ReverseGeocodeOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.limit, Some(1));
+        assert_eq!(back.radius, Some(500.0));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_search_result_zero_distance() {
+        let result = SearchResult {
+            id: None,
+            coordinate: Coordinate::ORIGIN,
+            address: Address::empty(),
+            title: None,
+            result_type: SearchResultType::Unknown,
+            distance: Some(0.0),
+            confidence: Some(0.0),
+            categories: vec![],
+            bounding_box: None,
+            raw: None,
+        };
+        assert_eq!(result.distance, Some(0.0));
+        assert_eq!(result.confidence, Some(0.0));
+    }
+
+    #[test]
+    fn test_search_result_large_coordinates() {
+        let result = SearchResult {
+            id: None,
+            coordinate: Coordinate::new(89.9999, 179.9999).unwrap(),
+            address: Address::empty(),
+            title: None,
+            result_type: SearchResultType::Unknown,
+            distance: None,
+            confidence: None,
+            categories: vec![],
+            bounding_box: None,
+            raw: None,
+        };
+        assert!((result.coordinate.lat - 89.9999).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_search_result_with_empty_categories() {
+        let result = SearchResult {
+            id: Some("x".to_string()),
+            coordinate: Coordinate::ORIGIN,
+            address: Address::empty(),
+            title: None,
+            result_type: SearchResultType::Approximate,
+            distance: None,
+            confidence: None,
+            categories: vec![],
+            bounding_box: None,
+            raw: None,
+        };
+        assert!(result.categories.is_empty());
+    }
 }

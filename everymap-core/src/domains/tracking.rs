@@ -190,4 +190,134 @@ mod tests {
         assert!(opts.metadata.unwrap().contains_key("priority"));
         assert_eq!(opts.tag.as_deref(), Some("delivery"));
     }
+
+    // --- TripStatus all 5 variants serde roundtrip (already partially covered, adding explicit naming) ---
+
+    #[test]
+    fn test_trip_status_pending_serde() {
+        let json = serde_json::to_string(&TripStatus::Pending).unwrap();
+        let back: TripStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TripStatus::Pending);
+    }
+
+    #[test]
+    fn test_trip_status_started_serde() {
+        let json = serde_json::to_string(&TripStatus::Started).unwrap();
+        let back: TripStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TripStatus::Started);
+    }
+
+    #[test]
+    fn test_trip_status_approaching_serde() {
+        let json = serde_json::to_string(&TripStatus::Approaching).unwrap();
+        let back: TripStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TripStatus::Approaching);
+    }
+
+    #[test]
+    fn test_trip_status_arrived_serde() {
+        let json = serde_json::to_string(&TripStatus::Arrived).unwrap();
+        let back: TripStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TripStatus::Arrived);
+    }
+
+    #[test]
+    fn test_trip_status_completed_serde() {
+        let json = serde_json::to_string(&TripStatus::Completed).unwrap();
+        let back: TripStatus = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, TripStatus::Completed);
+    }
+
+    // --- TripResult serde roundtrip ---
+
+    #[test]
+    fn test_trip_result_serde_roundtrip() {
+        let result = TripResult {
+            id: "trip_42".to_string(),
+            external_id: Some("ext_42".to_string()),
+            status: Some(TripStatus::Approaching),
+            origin: Some(Coordinate::new(40.7128, -74.0060).unwrap()),
+            destination: Some(Coordinate::new(34.0522, -118.2437).unwrap()),
+            mode: Some("car".to_string()),
+            eta: Some("2024-06-01T14:30:00Z".to_string()),
+            metadata: Some(serde_json::json!({"priority": "high"})),
+            raw: Some(serde_json::json!({"live_tracking": true})),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: TripResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, "trip_42");
+        assert_eq!(back.status, Some(TripStatus::Approaching));
+        assert!(back.destination.is_some());
+        assert!(back.raw.is_some());
+    }
+
+    // --- TripCreateOptions serde roundtrip ---
+
+    #[test]
+    fn test_trip_create_options_serde_roundtrip() {
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("route".to_string(), serde_json::json!("express"));
+        let opts = TripCreateOptions {
+            origin: Some(Coordinate::new(51.5074, -0.1278).unwrap()),
+            destination: Some(Coordinate::new(48.8566, 2.3522).unwrap()),
+            mode: Some("truck".to_string()),
+            external_id: Some("ext_t1".to_string()),
+            metadata: Some(metadata),
+            tag: Some("freight".to_string()),
+            provider_extra: Some(serde_json::json!({"route_type": "fastest"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: TripCreateOptions = serde_json::from_str(&json).unwrap();
+        assert!(back.origin.is_some());
+        assert!(back.destination.is_some());
+        assert_eq!(back.mode.as_deref(), Some("truck"));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- TripUpdateOptions serde roundtrip ---
+
+    #[test]
+    fn test_trip_update_options_serde_roundtrip() {
+        let opts = TripUpdateOptions {
+            trip_id: "trip_1".to_string(),
+            status: Some(TripStatus::Completed),
+            provider_extra: Some(serde_json::json!({"arrived_at": "2024-06-01T14:30:00Z"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: TripUpdateOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.trip_id, "trip_1");
+        assert_eq!(back.status, Some(TripStatus::Completed));
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_trip_result_minimal() {
+        let result = TripResult {
+            id: "trip_min".to_string(),
+            external_id: None,
+            status: None,
+            origin: None,
+            destination: None,
+            mode: None,
+            eta: None,
+            metadata: None,
+            raw: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: TripResult = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.id, "trip_min");
+        assert!(back.status.is_none());
+        assert!(back.origin.is_none());
+    }
+
+    #[test]
+    fn test_trip_create_options_with_origin_only() {
+        let opts = TripCreateOptions {
+            origin: Some(Coordinate::ORIGIN),
+            ..Default::default()
+        };
+        assert!(opts.origin.is_some());
+        assert!(opts.destination.is_none());
+    }
 }

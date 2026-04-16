@@ -162,7 +162,8 @@ async fn test_tour_solve_rich() {
                 costs: VehicleCosts { fixed: Some(50.0), distance: Some(0.01), time: None, job: None },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
-                        earliest: Some("2024-01-01T08:00:00Z".to_string()),
+                        time: Some("2024-01-01T08:00:00Z".to_string()),
+                        earliest: None,
                         location: Some(TourLocation { lat: 52.52, lng: 13.405 }),
                     },
                     ..Default::default()

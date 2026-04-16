@@ -100,7 +100,7 @@ async fn test_reverse_geocode_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/reverseGeocode"))
+        .and(path("/revgeocode"))
         .and(query_param("at", "52.52,13.405"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)

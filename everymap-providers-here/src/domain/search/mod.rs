@@ -14,6 +14,7 @@ use std::sync::Arc;
 pub use types::*;
 
 const GEOCODE_BASE_URL: &str = "https://geocode.search.hereapi.com/v1";
+const REVERSE_GEOCODE_BASE_URL: &str = "https://revgeocode.search.hereapi.com/v1";
 const DISCOVER_BASE_URL: &str = "https://discover.search.hereapi.com/v1";
 const AUTOSUGGEST_BASE_URL: &str = "https://autosuggest.search.hereapi.com/v1";
 
@@ -58,6 +59,7 @@ pub struct AutosuggestRequest {
 pub struct HereGeocoder {
     pub(crate) client: Arc<HereClient>,
     pub(crate) geocode_base_url: String,
+    pub(crate) reverse_geocode_base_url: String,
     pub(crate) discover_base_url: String,
     pub(crate) autosuggest_base_url: String,
 }
@@ -67,6 +69,7 @@ impl HereGeocoder {
         Self {
             client,
             geocode_base_url: GEOCODE_BASE_URL.to_string(),
+            reverse_geocode_base_url: REVERSE_GEOCODE_BASE_URL.to_string(),
             discover_base_url: DISCOVER_BASE_URL.to_string(),
             autosuggest_base_url: AUTOSUGGEST_BASE_URL.to_string(),
         }
@@ -76,6 +79,7 @@ impl HereGeocoder {
         Self {
             client,
             geocode_base_url: base_url.clone(),
+            reverse_geocode_base_url: base_url.clone(),
             discover_base_url: base_url.clone(),
             autosuggest_base_url: base_url,
         }
@@ -511,7 +515,7 @@ impl Geocoder for HereGeocoder {
         let here_opts = reverse_geocode_options_from_core(options);
         apply_geocode_options(&here_opts, &mut params);
 
-        let url = format!("{}/reverseGeocode", self.geocode_base_url);
+        let url = format!("{}/revgeocode", self.reverse_geocode_base_url);
         let builder = self.client.build_request(reqwest::Method::GET, &url)
             .query(&params);
 

@@ -182,4 +182,110 @@ mod tests {
         assert!(result.raw.is_some());
         assert_eq!(result.raw.unwrap()["extra"], "data");
     }
+
+    // --- FraudCheckOptions serde roundtrip ---
+
+    #[test]
+    fn test_fraud_check_options_serde_roundtrip() {
+        let mut metadata = std::collections::HashMap::new();
+        metadata.insert("ip".to_string(), serde_json::json!("192.168.1.1"));
+        let opts = FraudCheckOptions {
+            device_id: "dev_abc".to_string(),
+            latitude: 37.7749,
+            longitude: -122.4194,
+            accuracy: 5.0,
+            user_id: Some("user_42".to_string()),
+            foreground: Some(true),
+            stopped: Some(false),
+            metadata: Some(metadata),
+            device_type: Some("Android".to_string()),
+            provider_extra: Some(serde_json::json!({"vpn_check": true})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: FraudCheckOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.device_id, "dev_abc");
+        assert_eq!(back.user_id.as_deref(), Some("user_42"));
+        assert!(back.metadata.unwrap().contains_key("ip"));
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- FraudResult all-true serde roundtrip ---
+
+    #[test]
+    fn test_fraud_result_all_true_serde() {
+        let result = FraudResult {
+            verified: false,
+            passed: false,
+            mocked: true,
+            jumped: true,
+            compromised: true,
+            inaccurate: true,
+            proxy: true,
+            sharing: true,
+            blocked: true,
+            bypassed: true,
+            raw: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: FraudResult = serde_json::from_str(&json).unwrap();
+        assert!(!back.verified);
+        assert!(back.mocked);
+        assert!(back.jumped);
+        assert!(back.compromised);
+        assert!(back.proxy);
+        assert!(back.blocked);
+        assert!(back.bypassed);
+    }
+
+    // --- FraudResult with raw serde roundtrip ---
+
+    #[test]
+    fn test_fraud_result_with_raw_serde_roundtrip() {
+        let result = FraudResult {
+            verified: true,
+            passed: true,
+            mocked: false,
+            jumped: false,
+            compromised: false,
+            inaccurate: false,
+            proxy: false,
+            sharing: false,
+            blocked: false,
+            bypassed: false,
+            raw: Some(serde_json::json!({"fraud_score": 0.1, "flags": []})),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        let back: FraudResult = serde_json::from_str(&json).unwrap();
+        assert!(back.verified);
+        assert!(back.raw.is_some());
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_fraud_check_options_minimal_required() {
+        let opts = FraudCheckOptions {
+            device_id: "d".to_string(),
+            latitude: 0.0,
+            longitude: 0.0,
+            accuracy: 0.0,
+            ..Default::default()
+        };
+        assert_eq!(opts.device_id, "d");
+        assert!((opts.latitude).abs() < f64::EPSILON);
+        assert!((opts.accuracy).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_fraud_check_options_boundary_coordinates() {
+        let opts = FraudCheckOptions {
+            device_id: "dev".to_string(),
+            latitude: 90.0,
+            longitude: 180.0,
+            accuracy: 1.0,
+            ..Default::default()
+        };
+        assert!((opts.latitude - 90.0).abs() < f64::EPSILON);
+        assert!((opts.longitude - 180.0).abs() < f64::EPSILON);
+    }
 }

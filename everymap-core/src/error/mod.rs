@@ -201,6 +201,288 @@ mod tests {
         let err = EveryMapError::http(429, "Too Many Requests");
         assert!(err.is_rate_limited());
     }
+
+    // --- All error variants construction ---
+
+    #[test]
+    fn test_http_error_construction_basic() {
+        let err = EveryMapError::http(500, "Server Error");
+        assert!(err.is_status(500));
+        assert!(!err.is_status(200));
+    }
+
+    #[test]
+    fn test_http_error_with_body_construction() {
+        let err = EveryMapError::http_with_body(502, "Bad Gateway", "upstream timeout");
+        assert!(err.is_status(502));
+    }
+
+    #[test]
+    fn test_auth_error_construction() {
+        let err = EveryMapError::auth("google", "API key expired");
+        assert!(err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_provider_error_construction() {
+        let err = EveryMapError::provider("tomtom", "E404", "Not found");
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_rate_limited_construction() {
+        let err = EveryMapError::rate_limited("here", Some(30));
+        assert!(err.is_rate_limited());
+        assert!(!err.is_auth_error());
+    }
+
+    #[test]
+    fn test_rate_limited_without_retry_after() {
+        let err = EveryMapError::rate_limited("mapbox", None);
+        assert!(err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_validation_error_construction() {
+        let err = EveryMapError::ValidationError("Coordinates out of range".to_string());
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_serialization_error_construction() {
+        let json_str = "not valid json{{{";
+        let serde_err: Result<serde_json::Value, _> = serde_json::from_str(json_str);
+        let err = EveryMapError::from(serde_err.unwrap_err());
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_unsupported_domain_construction() {
+        let err = EveryMapError::unsupported_domain("radar", "imaging");
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_unknown_error_construction() {
+        let err = EveryMapError::Unknown;
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    // --- Display formatting for each variant ---
+
+    #[test]
+    fn test_display_http_error() {
+        let err = EveryMapError::http(404, "Not Found");
+        let msg = format!("{}", err);
+        assert!(msg.contains("404"));
+        assert!(msg.contains("Not Found"));
+    }
+
+    #[test]
+    fn test_display_auth_error() {
+        let err = EveryMapError::auth("here", "Invalid key");
+        let msg = format!("{}", err);
+        assert!(msg.contains("Authentication failed"));
+        assert!(msg.contains("Invalid key"));
+    }
+
+    #[test]
+    fn test_display_provider_error() {
+        let err = EveryMapError::provider("here", "E400", "Bad request");
+        let msg = format!("{}", err);
+        assert!(msg.contains("here"));
+        assert!(msg.contains("E400"));
+        assert!(msg.contains("Bad request"));
+    }
+
+    #[test]
+    fn test_display_rate_limited() {
+        let err = EveryMapError::rate_limited("google", Some(60));
+        let msg = format!("{}", err);
+        assert!(msg.contains("Rate limited"));
+        assert!(msg.contains("google"));
+        assert!(msg.contains("60"));
+    }
+
+    #[test]
+    fn test_display_rate_limited_no_retry() {
+        let err = EveryMapError::rate_limited("google", None);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Rate limited"));
+    }
+
+    #[test]
+    fn test_display_validation_error() {
+        let err = EveryMapError::ValidationError("bad input".to_string());
+        let msg = format!("{}", err);
+        assert!(msg.contains("Validation error"));
+        assert!(msg.contains("bad input"));
+    }
+
+    #[test]
+    fn test_display_serialization_error() {
+        let serde_err = serde_json::from_str::<serde_json::Value>("{bad}").unwrap_err();
+        let err = EveryMapError::from(serde_err);
+        let msg = format!("{}", err);
+        assert!(msg.contains("Failed to deserialize"));
+    }
+
+    #[test]
+    fn test_display_unsupported_domain() {
+        let err = EveryMapError::unsupported_domain("google", "traffic");
+        let msg = format!("{}", err);
+        assert!(msg.contains("google"));
+        assert!(msg.contains("traffic"));
+    }
+
+    #[test]
+    fn test_display_unknown() {
+        let err = EveryMapError::Unknown;
+        let msg = format!("{}", err);
+        assert!(msg.contains("Unknown"));
+    }
+
+    // --- is_status with various codes ---
+
+    #[test]
+    fn test_is_status_200() {
+        let err = EveryMapError::http(200, "OK");
+        assert!(err.is_status(200));
+        assert!(!err.is_status(201));
+    }
+
+    #[test]
+    fn test_is_status_403() {
+        let err = EveryMapError::http(403, "Forbidden");
+        assert!(err.is_status(403));
+    }
+
+    #[test]
+    fn test_is_status_non_http_error_returns_false() {
+        let err = EveryMapError::ValidationError("test".to_string());
+        assert!(!err.is_status(400));
+    }
+
+    // --- is_rate_limited with RateLimited and HttpError 429 ---
+
+    #[test]
+    fn test_is_rate_limited_rate_limited_variant() {
+        let err = EveryMapError::rate_limited("here", Some(60));
+        assert!(err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_is_rate_limited_http_429() {
+        let err = EveryMapError::http(429, "Too Many Requests");
+        assert!(err.is_rate_limited());
+    }
+
+    #[test]
+    fn test_is_rate_limited_http_other_code() {
+        let err = EveryMapError::http(500, "Server Error");
+        assert!(!err.is_rate_limited());
+    }
+
+    // --- is_auth_error with AuthError and HttpError 401/403 ---
+
+    #[test]
+    fn test_is_auth_error_auth_variant() {
+        let err = EveryMapError::auth("here", "Invalid key");
+        assert!(err.is_auth_error());
+    }
+
+    #[test]
+    fn test_is_auth_error_http_401() {
+        let err = EveryMapError::http(401, "Unauthorized");
+        assert!(err.is_auth_error());
+    }
+
+    #[test]
+    fn test_is_auth_error_http_403() {
+        let err = EveryMapError::http(403, "Forbidden");
+        assert!(err.is_auth_error());
+    }
+
+    #[test]
+    fn test_is_auth_error_http_other_code() {
+        let err = EveryMapError::http(500, "Server Error");
+        assert!(!err.is_auth_error());
+    }
+
+    // --- From<serde_json::Error> conversion ---
+
+    #[test]
+    fn test_from_serde_json_error() {
+        let serde_err = serde_json::from_str::<serde_json::Value>("invalid json").unwrap_err();
+        let err: EveryMapError = serde_err.into();
+        match err {
+            EveryMapError::SerializationError { .. } => {}
+            _ => panic!("Expected SerializationError"),
+        }
+    }
+
+    #[test]
+    fn test_from_serde_json_error_is_not_auth() {
+        let serde_err = serde_json::from_str::<serde_json::Value>("{").unwrap_err();
+        let err: EveryMapError = serde_err.into();
+        assert!(!err.is_auth_error());
+        assert!(!err.is_rate_limited());
+    }
+
+    // --- HttpError body field ---
+
+    #[test]
+    fn test_http_error_with_body_contains_body() {
+        match EveryMapError::http_with_body(500, "Error", "detailed body") {
+            EveryMapError::HttpError { status, message, body } => {
+                assert_eq!(status, 500);
+                assert_eq!(message, "Error");
+                assert_eq!(body, Some("detailed body".to_string()));
+            }
+            _ => panic!("Expected HttpError"),
+        }
+    }
+
+    #[test]
+    fn test_http_error_without_body() {
+        match EveryMapError::http(404, "Not Found") {
+            EveryMapError::HttpError { status, message, body } => {
+                assert_eq!(status, 404);
+                assert_eq!(message, "Not Found");
+                assert_eq!(body, None);
+            }
+            _ => panic!("Expected HttpError"),
+        }
+    }
+
+    // --- RateLimited retry_after_secs field ---
+
+    #[test]
+    fn test_rate_limited_retry_after_some() {
+        match EveryMapError::rate_limited("here", Some(120)) {
+            EveryMapError::RateLimited { provider, retry_after_secs } => {
+                assert_eq!(provider, "here");
+                assert_eq!(retry_after_secs, Some(120));
+            }
+            _ => panic!("Expected RateLimited"),
+        }
+    }
+
+    #[test]
+    fn test_rate_limited_retry_after_none() {
+        match EveryMapError::rate_limited("here", None) {
+            EveryMapError::RateLimited { retry_after_secs, .. } => {
+                assert_eq!(retry_after_secs, None);
+            }
+            _ => panic!("Expected RateLimited"),
+        }
+    }
 }
 
 // Maintain backward compatibility: `From<reqwest::Error>` now maps to `ClientError`

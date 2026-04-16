@@ -172,7 +172,7 @@ impl TourPlanner for HereTourPlanner {
                 profile: "car_profile".to_string(),
                 costs: VehicleCosts { fixed: Some(0.0), distance: Some(1.0), time: Some(0.0), job: None },
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { earliest: None, location: None },
+                    start: ShiftStart { time: None, earliest: None, location: None },
                     ..Default::default()
                 }],
                 amount: Some(1),

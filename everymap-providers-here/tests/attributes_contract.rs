@@ -45,7 +45,8 @@ async fn test_attributes_roads_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
+        .and(path("/maps/attributes"))
+        .and(query_param("in", "bbox:52.5,13.4,52.6,13.5"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -56,7 +57,7 @@ async fn test_attributes_roads_contract() {
 
     let opts = AttributeOptions {
         bbox: Some("52.5,13.4;52.6,13.5".to_string()),
-        provider_extra: Some(serde_json::json!({"layer": "roads"})),
+        provider_extra: Some(serde_json::json!({"layers": ["roads"]})),
         ..Default::default()
     };
 
@@ -120,8 +121,8 @@ async fn test_attributes_roads_typed() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
-        .and(query_param("bbox", "52.5,13.4;52.6,13.5"))
+        .and(path("/maps/attributes"))
+        .and(query_param("in", "bbox:52.5,13.4,52.6,13.5"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -130,7 +131,7 @@ async fn test_attributes_roads_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4;52.6,13.5", None).await.unwrap();
+    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
 
     assert_eq!(res.features.len(), 2);
 
@@ -178,7 +179,7 @@ async fn test_attributes_roads_with_ids() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
+        .and(path("/maps/attributes"))
         .and(query_param("ids", "789012"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
@@ -190,7 +191,6 @@ async fn test_attributes_roads_with_ids() {
 
     let opts = AttributeOptions {
         provider_extra: Some(serde_json::json!({
-            "layer": "roads",
             "ids": ["789012"]
         })),
         ..Default::default()
@@ -230,7 +230,7 @@ async fn test_attributes_segments_typed() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/segments"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -239,7 +239,7 @@ async fn test_attributes_segments_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereSegmentAttributesResponse = provider.get_segment_attributes("52.5,13.4;52.6,13.5", None).await.unwrap();
+    let res: HereSegmentAttributesResponse = provider.get_segment_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let seg = &res.features[0].properties;
@@ -279,7 +279,7 @@ async fn test_attributes_admin_areas_typed() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/adminAreas"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -288,7 +288,7 @@ async fn test_attributes_admin_areas_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereAdminAreasResponse = provider.get_admin_areas("52.4,13.3;52.6,13.5").await.unwrap();
+    let res: HereAdminAreasResponse = provider.get_admin_areas("52.4,13.3,52.6,13.5").await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let admin = &res.features[0].properties;
@@ -325,7 +325,7 @@ async fn test_attributes_buildings_typed() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/buildings"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -334,7 +334,7 @@ async fn test_attributes_buildings_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereBuildingsResponse = provider.get_buildings("52.5,13.4;52.6,13.5").await.unwrap();
+    let res: HereBuildingsResponse = provider.get_buildings("52.5,13.4,52.6,13.5").await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let bldg = &res.features[0].properties;
@@ -371,7 +371,7 @@ async fn test_attributes_landmarks_typed() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/landmarks"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -380,7 +380,7 @@ async fn test_attributes_landmarks_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereLandmarksResponse = provider.get_landmarks("52.5,13.3;52.6,13.5").await.unwrap();
+    let res: HereLandmarksResponse = provider.get_landmarks("52.5,13.3,52.6,13.5").await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let lm = &res.features[0].properties;
@@ -417,8 +417,8 @@ async fn test_attributes_speed_limits() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
-        .and(query_param("include", "LINK_ID,SPEED_LIMIT,SPEED_LIMITS_BY_DIRECTION,FUNCTIONAL_CLASS,TRAVEL_DIRECTION,NAME"))
+        .and(path("/maps/attributes"))
+        .and(query_param("layers", "SPEED_LIMITS_FCn"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -427,7 +427,7 @@ async fn test_attributes_speed_limits() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_speed_limits("52.5,13.4;52.6,13.5").await.unwrap();
+    let res: HereRoadAttributesResponse = provider.get_speed_limits("52.5,13.4,52.6,13.5").await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let road = &res.features[0].properties;
@@ -467,7 +467,7 @@ async fn test_attributes_roads_by_ids() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
+        .and(path("/maps/attributes"))
         .and(query_param("ids", "link_1,link_2"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
@@ -506,7 +506,7 @@ async fn test_attributes_roads_minimal_fields() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/attributes/roads"))
+        .and(path("/maps/attributes"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -515,7 +515,7 @@ async fn test_attributes_roads_minimal_fields() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4;52.6,13.5", None).await.unwrap();
+    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
 
     assert_eq!(res.features.len(), 1);
     let road = &res.features[0].properties;

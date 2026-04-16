@@ -92,7 +92,7 @@ impl TileProvider for HereTileProvider {
         };
 
         let url = format!(
-            "{}/vectortiles/{}/{}/{}/{}.{}",
+            "{}/vectortiles/{}/mc/{}/{}/{}/{}",
             self.base_url, layer, z, x, y, format_ext
         );
 

@@ -105,18 +105,40 @@ impl HereIsoline {
     }
 }
 
-// Internal deserialization for backward-compatible core trait
+// Internal deserialization for the real v8 API response
+// The HERE Isoline API v8 returns:
+// {"isolines": [{"range": {"type": "...", "value": N}, "polygons": [{"outer": "flexible_polyline"}]}]}
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacyResponse {
+    #[serde(default)]
     isolines: Vec<HereIsolineLegacy>,
 }
 
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacy {
-    #[serde(default, rename = "rangeValue")]
-    range_value: Option<f64>,
+    #[serde(default)]
+    range: Option<HereApiIsolineRange>,
+    #[serde(default)]
+    polygons: Vec<HereIsolinePolygon>,
+    // Also support the old "polyline" field for backward compatibility
     #[serde(default)]
     polyline: Option<HereIsolinePolyline>,
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct HereApiIsolineRange {
+    #[serde(default)]
+    #[serde(rename = "type")]
+    type_: Option<String>,
+    #[serde(default)]
+    value: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HereIsolinePolygon {
+    #[serde(default)]
+    outer: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -127,15 +149,23 @@ struct HereIsolinePolyline {
 
 impl From<HereIsolineLegacy> for IsolineResult {
     fn from(iso: HereIsolineLegacy) -> Self {
-        let polygon = iso.polyline
-            .and_then(|p| p.outer)
-            .map(|encoded| {
-                everymap_core::types::FlexiblePolyline::decode(&encoded)
+        // Try "polygons[].outer" first (v8 format), fall back to "polyline.outer"
+        let encoded = iso.polygons.iter()
+            .filter_map(|p| p.outer.as_ref())
+            .next()
+            .or_else(|| iso.polyline.as_ref().and_then(|p| p.outer.as_ref()));
+
+        let polygon = encoded
+            .map(|enc| {
+                everymap_core::types::FlexiblePolyline::decode(enc)
                     .unwrap_or_else(|_| vec![])
             })
             .unwrap_or_default();
+
+        let range = iso.range.and_then(|r| r.value);
+
         Self {
-            range: iso.range_value,
+            range,
             polygon,
         }
     }
@@ -258,7 +288,7 @@ impl IsolineProvider for HereIsoline {
         };
 
         let mut params: Vec<(&str, String)> = vec![
-            ("location", format!("{},{}", center.lat, center.lng)),
+            ("origin", format!("{},{}", center.lat, center.lng)),
             ("range[type]", range_type.to_string()),
             ("range[values]", range.to_string()),
             ("transportMode", transport.to_string()),

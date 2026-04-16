@@ -98,4 +98,98 @@ mod tests {
         let rt: RangeType = serde_json::from_str("\"Time\"").unwrap();
         assert_eq!(rt, RangeType::Time);
     }
+
+    // --- RangeType all 3 variants serde roundtrip ---
+
+    #[test]
+    fn test_range_type_all_variants_serde() {
+        let variants = [RangeType::Distance, RangeType::Time, RangeType::Consumption];
+        for v in &variants {
+            let json = serde_json::to_string(v).unwrap();
+            let back: RangeType = serde_json::from_str(&json).unwrap();
+            assert_eq!(*v, back, "Failed roundtrip for {:?}", v);
+        }
+    }
+
+    #[test]
+    fn test_range_type_all_variants_distinct() {
+        let variants = [RangeType::Distance, RangeType::Time, RangeType::Consumption];
+        for i in 0..variants.len() {
+            for j in 0..variants.len() {
+                if i != j {
+                    assert_ne!(variants[i], variants[j]);
+                }
+            }
+        }
+    }
+
+    // --- IsolineResponse serde roundtrip ---
+
+    #[test]
+    fn test_isoline_response_serde_roundtrip() {
+        let response = IsolineResponse {
+            isolines: vec![IsolineResult {
+                polygon: vec![Coordinate::new(52.5, 13.4).unwrap(), Coordinate::new(52.6, 13.5).unwrap()],
+                range: Some(5000.0),
+            }],
+            raw: Some(serde_json::json!({"center": "52.5,13.4"})),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: IsolineResponse = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.isolines.len(), 1);
+        assert_eq!(back.isolines[0].polygon.len(), 2);
+        assert_eq!(back.isolines[0].range, Some(5000.0));
+        assert!(back.raw.is_some());
+    }
+
+    #[test]
+    fn test_isoline_response_empty() {
+        let response = IsolineResponse {
+            isolines: vec![],
+            raw: None,
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        let back: IsolineResponse = serde_json::from_str(&json).unwrap();
+        assert!(back.isolines.is_empty());
+        assert!(back.raw.is_none());
+    }
+
+    // --- IsolineOptions serde roundtrip ---
+
+    #[test]
+    fn test_isoline_options_serde_roundtrip() {
+        let opts = IsolineOptions {
+            range_type: Some(RangeType::Consumption),
+            transport_mode: Some(crate::domains::routing::TransportMode::Truck),
+            departure_time: Some("2024-01-01T08:00:00".to_string()),
+            avoid: vec![crate::domains::routing::AvoidType::Tolls, crate::domains::routing::AvoidType::Highways],
+            provider_extra: Some(serde_json::json!({"optimize_for": "quality"})),
+        };
+        let json = serde_json::to_string(&opts).unwrap();
+        let back: IsolineOptions = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.range_type, Some(RangeType::Consumption));
+        assert_eq!(back.avoid.len(), 2);
+        assert!(back.provider_extra.is_some());
+    }
+
+    // --- Edge cases ---
+
+    #[test]
+    fn test_isoline_result_empty_polygon() {
+        let result = IsolineResult {
+            polygon: vec![],
+            range: None,
+        };
+        assert!(result.polygon.is_empty());
+        assert!(result.range.is_none());
+    }
+
+    #[test]
+    fn test_isoline_result_zero_range() {
+        let result = IsolineResult {
+            polygon: vec![Coordinate::ORIGIN],
+            range: Some(0.0),
+        };
+        assert_eq!(result.range, Some(0.0));
+    }
 }

@@ -177,6 +177,8 @@ pub struct VehicleShift {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ShiftStart {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub time: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub earliest: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub location: Option<TourLocation>,
@@ -474,6 +476,7 @@ pub enum RouteDetailType {
 
 /// Optimization objective.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Objective {
     #[serde(rename = "minimizeUnassigned")]
     MinimizeUnassigned,
@@ -491,6 +494,7 @@ pub enum Objective {
 
 /// Multi-objective (ALPHA).
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum MultiObjective {
     #[serde(rename = "minimizeUnassigned")]
     MinimizeUnassigned,
