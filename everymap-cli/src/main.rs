@@ -273,7 +273,11 @@ fn parse_transport_mode(transport: &str) -> CoreTransportMode {
 }
 
 fn print_output(value: &serde_json::Value, format: &output::OutputFormat) {
-    println!("{}", output::format_output(value, format));
+    use std::io::stdout;
+    let mut out = stdout();
+    if let Err(e) = output::write_output(&mut out, value, format) {
+        eprintln!("Output error: {}", e);
+    }
 }
 
 fn exit_with_coord_error(msg: &str) -> ! {

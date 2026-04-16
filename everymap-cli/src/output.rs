@@ -1,4 +1,5 @@
 use serde_json::Value;
+use std::io::{self, Write};
 
 /// Output format for CLI results.
 pub enum OutputFormat {
@@ -17,12 +18,24 @@ impl OutputFormat {
     }
 }
 
-/// Format a JSON value according to the output format.
-pub fn format_output(value: &Value, format: &OutputFormat) -> String {
+/// Write formatted output directly to a writer.
+///
+/// For JSON and Pretty formats, this uses `serde_json::to_writer` to write
+/// directly to the writer without allocating an intermediate `String`.
+pub fn write_output<W: Write>(writer: &mut W, value: &Value, format: &OutputFormat) -> io::Result<()> {
     match format {
-        OutputFormat::Json => serde_json::to_string(value).unwrap_or_else(|_| value.to_string()),
-        OutputFormat::Pretty => serde_json::to_string_pretty(value).unwrap_or_else(|_| value.to_string()),
-        OutputFormat::Summary => format_summary(value),
+        OutputFormat::Json => {
+            serde_json::to_writer(&mut *writer, value)?;
+            writeln!(writer)
+        }
+        OutputFormat::Pretty => {
+            serde_json::to_writer_pretty(&mut *writer, value)?;
+            writeln!(writer)
+        }
+        OutputFormat::Summary => {
+            let summary = format_summary(value);
+            writeln!(writer, "{}", summary)
+        }
     }
 }
 

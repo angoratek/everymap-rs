@@ -33,6 +33,8 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - Error type `EveryMapError` has structured variants: `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, etc.
 - Core options types have `provider_extra: Option<serde_json::Value>` escape hatch for provider-specific params.
 - Error body truncation in deserialization errors: 256 bytes max.
+- API keys are zeroized on drop via `zeroize` crate (`#[zeroize(drop)]` on `ApiKeyProvider` and `HeaderAuthProvider`).
+- CLI output writes directly to stdout via `serde_json::to_writer` (no intermediate `String` allocation for JSON/Pretty formats).
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings

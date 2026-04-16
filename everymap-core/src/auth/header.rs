@@ -1,10 +1,15 @@
 use async_trait::async_trait;
 use reqwest::header::{HeaderValue, AUTHORIZATION};
 use reqwest::RequestBuilder;
+use zeroize::Zeroize;
 use crate::auth::provider::AuthProvider;
 use crate::error::EveryMapResult;
 
 /// Provider for header-based authentication (e.g., Radar's `Authorization` header).
+///
+/// The key value is zeroized on drop to prevent lingering sensitive data in memory.
+#[derive(Zeroize)]
+#[zeroize(drop)]
 pub struct HeaderAuthProvider {
     value: String,
 }

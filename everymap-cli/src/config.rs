@@ -41,10 +41,26 @@ impl Config {
     /// Load config from a specific path. Returns default if file doesn't exist.
     pub fn load_from(path: &PathBuf) -> Self {
         match fs::read_to_string(path) {
-            Ok(contents) => toml::from_str(&contents).unwrap_or_else(|e| {
-                eprintln!("Warning: Failed to parse config file {:?}: {}", path, e);
-                Self::default()
-            }),
+            Ok(contents) => {
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    if let Ok(metadata) = fs::metadata(path) {
+                        let mode = metadata.permissions().mode();
+                        if mode & 0o006 != 0 {
+                            eprintln!(
+                                "Warning: config file {:?} is group/world-readable (mode={:o}). \
+                                 Consider running: chmod 600 {:?}",
+                                path, mode & 0o777, path
+                            );
+                        }
+                    }
+                }
+                toml::from_str(&contents).unwrap_or_else(|e| {
+                    eprintln!("Warning: Failed to parse config file {:?}: {}", path, e);
+                    Self::default()
+                })
+            }
             Err(_) => Self::default(),
         }
     }

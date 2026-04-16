@@ -130,7 +130,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 
 ## Future Work
 - [ ] OAuth2 auth provider implementation
-- [ ] CI/CD pipeline (GitHub Actions with clippy, fmt, nextest)
-- [ ] Config file permission check (`~/.everymap/config.toml` world-readable warning)
-- [ ] Zeroize API keys in memory (`zeroize` crate)
-- [ ] Avoid redundant serialization in CLI (direct `serde_json::Value` → string)
+- [x] CI/CD pipeline (GitHub Actions with clippy, fmt, nextest) — 3 parallel jobs, nextest via taiki-e/install-action
+- [x] Config file permission check (`~/.everymap/config.toml` world-readable warning) — Unix-only, warning on stderr
+- [x] Zeroize API keys in memory (`zeroize` crate) — `#[zeroize(drop)]` on ApiKeyProvider and HeaderAuthProvider
+- [x] Avoid redundant serialization in CLI — `write_output()` uses `serde_json::to_writer` for direct stdout write
