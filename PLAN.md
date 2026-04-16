@@ -1,138 +1,136 @@
 # Project Plan: EveryMap-RS (State-of-the-art Geospatial API Wrapper)
 
 ## Vision
-To build the most robust, type-safe, and modular Rust ecosystem for geospatial services. The architecture allows consumers to switch between providers (HERE, MapBox, TomTom, Google) with zero changes to business logic, utilizing a domain-driven middleware abstraction.
+To build the most robust, type-safe, and modular Rust ecosystem for geospatial services. The architecture allows consumers to switch between providers (HERE, Google, TomTom, MapBox, Radar) with zero changes to business logic, utilizing a domain-driven middleware abstraction.
 
 ---
 
 ## Architectural Blueprint
 
-### 1. Crate Strategy: Modular Workspace
+### 1. Crate Strategy: Modular Workspace (8 crates)
 
 - **`everymap-core`**: The bedrock. Zero-dependency where possible.
     - Shared Types: `Coordinate`, `BoundingBox`, `Address`, `Polyline`, `FlexiblePolyline`.
-    - Domain Traits: Interfaces for all 10 domains, returning concrete response types.
+    - 13 Domain Traits: `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`, `GeofenceProvider`, `TripTracker`, `FraudDetector`.
     - Core Options Types: `GeocodeOptions`, `RouteOptions`, etc. with `provider_extra: Option<serde_json::Value>` escape hatch.
-    - Enriched Response Types: `SearchResult`, `RouteResult`, `TrafficFlow`, `TrafficIncident`, `IsolineResult`, `MatchedPoint`, `TourStop`, etc.
-    - Auth Traits: `AuthProvider` interface (`ApiKeyProvider`, future `OAuth2Provider`).
+    - Enriched Response Types: `SearchResult`, `RouteResult`, `TrafficFlow`, `TrafficIncident`, `IsolineResult`, `MatchedPoint`, `TourResponse`, etc.
+    - Auth Traits: `AuthProvider` (`ApiKeyProvider`, `HeaderAuthProvider`, future `OAuth2Provider`).
     - Error System: Structured `EveryMapError` with `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, etc.
-- **`everymap-providers-here`**: The HERE Technologies implementation.
-    - Maps OpenAPI specs to Rust types with full coverage.
-    - Implements `everymap-core` traits.
-    - Each domain has its own module with rich provider-specific types.
-    - Shared `HereLatLng` in `domain/geo.rs` (eliminates duplication).
-    - `From<HereX> for CoreX` conversions for type-safe provider → core mapping.
-- **`everymap-providers-google`**: Google Maps implementation.
-    - Geocoder ← Geocoding API (search + reverse geocode)
-    - Router ← Directions API (route calculation with Google polyline decoding)
-    - Unsupported domains return `UnsupportedDomain` error (Traffic, Isoline, Tour, Attributes, Tiling, Positioning, Matching, Imaging)
-    - `GoogleClient` with auth handling and error status checking
-    - `From<GoogleGeocodeResult> for SearchResult` and `From<GoogleRoute> for RouteResult` conversions
-- **`everymap-providers-mapbox` / `tomtom`** (future): Implementation crates.
-- **`everymap-cli`**: CLI tool for interacting with providers.
-    - `clap` derive macros, `tokio` runtime, JSON output.
-    - Commands: `geocode`, `reverse-geocode`, `route`, `traffic`, `position`, `isoline`, plus planned: `match-route`, `tour`, `tile`, `attributes`, `map-image`.
-    - Auth via `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
-    - Multi-provider support: `--provider here` (default) or `--provider google`
-    - `Box<dyn Trait>` dispatch for multi-provider support
+    - `ProviderClient`: Consolidated HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str).
+    - 10 Unsupported Domain Macros: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`, `unsupported_geofence!`, `unsupported_trip_tracker!`, `unsupported_fraud_detector!`.
+- **`everymap-providers-here`**: HERE Technologies — 10 domains implemented (all common domains).
+- **`everymap-providers-google`**: Google Maps — 6 domains implemented (search, routing, matching, positioning, attributes, imaging).
+- **`everymap-providers-tomtom`**: TomTom — 8 domains implemented (search, routing, traffic, isoline, matching, tour, tiling, imaging).
+- **`everymap-providers-mapbox`**: MapBox — 7 domains implemented (search, routing, isoline, matching, tour, tiling, imaging).
+- **`everymap-providers-radar`**: Radar — 7 domains (search, routing, matching, tour, geofencing, tracking, fraud). Geofencing/tracking/fraud are Radar-exclusive.
+- **`everymap-cli`**: CLI tool with 19 commands, unified `ProviderRegistry` dispatch.
+- **`everymap-bench`**: Cross-provider benchmark framework covering all 13 domains with typed `ScenarioParams` dispatch.
 
-### 2. Domain Abstraction (Middleware)
-Each API is treated as a "Provider" of a "Domain".
+### 2. Domain Abstraction
 
-| Domain | Core Trait | HERE Implementation | Google Implementation |
-| :--- | :--- | :--- | :--- |
-| **Search** | `Geocoder` | `HereGeocoder` | `GoogleGeocoder` ✅ |
-| **Routing** | `Router` | `HereRouter` | `GoogleRouter` ✅ |
-| **Isolines** | `IsolineProvider` | `HereIsoline` | `GoogleIsoline` (stub) |
-| **Tracing** | `RouteMatcher` | `HereRouteMatcher` | `GoogleRouteMatcher` (stub) |
-| **Logistics** | `TourPlanner` | `HereTourPlanner` | `GoogleTourPlanner` (stub) |
-| **Traffic** | `TrafficProvider` | `HereTraffic` | `GoogleTraffic` (stub) |
-| **Tiling** | `TileProvider` | `HereTileProvider` | `GoogleTileProvider` (stub) |
-| **Positioning** | `NetworkPositioner` | `HerePositioner` | `GooglePositioner` (stub) |
-| **Attributes** | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` (stub) |
-| **Imaging** | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` (stub) |
+| Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Search** | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Routing** | `Router` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Isolines** | `IsolineProvider` | ✅ | stub | ✅ | ✅ | stub |
+| **Matching** | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Tour** | `TourPlanner` | ✅ | stub | ✅ | ✅ | ✅ |
+| **Traffic** | `TrafficProvider` | ✅ | stub | ✅ | stub | stub |
+| **Tiling** | `TileProvider` | ✅ | stub | ✅ | ✅ | stub |
+| **Positioning** | `NetworkPositioner` | ✅ | ✅ | stub | stub | stub |
+| **Attributes** | `AttributeProvider` | ✅ | ✅ | stub | stub | stub |
+| **Imaging** | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | stub |
+| **Geofencing** | `GeofenceProvider` | N/A | N/A | N/A | N/A | ✅ |
+| **Tracking** | `TripTracker` | N/A | N/A | N/A | N/A | ✅ |
+| **Fraud** | `FraudDetector` | N/A | N/A | N/A | N/A | ✅ |
+
+**38 real implementations** across 5 providers. 15 stubs. 12 N/A (provider-exclusive domains).
 
 ### 3. Key Design Decisions
 
-- **Concrete options types** (not associated types): `GeocodeOptions`, `RouteOptions`, etc. live in core with `provider_extra: Option<serde_json::Value>` for provider-specific params. This enables `Box<dyn Geocoder>` dynamic dispatch.
-- **Core response types are rich enough for 80% of use cases**: All fields are `Option<T>` where any provider may not provide data. `raw: Option<serde_json::Value>` escape hatch for the remaining 20%.
-- **Extension traits** for provider-specific methods: `HereGeocoderExt::discover()`, `GoogleGeocoderExt::place_search()`.
+- **Concrete options types** (not associated types): Enables `Box<dyn Geocoder>` dynamic dispatch.
+- **Core response types are rich enough for 80% of use cases**: All fields are `Option<T>`. `raw: Option<serde_json::Value>` escape hatch for the remaining 20%.
+- **Extension traits** for provider-specific methods: `HereGeocoderExt::discover()`, etc.
 - **Feature flags** for providers in CLI: `--features here,google` to control compile time.
 - **Version independently**: Each crate follows its own semver pace.
+- **ProviderClient consolidation**: All 5 provider clients delegate to shared `ProviderClient` from core.
+- **Unsupported domain macros**: 10 macros eliminate boilerplate stubs.
+- **Unified CLI dispatch**: `ProviderRegistry` replaces 5 duplicated command handler functions.
 
 ### 4. Authentication Layer
 - **`AuthProvider` Trait**: `async fn apply(&self, builder: RequestBuilder) -> Result<RequestBuilder>`
-- **`ApiKeyProvider`**: Implements `AuthProvider` (injects API key as query param).
-- **`OAuth2Auth`** (planned): Implements `AuthProvider` with token caching/refresh logic.
+- **`ApiKeyProvider`**: Injects API key as query param (HERE, Google, TomTom, MapBox).
+- **`HeaderAuthProvider`**: Injects API key as Authorization header (Radar).
+- **`OAuth2Auth`** (planned): Token caching/refresh logic.
 
 ---
 
-## Implementation Status
+## Implementation History
 
 ### Phase 0: Architecture Foundations ✅
-- Per-domain base URLs (HereClient simplified, each domain has const BASE_URL)
-- FlexiblePolyline decoder (using `flexpolyline` crate, full encode/decode)
-- Core trait redesign (all traits have associated Response + Options types)
-- Domain mod.rs reorganized to avoid glob conflicts
+- Per-domain base URLs, FlexiblePolyline decoder, Core trait redesign, Domain mod.rs reorganized
 
-### Phase 1-10: All 10 HERE Domains ✅
-- All domains implemented with full parameter coverage
-- 31 contract tests passing
-- Rich HERE-specific types alongside core trait impls
+### Phase 1–10: All 10 HERE Domains ✅
+- All domains implemented with full parameter coverage, 31 contract tests
 
-### Phase 11: Multi-Provider Architecture Improvements ✅
-- Enriched core response types with structured fields + `raw` escape hatch
-- Response type consistency (all domains return core types, including positioning)
-- `From` trait conversions for search (`HereAddress→Address`, `HereSearchItem→SearchResult`, `HereLatLng→Coordinate`) and traffic (`HereFlowItem→TrafficFlow`, `HereIncident→TrafficIncident`)
-- Shared geo types: `HereLatLng` centralized in `domain/geo.rs`, `HereIsolineLatLng` duplication removed
-- Enriched error types: `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `ValidationError`, `SerializationError`, `UnsupportedDomain`
-- `everymap-cli` Phase 1: 6 commands working (geocode, reverse-geocode, route, traffic, position, isoline)
+### Phase 11: Multi-Provider Architecture ✅
+- Enriched core response types, `From` conversions, shared geo types, enriched error types, CLI Phase 1
 
 ### Phase 12: Concrete Options Refactor ✅
-- [x] Create core options types (`GeocodeOptions`, `RouteOptions`, `TrafficOptions`, `IsolineOptions`, `PositioningOptions`, `MatchingOptions`, `TourOptions`, `TileOptions`, `AttributeOptions`, `ImageOptions`)
-- [x] Migrate all 10 traits from `type Options` associated types to concrete parameter types
-- [x] Remove request wrappers (`GeocodeRequest<O>`, `RouteRequest<O>`, etc.)
-- [x] Migrate HERE provider to use core options with `*_from_core()` conversion helpers
-- [x] Migrate CLI to use core option types directly
-- [x] Add `UnsupportedDomain` error variant
-- [x] Add `HttpClient` trait + `DefaultHttpClient` to core
-- [x] Add `From<HereFlowItem> for TrafficFlow`, `From<HereIncident> for TrafficIncident` conversions
-- [x] Remove `HereIsolineLatLng` duplication (consolidated to `HereLatLng`)
-- [x] Add extension traits: `HereGeocoderExt`, `HereTrafficExt`, `HerePositionerExt`, `HereTourPlannerExt`
-- [x] Complete CLI domain coverage: all 11 commands (geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image)
-- [x] All 31 contract tests pass, clippy clean
-- [x] 28 unit tests in `everymap-core` (options, types, error)
-- [x] CLI output formats: `--output json|pretty|summary`
-- [x] Version bumped to 0.2.0
+- All traits migrated to concrete Options types, `HttpClient` trait, extension traits, all 11 CLI commands, config file support, 28 unit tests in core
 
 ### Phase 13: From Conversions & Testing ✅
-- [x] Add `From` trait conversions for all domain types (routing, isoline, positioning, matching, tour)
-- [x] `From<HereRoute> for RouteResult` and `From<HereRouteSection> for RouteResult`
-- [x] `From<HereIsolineLegacy> for IsolineResult`
-- [x] `From<PositioningResponse> for CorePositioningResponse`
-- [x] `From<HereMatchedPoint> for MatchedPoint`
-- [x] `From<TourSolution> for TourResponse`
-- [x] 52 unit tests in `everymap-core` (all 10 domains + error + types)
-- [x] 31 contract tests + 5 error case tests
-- [x] CLI config file support (`~/.everymap/config.toml`)
-- [x] HTTP error handling in HereClient (401, 403, 404, 429, 500)
+- `From` trait conversions for all domain types, 52 unit tests, 31 contract tests, CLI config file, HTTP error handling
 
-See `tmp/multi-provider-architecture-plan.md` for full details.
+### Phase 14: Phase 2 — Additional Providers ✅
+- Google provider crate (search + routing)
+- TomTom provider crate (search, routing, traffic, isoline, matching, tour, tiling, imaging)
+- MapBox provider crate (search, routing, isoline, matching, tour, tiling, imaging)
+- Radar provider crate (search, routing, matching, tour, geofencing, tracking, fraud)
+
+### Phase 15: Phase 3 — Architecture Hardening ✅
+- **CLI unified dispatch**: `ProviderRegistry` replaces 5 `run_<provider>_commands()` functions. main.rs reduced from ~1750 to ~500 lines.
+- **ProviderClient extracted**: Shared HTTP client logic in `everymap-core/src/client/mod.rs`. All 5 provider crates have thin wrappers.
+- **Unsupported domain macros**: 10 macros in `everymap-core/src/unsupported.rs`. All 5 provider stubs converted to 1-line macro invocations.
+- **Security**: Error body truncation reduced to 256 bytes. Shared `redact_api_key()` from core.
+- **Tests**: 540 total (up from 345). ~180 new core domain tests.
+- **Clippy**: Zero warnings with `-D warnings`.
+
+### Phase 16: Benchmark Expansion ✅
+- `everymap-bench` expanded from 2 domains (geocode, route) to all 13 domains
+- `ScenarioParams` enum with 14 variants for typed dispatch
+- 15 predefined scenarios covering all domains
+- `BenchProviders` struct holds trait objects for all 13 domains per provider
+- Supports 5 providers: HERE, Google, TomTom, MapBox, Radar
+- Output formats: table (default), json, markdown
+
+---
+
+## Current Metrics
+
+| Metric | Value |
+|--------|-------|
+| Workspace crates | 8 |
+| Domain traits | 13 |
+| CLI commands | 19 |
+| Total tests | 540+ |
+| Real implementations | 38 across 5 providers |
+| Clippy warnings | 0 |
+| Version | 0.2.0 |
 
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 31 contract tests + 5 error case tests + 52 unit tests (88 total), all passing
-- **SOLID**: `everymap-core` has zero knowledge of `everymap-providers-here`
-- **Lightweight**: No unnecessary dependencies leaked into core
+- **TDD**: 540+ tests (unit + contract + CLI integration + error cases), all passing
+- **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
 
-### Future Work
-- [x] Google provider crate (search + routing)
+---
+
+## Future Work
 - [ ] OAuth2 auth provider implementation
-- [x] CLI config file support (`~/.everymap/config.toml`)
-- [x] CLI output formats (pretty, summary)
-- [ ] CLI output format: table
-- [ ] Benchmarking with `criterion` for large response deserialization
 - [ ] CI/CD pipeline (GitHub Actions with clippy, fmt, nextest)
+- [ ] Config file permission check (`~/.everymap/config.toml` world-readable warning)
+- [ ] Zeroize API keys in memory (`zeroize` crate)
+- [ ] Avoid redundant serialization in CLI (direct `serde_json::Value` → string)

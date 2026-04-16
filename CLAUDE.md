@@ -1,22 +1,22 @@
 # CLAUDE.md — Project Guidance for Claude Code
 
 ## Project Overview
-EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs.
+EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs across 13 geospatial domains.
 
 ## Architecture
-- **Workspace**: `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` (HERE) + `everymap-providers-google` (Google) + `everymap-providers-tomtom` (TomTom) + `everymap-providers-mapbox` (MapBox) + `everymap-providers-radar` (Radar) + `everymap-cli` (CLI tool) + `everymap-bench` (benchmark framework)
-- **Pattern**: Each domain trait in `everymap-core` uses concrete `Options` and `Response` types (not associated types). Provider implementations define their own rich types and map to the core trait via `From` conversions.
+- **Workspace** (8 crates): `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` + `everymap-providers-google` + `everymap-providers-tomtom` + `everymap-providers-mapbox` + `everymap-providers-radar` + `everymap-cli` (CLI tool, 19 commands) + `everymap-bench` (benchmark framework, all 13 domains)
+- **13 Domain Traits** in `everymap-core/src/domains/`: search, routing, traffic, positioning, isoline, matching, tour, tiling, attributes, imaging, geofencing, tracking, fraud
+- **Pattern**: Each domain trait uses concrete `Options` and `Response` types (not associated types). Provider implementations define their own rich types and map to core via `From` conversions.
 - **Dynamic dispatch**: Traits use concrete types enabling `Box<dyn Geocoder>` for runtime provider selection.
 - **ProviderClient** in `everymap-core/src/client/` consolidates all HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str). Provider crates wrap it with thin structs.
-- **Unsupported domain macros** in `everymap-core/src/unsupported.rs`: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`, `unsupported_geofence!`, `unsupported_trip_tracker!`, `unsupported_fraud_detector!`
-- **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 19 commands once.
+- **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (10 macros): `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`, `unsupported_geofence!`, `unsupported_trip_tracker!`, `unsupported_fraud_detector!`
+- **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 19 commands.
 - **Each domain module** has its own `types.rs` submodule with provider-specific request/response types.
 - **Shared geo types**: `HereLatLng` in HERE's `domain/geo.rs`, `GoogleLatLng` in Google's `domain/geo.rs`.
 - **Core response types** are rich enough for most use cases, with an optional `raw: Option<serde_json::Value>` escape hatch for provider-specific data.
-- **`From` trait conversions** are implemented for all domains.
-- **Explicit re-exports** in `domain/mod.rs` and `lib.rs` to avoid glob conflicts between modules.
+- **`From` trait conversions** implemented for all domains.
+- **Explicit re-exports** in `domain/mod.rs` and `lib.rs` to avoid glob conflicts.
 - **Extension traits** for provider-specific methods.
-- **Unsupported domains** use macros from `everymap_core::unsupported_*` instead of manual stubs.
 
 ## Key Conventions
 - Use `async-trait` for all domain traits.
@@ -40,7 +40,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 
-## Provider Quick Reference
+## Provider Domain Coverage
 
 | Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
 |--------|-----------|------|--------|--------|--------|-------|
@@ -54,9 +54,11 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 | Positioning | `NetworkPositioner` | `HerePositioner` | `GooglePositioner` | stub | stub | stub |
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
-| Geofencing | `GeofenceProvider` | stub | stub | stub | stub | `RadarGeofenceProvider` |
-| Tracking | `TripTracker` | stub | stub | stub | stub | `RadarTripTracker` |
-| Fraud | `FraudDetector` | stub | stub | stub | stub | `RadarFraudDetector` |
+| Geofencing | `GeofenceProvider` | N/A | N/A | N/A | N/A | `RadarGeofenceProvider` |
+| Tracking | `TripTracker` | N/A | N/A | N/A | N/A | `RadarTripTracker` |
+| Fraud | `FraudDetector` | N/A | N/A | N/A | N/A | `RadarFraudDetector` |
+
+Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 real implementations** across 5 providers.
 
 ## Adding a New Provider
 1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`
@@ -68,13 +70,14 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 7. Add provider to `ProviderRegistry` in `everymap-cli/src/provider.rs`
 8. Add provider section in `config.rs` `Providers` struct
 9. Add workspace member in root `Cargo.toml`
+10. Add provider to `everymap-bench/src/benchmark.rs` `BenchProviders::new()`
 
 ## CLI Usage
 - `--provider here` (default) or `--provider google` or `--provider tomtom` or `--provider mapbox` or `--provider radar`
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
-- API key param name defaults: `apiKey` for HERE, `key` for Google, `key` for TomTom, `access_token` for MapBox, `Authorization` header for Radar
+- API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - 11 base commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
 - 8 Radar-specific commands: geofence-search, geofence-create, geofence-get, geofence-delete, trip-create, trip-update, trip-get, fraud-check
 

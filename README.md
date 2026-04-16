@@ -4,54 +4,48 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
 
-EveryMap-RS provides a unified interface for geospatial services across multiple providers. Currently supports **HERE Technologies** and **Google Maps** APIs with plans for MapBox and TomTom.
-
-The architecture uses **domain-driven design** — each geospatial capability (routing, search, traffic, etc.) is defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
+EveryMap-RS provides a unified interface for geospatial services across multiple providers — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. The architecture uses **domain-driven design** with 13 geospatial capabilities, each defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
 
 ## Architecture
 
 ```
 everymap-rs/
-├── everymap-core/              # Core traits, types, auth, error
+├── everymap-core/              # Core traits, types, auth, error, client
 │   └── src/
-│       ├── domains/            # 10 domain traits + concrete Options/Response types
+│       ├── domains/            # 13 domain traits + concrete Options/Response types
 │       ├── types/              # Coordinate, BoundingBox, Address, Polyline
-│       ├── auth/               # AuthProvider, ApiKeyProvider
-│       ├── client/             # HttpClient trait + DefaultHttpClient
+│       ├── auth/               # AuthProvider, ApiKeyProvider, HeaderAuthProvider
+│       ├── client/             # ProviderClient (shared HTTP logic), HttpClient trait
+│       ├── unsupported.rs      # 10 stub macros for unsupported domains
 │       └── error/              # EveryMapError (structured errors)
-├── everymap-providers-here/    # HERE Technologies implementation
-│   └── src/
-│       ├── client/             # HereClient (HTTP + auth)
-│       ├── ext.rs              # Extension traits (discover, autosuggest, etc.)
-│       └── domain/             # 10 domain implementations + From conversions
-├── everymap-providers-google/  # Google Maps implementation
-│   └── src/
-│       ├── client.rs           # GoogleClient (HTTP + auth)
-│       └── domain/
-│           ├── search/         # GoogleGeocoder (Geocoding API)
-│           ├── routing/        # GoogleRouter (Directions API)
-│           └── unsupported.rs  # Stubs for unsupported domains
-└── everymap-cli/               # CLI for interacting with providers
-    └── src/
-        ├── main.rs             # clap-based CLI with --provider flag
-        ├── config.rs           # ~/.everymap/config.toml support
-        └── output.rs           # JSON/Pretty/Summary output formats
+├── everymap-providers-here/    # HERE Technologies (10 domains implemented)
+├── everymap-providers-google/  # Google Maps (6 domains implemented)
+├── everymap-providers-tomtom/  # TomTom (8 domains implemented)
+├── everymap-providers-mapbox/  # MapBox (7 domains implemented)
+├── everymap-providers-radar/   # Radar (7 domains, including geofencing/tracking/fraud)
+├── everymap-cli/               # CLI with 19 commands + unified ProviderRegistry
+└── everymap-bench/             # Cross-provider benchmark framework (all 13 domains)
 ```
 
 ## Provider Support
 
-| Domain | Core Trait | HERE | Google |
-|--------|-----------|------|--------|
-| Search | `Geocoder` | Geocoding API | Geocoding API |
-| Routing | `Router` | Routing v8 | Directions API |
-| Isoline | `IsolineProvider` | Isoline Routing v8 | *Unsupported* |
-| Matching | `RouteMatcher` | Route Matching v8 | *Unsupported* |
-| Tour | `TourPlanner` | Tour Planning v3 | *Unsupported* |
-| Traffic | `TrafficProvider` | Traffic v7 | *Unsupported* |
-| Tiling | `TileProvider` | Vector Tile v2 | *Unsupported* |
-| Positioning | `NetworkPositioner` | Positioning v2 | *Unsupported* |
-| Attributes | `AttributeProvider` | Map Attributes v8 | *Unsupported* |
-| Imaging | `MapImageProvider` | Map Image v3 | *Unsupported* |
+| Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
+|--------|-----------|------|--------|--------|--------|-------|
+| Search | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Routing | `Router` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Isoline | `IsolineProvider` | ✅ | — | ✅ | ✅ | — |
+| Matching | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ |
+| Traffic | `TrafficProvider` | ✅ | — | ✅ | — | — |
+| Tiling | `TileProvider` | ✅ | — | ✅ | ✅ | — |
+| Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — |
+| Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — |
+| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — |
+| Geofencing | `GeofenceProvider` | — | — | — | — | ✅ |
+| Tracking | `TripTracker` | — | — | — | — | ✅ |
+| Fraud | `FraudDetector` | — | — | — | — | ✅ |
+
+✅ = real implementation, — = unsupported (stub or N/A). **38 real implementations** across 5 providers.
 
 Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
@@ -88,7 +82,7 @@ Switch to Google by changing the provider:
 
 ```rust
 use everymap_providers_google::client::GoogleClient;
-use everymap_providers_google::GoogleGeocoder;
+use everymap_providers_google::domain::search::GoogleGeocoder;
 
 let auth = Arc::new(ApiKeyProvider::new("YOUR_API_KEY".to_string(), "key".to_string()));
 let client = Arc::new(GoogleClient::new(auth));
@@ -105,7 +99,11 @@ everymap --api-key $HERE_KEY route --origin "52.52,13.405" --destination "52.54,
 
 # Google provider
 everymap --provider google --api-key $GOOGLE_KEY geocode "Brandenburg Gate, Berlin"
-everymap --provider google --api-key $GOOGLE_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
+
+# TomTom, MapBox, Radar providers
+everymap --provider tomtom --api-key $TOMTOM_KEY geocode "Berlin"
+everymap --provider mapbox --api-key $MAPBOX_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
+everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng -74.01
 
 # Config file (~/.everymap/config.toml)
 # [providers.here]
@@ -118,7 +116,7 @@ everymap geocode "Paris" --output json      # compact JSON
 everymap geocode "Paris" --output pretty     # formatted JSON
 everymap geocode "Paris" --output summary    # condensed human-readable
 
-# All 11 commands
+# All 19 commands
 everymap geocode "Berlin"
 everymap reverse-geocode --lat 52.52 --lng 13.40
 everymap route --origin "52.52,13.40" --destination "52.54,13.42" --transport car
@@ -130,6 +128,28 @@ everymap tour --stops "52.5,13.3" "52.6,13.4"
 everymap tile --z 14 --x 8800 --y 5374
 everymap attributes --bbox "52.0,13.0,52.5,13.5"
 everymap map-image --lat 52.52 --lng 13.40 --zoom 14
+# Radar-specific:
+everymap --provider radar geofence-search --lat 40.71 --lng -74.01
+everymap --provider radar geofence-create --tag "warehouse" --geometry "circle:40.71,-74.01,500"
+everymap --provider radar geofence-get --id gf_123
+everymap --provider radar geofence-delete --id gf_123
+everymap --provider radar trip-create --origin "40.71,-74.01" --destination "42.36,-71.06"
+everymap --provider radar trip-update --id trip_123 --lat 41.0 --lng -73.0
+everymap --provider radar trip-get --id trip_123
+everymap --provider radar fraud-check --lat 40.71 --lng -74.01
+```
+
+### Benchmarking
+
+```bash
+# Benchmark all domains against all configured providers
+everymap-bench --all --here-key $HERE_KEY --google-key $GOOGLE_KEY
+
+# Benchmark a specific domain
+everymap-bench --domain routing --here-key $HERE_KEY --tomtom-key $TOMTOM_KEY
+
+# Output formats: table (default), json, markdown
+everymap-bench --all --output json --api-key $KEY
 ```
 
 ## Core Response Types
@@ -140,14 +160,14 @@ Enriched types that work across all providers:
 pub struct SearchResult {
     pub id: Option<String>,
     pub coordinate: Coordinate,
-    pub address: Address,              // structured: street, city, country, etc.
+    pub address: Address,
     pub title: Option<String>,
-    pub result_type: SearchResultType, // ExactMatch, Approximate, etc.
+    pub result_type: SearchResultType,
     pub distance: Option<f64>,
     pub confidence: Option<f64>,
     pub categories: Vec<String>,
     pub bounding_box: Option<BoundingBox>,
-    pub raw: Option<serde_json::Value>, // provider-specific escape hatch
+    pub raw: Option<serde_json::Value>,
 }
 
 pub struct RouteResult {
@@ -168,16 +188,17 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 88 tests (52 unit + 31 contract + 5 error cases), all passing.
+- **TDD**: 540+ tests (unit + contract + CLI integration + error cases), all passing.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
+- **Zero duplication**: Shared `ProviderClient`, `unsupported_*!` macros, unified `ProviderRegistry` dispatch.
 
 ## Build & Test
 
 ```bash
-cargo build                              # Build all crates
-cargo test                               # Run 88 tests
+cargo build                              # Build all 8 workspace crates
+cargo test                               # Run 540+ tests
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
 ```
@@ -185,20 +206,23 @@ cargo run -p everymap-cli -- --help      # Run CLI
 ## Adding a New Provider
 
 1. Create `everymap-providers-{name}/` with `Cargo.toml` depending on `everymap-core`
-2. Implement `Client` (thin HTTP + auth wrapper — copy `GoogleClient` as template)
-3. Implement supported domain traits (start with `Geocoder` + `Router`)
-4. Add `From<ProviderType> for CoreType` conversions
-5. Add stubs for unsupported domains returning `UnsupportedDomain`
-6. Add factory functions + dispatch in CLI `main.rs`
-7. Add provider section in CLI `config.rs`
+2. Create `client.rs` — thin wrapper around `ProviderClient` from core (copy `GoogleClient` as template)
+3. Create `domain/geo.rs` — shared lat/lng type
+4. Implement supported domain traits (start with `Geocoder` + `Router`)
+5. Add `From<ProviderType> for CoreType` conversions
+6. Add stubs for unsupported domains using `everymap_core::unsupported_*!` macros
+7. Add provider to `ProviderRegistry` in `everymap-cli/src/provider.rs`
+8. Add provider section in `everymap-cli/src/config.rs`
+9. Add workspace member in root `Cargo.toml`
+10. Add provider to `everymap-bench/src/benchmark.rs` `BenchProviders::new()`
 
 ## Future Work
 
 - OAuth2 authentication provider
-- MapBox and TomTom provider crates
 - Google Roads API (route matching), Static Maps API (imaging)
-- Criterion benchmarks for large response deserialization
 - CI/CD pipeline with GitHub Actions
+- Config file permission check
+- Zeroize API keys in memory
 
 ## License
 
