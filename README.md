@@ -203,6 +203,8 @@ cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
 ```
 
+See [TESTING.md](TESTING.md) for comprehensive testing guide including live API smoke tests, contract test patterns, and provider-specific API compatibility notes.
+
 ## Adding a New Provider
 
 1. Create `everymap-providers-{name}/` with `Cargo.toml` depending on `everymap-core`

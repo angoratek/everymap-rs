@@ -11,29 +11,19 @@ use std::sync::Arc;
 async fn test_tour_optimization_contract() {
     let server = MockServer::start().await;
 
+    // TomTom Waypoint Optimization returns optimizedOrder (array of indices)
     let mock_response = serde_json::json!({
-        "optimizedWaypoints": [
-            {
-                "providedIndex": 2,
-                "point": { "latitude": 52.52, "longitude": 13.405 }
-            },
-            {
-                "providedIndex": 0,
-                "point": { "latitude": 52.50, "longitude": 13.35 }
-            },
-            {
-                "providedIndex": 1,
-                "point": { "latitude": 52.55, "longitude": 13.45 }
-            }
-        ],
+        "optimizedOrder": [2, 0, 1],
         "summary": {
-            "lengthInMeters": 12500.0,
-            "travelTimeInSeconds": 900.0
+            "routeSummary": {
+                "lengthInMeters": 12500.0,
+                "travelTimeInSeconds": 900.0
+            }
         }
     });
 
     Mock::given(method("POST"))
-        .and(path("/routing/waypointoptimization/1/api"))
+        .and(path("/routing/waypointoptimization/1"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -52,7 +42,7 @@ async fn test_tour_optimization_contract() {
     let res = tour.optimize_tour(&stops, &opts).await.unwrap();
 
     assert_eq!(res.stops.len(), 3);
-    // First optimized waypoint should have providedIndex 2
+    // First optimized stop is index 2 → (52.52, 13.405)
     assert_eq!(res.stops[0].coordinate.lat, 52.52);
     assert_eq!(res.stops[0].coordinate.lng, 13.405);
     assert_eq!(res.total_distance, Some(12500.0));

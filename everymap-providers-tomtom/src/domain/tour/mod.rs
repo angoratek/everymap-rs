@@ -37,19 +37,17 @@ impl TourPlanner for TomTomTourPlanner {
             return Err(everymap_core::error::EveryMapError::provider("tomtom", "INVALID_INPUT", "At least 2 stops required for tour optimization"));
         }
 
-        let url = format!("{}/routing/waypointoptimization/1/api", self.base_url);
+        let url = format!("{}/routing/waypointoptimization/1", self.base_url);
 
-        // Build locations JSON body
-        let locations: Vec<serde_json::Value> = stops.iter()
-            .enumerate()
-            .map(|(i, c)| serde_json::json!({
-                "point": { "latitude": c.lat, "longitude": c.lng },
-                "providedIndex": i
+        // Build waypoints JSON body
+        let waypoints: Vec<serde_json::Value> = stops.iter()
+            .map(|c| serde_json::json!({
+                "point": { "latitude": c.lat, "longitude": c.lng }
             }))
             .collect();
 
         let body = serde_json::json!({
-            "locations": locations
+            "waypoints": waypoints
         });
 
         let builder = self.client.build_request(reqwest::Method::POST, &url)
@@ -57,19 +55,24 @@ impl TourPlanner for TomTomTourPlanner {
 
         let result: TomTomOptimizationResponse = self.client.request_json(builder).await?;
 
-        let tour_stops: Vec<TourStop> = result.optimized_waypoints.into_iter().map(|wp| {
-            TourStop {
-                coordinate: wp.point.map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN))
-                    .unwrap_or(Coordinate::ORIGIN),
-                arrival_time: None,
-                departure_time: None,
-                duration: None,
-                distance_from_previous: None,
-            }
-        }).collect();
+        // Map optimized order back to stops in optimized sequence
+        let tour_stops: Vec<TourStop> = result.optimized_order.into_iter()
+            .filter_map(|idx| {
+                let i = idx as usize;
+                stops.get(i).map(|c| TourStop {
+                    coordinate: *c,
+                    arrival_time: None,
+                    departure_time: None,
+                    duration: None,
+                    distance_from_previous: None,
+                })
+            })
+            .collect();
 
-        let (total_distance, total_duration) = result.summary.map(|s| {
-            (s.length_in_meters.unwrap_or(0.0), s.travel_time_in_seconds.unwrap_or(0.0))
+        let (total_distance, total_duration) = result.summary.and_then(|s| {
+            s.route_summary.map(|rs| {
+                (rs.length_in_meters.unwrap_or(0.0), rs.travel_time_in_seconds.unwrap_or(0.0))
+            })
         }).unwrap_or((0.0, 0.0));
 
         Ok(TourResponse {

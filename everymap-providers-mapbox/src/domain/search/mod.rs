@@ -30,28 +30,23 @@ impl MapBoxGeocoder {
     }
 }
 
-/// Convert MapBox place_type list to core SearchResultType.
-fn classify_place_type(place_types: &[String]) -> SearchResultType {
-    if place_types.iter().any(|t| t == "address" || t == "poi") {
-        SearchResultType::ExactMatch
-    } else if place_types.iter().any(|t| t == "place" || t == "locality" || t == "neighborhood") {
-        SearchResultType::Approximate
-    } else {
-        SearchResultType::Unknown
+/// Convert MapBox v6 feature_type string to core SearchResultType.
+fn classify_feature_type(feature_type: &str) -> SearchResultType {
+    match feature_type {
+        "address" | "poi" => SearchResultType::ExactMatch,
+        "place" | "locality" | "neighborhood" | "region" | "district" | "country" => SearchResultType::Approximate,
+        _ => SearchResultType::Unknown,
     }
 }
 
 impl From<MapBoxFeature> for SearchResult {
     fn from(f: MapBoxFeature) -> Self {
-        let coordinate = f.center
-            .as_ref()
-            .and_then(|c| {
-                if c.len() >= 2 {
-                    Some(Coordinate::new(c[1], c[0]).unwrap_or(Coordinate::ORIGIN))
-                } else {
-                    None
-                }
-            })
+        let props = f.properties.as_ref();
+
+        // Use properties.coordinates (v6), fallback to geometry coordinates
+        let coordinate = props
+            .and_then(|p| p.coordinates.as_ref())
+            .map(|c| Coordinate::new(c.latitude, c.longitude).unwrap_or(Coordinate::ORIGIN))
             .or_else(|| {
                 // Fallback: extract from geometry coordinates
                 f.geometry.as_ref().and_then(|g| {
@@ -71,43 +66,83 @@ impl From<MapBoxFeature> for SearchResult {
             })
             .unwrap_or(Coordinate::ORIGIN);
 
-        let title = f.place_name.clone().or(f.text.clone());
+        // Use properties.full_address as title, fallback to name
+        let title = props
+            .and_then(|p| p.full_address.clone().or(p.name.clone()));
 
-        let address = if let Some(addr) = f.properties.as_ref().and_then(|p| p.address.clone()) {
-            let mut a = Address::empty();
-            a.label = f.place_name.clone();
-            a.street = f.text.clone();
-            a.house_number = Some(addr);
-            a
-        } else {
-            let mut a = Address::empty();
-            a.label = f.place_name.clone();
-            a.street = f.text.clone();
-            a
-        };
-
-        let bounding_box = f.bbox.and_then(|b| {
-            if b.len() >= 4 {
-                Some(BoundingBox::new(
-                    Coordinate::new(b[3], b[2]).ok()?,  // north_east
-                    Coordinate::new(b[1], b[0]).ok()?,  // south_west
-                ))
-            } else {
-                None
+        // Build address from context
+        let mut address = Address::empty();
+        if let Some(p) = props {
+            address.label = p.full_address.clone();
+            address.street = p.name.clone();
+            if let Some(ctx) = &p.context {
+                if let Some(street) = &ctx.street {
+                    address.street = Some(street.name.clone().unwrap_or_default());
+                }
+                if let Some(region) = &ctx.region {
+                    address.state = region.name.clone();
+                }
+                if let Some(country) = &ctx.country {
+                    address.country = country.name.clone();
+                    address.country_code = country.country_code.clone();
+                }
+                if let Some(place) = &ctx.place {
+                    address.city = Some(place.name.clone().unwrap_or_default());
+                }
+                if let Some(district) = &ctx.district {
+                    address.district = district.name.clone();
+                }
+                if let Some(postcode) = &ctx.postcode {
+                    address.postal_code = postcode.name.clone();
+                }
             }
-        });
+            if let Some(house) = &p.address {
+                address.house_number = Some(house.clone());
+            }
+        }
 
-        let result_type = classify_place_type(&f.place_type);
+        // Use properties.bbox (v6)
+        let bounding_box = props
+            .and_then(|p| p.bbox.as_ref())
+            .and_then(|b| {
+                if b.len() >= 4 {
+                    Some(BoundingBox::new(
+                        Coordinate::new(b[3], b[2]).ok()?,  // north_east
+                        Coordinate::new(b[1], b[0]).ok()?,  // south_west
+                    ))
+                } else {
+                    None
+                }
+            });
+
+        let feature_type_str = props.and_then(|p| p.feature_type.as_deref().map(String::from));
+        let result_type = feature_type_str
+            .as_deref()
+            .map(classify_feature_type)
+            .unwrap_or(SearchResultType::Unknown);
+
+        let categories = props
+            .and_then(|p| {
+                let mut cats = Vec::new();
+                if let Some(ft) = &p.feature_type {
+                    cats.push(ft.clone());
+                }
+                if let Some(additional) = &p.additional_feature_types {
+                    cats.extend(additional.iter().cloned());
+                }
+                if cats.is_empty() { None } else { Some(cats) }
+            })
+            .unwrap_or_default();
 
         SearchResult {
-            id: f.id,
+            id: f.id.or(props.and_then(|p| p.mapbox_id.clone())),
             coordinate,
             address,
             title,
             result_type,
             distance: None,
-            confidence: f.relevance,
-            categories: f.place_type,
+            confidence: props.and_then(|p| p.relevance),
+            categories,
             bounding_box,
             raw: None,
         }

@@ -1,5 +1,5 @@
 use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, RangeType};
 use everymap_core::types::Coordinate;
 use everymap_providers_tomtom::TomTomIsoline;
@@ -12,6 +12,7 @@ async fn test_isoline_contract() {
     let server = MockServer::start().await;
 
     let mock_response = serde_json::json!({
+        "formatVersion": "0.0.1",
         "reachableRange": {
             "center": { "latitude": 52.52, "longitude": 13.405 },
             "boundary": [
@@ -28,6 +29,7 @@ async fn test_isoline_contract() {
 
     Mock::given(method("GET"))
         .and(path("/routing/1/calculateReachableRange/52.52,13.405/json"))
+        .and(query_param("distanceBudgetInMeters", "5000"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;

@@ -51,18 +51,24 @@ async fn test_geocode_contract() {
 async fn test_reverse_geocode_contract() {
     let server = MockServer::start().await;
 
+    // TomTom reverse geocode API returns results under "addresses" (not "results")
+    // and position is a "lat,lon" string (not an object)
     let mock_response = serde_json::json!({
-        "results": [
+        "addresses": [
             {
-                "position": { "lat": 52.5200, "lon": 13.4050 },
                 "address": {
-                    "freeformAddress": "Pariser Platz 1, 10117 Berlin",
+                    "streetName": "Bodestraße",
+                    "countryCode": "DE",
+                    "countrySubdivision": "Berlin",
                     "municipality": "Berlin",
-                    "country": "Germany"
+                    "postalCode": "10178",
+                    "neighbourhood": "Museumsinsel",
+                    "country": "Deutschland",
+                    "freeformAddress": "Bodestraße, 10178 Berlin",
+                    "localName": "Berlin"
                 },
-                "resultType": "Point Address",
-                "dist": 12.5,
-                "id": "tomtom_address_1"
+                "position": "52.520264,13.399690",
+                "id": "N2etwGOTOIfZi68KYi2JQQ"
             }
         ],
         "summary": { "numResults": 1, "queryType": "ReverseGeometry" }
@@ -83,5 +89,8 @@ async fn test_reverse_geocode_contract() {
     let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].distance, Some(12.5));
+    assert_eq!(res.items[0].coordinate.lat, 52.520264);
+    assert_eq!(res.items[0].coordinate.lng, 13.399690);
+    assert_eq!(res.items[0].address.street.as_deref(), Some("Bodestraße"));
+    assert_eq!(res.items[0].address.city.as_deref(), Some("Berlin"));
 }

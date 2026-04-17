@@ -26,7 +26,7 @@ async fn test_create_trip_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "trip": {
-                "id": "trip_abc123",
+                "_id": "trip_abc123",
                 "externalId": "ext_1",
                 "status": "pending",
                 "origin": { "latitude": 40.7128, "longitude": -74.006 },
@@ -64,7 +64,7 @@ async fn test_update_trip_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "trip": {
-                "id": "trip_abc123",
+                "_id": "trip_abc123",
                 "status": "started",
                 "mode": "car"
             }
@@ -91,7 +91,7 @@ async fn test_get_trip_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "trip": {
-                "id": "trip_abc123",
+                "_id": "trip_abc123",
                 "status": "approaching",
                 "mode": "car",
                 "eta": "2024-06-01T13:30:00Z"
@@ -114,7 +114,7 @@ async fn test_create_trip_error_response() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 401 },
             "trip": {
-                "id": ""
+                "_id": ""
             }
         })))
         .mount(&server)

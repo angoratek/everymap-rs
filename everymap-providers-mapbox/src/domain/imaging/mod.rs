@@ -31,12 +31,11 @@ impl MapImageProvider for MapBoxMapImageProvider {
     async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
         let style = options.provider_extra.as_ref()
             .and_then(|e| e.get("style")).and_then(|v| v.as_str()).unwrap_or("mapbox/streets-v12");
-        let format = options.format.as_deref().unwrap_or("png");
 
         // Build the full style URL: /styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom}/{width}x{height}@2x
         let url = format!(
-            "{}/styles/v1/{}/static/{},{},{}/{:}x{:}@2x.{}",
-            self.base_url, style, center.lng, center.lat, zoom, size.0, size.1, format
+            "{}/styles/v1/{}/static/{},{},{}/{}x{}@2x",
+            self.base_url, style, center.lng, center.lat, zoom, size.0, size.1
         );
 
         let mut params: Vec<(&str, String)> = Vec::new();

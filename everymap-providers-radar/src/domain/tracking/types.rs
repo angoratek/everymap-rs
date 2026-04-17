@@ -21,7 +21,7 @@ pub struct RadarTripGetResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarTrip {
-    #[serde(default)]
+    #[serde(default, rename = "_id")]
     pub id: String,
     #[serde(default)]
     pub external_id: Option<String>,

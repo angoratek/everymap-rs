@@ -37,8 +37,10 @@ async fn test_routing_contract() {
                     "steps": [{
                         "distance": { "value": 500, "text": "0.5 km" },
                         "duration": { "value": 1.0, "text": "1 min" },
-                        "startLocation": { "latitude": 52.5163, "longitude": 13.3777 },
-                        "endLocation": { "latitude": 52.52, "longitude": 13.38 },
+                        "start_location": { "latitude": 52.5163, "longitude": 13.3777 },
+                        "end_location": { "latitude": 52.52, "longitude": 13.38 },
+                        "bearing_before": 0,
+                        "bearing_after": 90,
                         "instructions": "Head north on Pariser Platz",
                         "maneuver": "start"
                     }]

@@ -17,14 +17,18 @@ async fn test_permanent_geocode_contract() {
         "features": [
             {
                 "type": "Feature",
-                "id": "mapbox_permanent_1",
-                "place_type": ["poi"],
-                "relevance": 0.99,
-                "properties": { "feature_type": "poi", "category": "restaurant" },
-                "text": "Brandenburg Gate",
-                "place_name": "Brandenburg Gate, Berlin, Germany",
-                "center": [13.3777, 52.5163],
-                "geometry": { "type": "Point", "coordinates": [13.3777, 52.5163] }
+                "id": "dXJuOm1ieHBsYzpBY1E2",
+                "geometry": { "type": "Point", "coordinates": [13.3777, 52.5163] },
+                "properties": {
+                    "mapbox_id": "dXJuOm1ieHBsYzpBY1E2",
+                    "feature_type": "poi",
+                    "full_address": "Brandenburg Gate, Berlin, Germany",
+                    "name": "Brandenburg Gate",
+                    "name_preferred": "Brandenburg Gate",
+                    "coordinates": { "longitude": 13.3777, "latitude": 52.5163 },
+                    "place_formatted": "Berlin, Germany",
+                    "category": "restaurant"
+                }
             }
         ],
         "attribution": "MapBox"
@@ -44,12 +48,12 @@ async fn test_permanent_geocode_contract() {
     let res = geocoder.permanent_geocode("Brandenburg Gate", Some(1), None).await.unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].id, Some("mapbox_permanent_1".to_string()));
-    assert_eq!(res.features[0].place_name, Some("Brandenburg Gate, Berlin, Germany".to_string()));
-    assert!(res.features[0].center.is_some());
-    let center = res.features[0].center.as_ref().unwrap();
-    assert_eq!(center[0], 13.3777); // lng
-    assert_eq!(center[1], 52.5163); // lat
+    assert_eq!(res.features[0].id, Some("dXJuOm1ieHBsYzpBY1E2".to_string()));
+    let props = res.features[0].properties.as_ref().unwrap();
+    assert_eq!(props.full_address, Some("Brandenburg Gate, Berlin, Germany".to_string()));
+    let coords = props.coordinates.as_ref().unwrap();
+    assert_eq!(coords.longitude, 13.3777);
+    assert_eq!(coords.latitude, 52.5163);
 }
 
 #[tokio::test]
@@ -62,11 +66,14 @@ async fn test_batch_geocode_contract() {
             {
                 "type": "Feature",
                 "id": "batch_1",
-                "place_type": ["place"],
-                "text": "Berlin",
-                "place_name": "Berlin, Germany",
-                "center": [13.405, 52.52],
-                "geometry": { "type": "Point", "coordinates": [13.405, 52.52] }
+                "geometry": { "type": "Point", "coordinates": [13.405, 52.52] },
+                "properties": {
+                    "mapbox_id": "batch_1",
+                    "feature_type": "place",
+                    "full_address": "Berlin, Germany",
+                    "name": "Berlin",
+                    "coordinates": { "longitude": 13.405, "latitude": 52.52 }
+                }
             }
         ]
     });
@@ -77,11 +84,14 @@ async fn test_batch_geocode_contract() {
             {
                 "type": "Feature",
                 "id": "batch_2",
-                "place_type": ["place"],
-                "text": "Paris",
-                "place_name": "Paris, France",
-                "center": [2.3522, 48.8566],
-                "geometry": { "type": "Point", "coordinates": [2.3522, 48.8566] }
+                "geometry": { "type": "Point", "coordinates": [2.3522, 48.8566] },
+                "properties": {
+                    "mapbox_id": "batch_2",
+                    "feature_type": "place",
+                    "full_address": "Paris, France",
+                    "name": "Paris",
+                    "coordinates": { "longitude": 2.3522, "latitude": 48.8566 }
+                }
             }
         ]
     });
@@ -109,8 +119,8 @@ async fn test_batch_geocode_contract() {
     let res = geocoder.batch_geocode(&queries, None).await.unwrap();
 
     assert_eq!(res.len(), 2);
-    assert_eq!(res[0].features[0].text, Some("Berlin".to_string()));
-    assert_eq!(res[1].features[0].text, Some("Paris".to_string()));
+    assert_eq!(res[0].features[0].properties.as_ref().unwrap().name, Some("Berlin".to_string()));
+    assert_eq!(res[1].features[0].properties.as_ref().unwrap().name, Some("Paris".to_string()));
 }
 
 #[tokio::test]

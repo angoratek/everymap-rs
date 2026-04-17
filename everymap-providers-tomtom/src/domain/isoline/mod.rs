@@ -37,9 +37,9 @@ impl IsolineProvider for TomTomIsoline {
         let url = format!("{}/routing/1/calculateReachableRange/{},{}/json", self.base_url, center.lat, center.lng);
 
         let range_type_str = match options.range_type.as_ref() {
-            Some(RangeType::Time) => "time",
-            Some(RangeType::Consumption) => "energy",
-            _ => "distance",
+            Some(RangeType::Time) => "timeBudgetInSec",
+            Some(RangeType::Consumption) => "energyBudgetInkWh",
+            _ => "distanceBudgetInMeters",
         };
 
         let mut params: Vec<(&str, String)> = vec![

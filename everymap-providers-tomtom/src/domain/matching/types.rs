@@ -2,41 +2,81 @@ use serde::{Deserialize, Serialize};
 use everymap_core::domains::matching::MatchedPoint;
 use everymap_core::types::Coordinate;
 
-impl From<TomTomSnapPoint> for MatchedPoint {
-    fn from(sp: TomTomSnapPoint) -> Self {
+/// Response from TomTom Snap to Roads API (Synchronous).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TomTomSnapResponse {
+    /// Projected (snapped) points as GeoJSON Features.
+    #[serde(default, rename = "projectedPoints")]
+    pub projected_points: Vec<TomTomProjectedPoint>,
+    /// Route segments as GeoJSON Features.
+    #[serde(default)]
+    pub route: Vec<serde_json::Value>,
+    /// Distance summary.
+    #[serde(default)]
+    pub distances: Option<TomTomDistances>,
+}
+
+/// A projected point from TomTom Snap to Roads (GeoJSON Feature).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TomTomProjectedPoint {
+    /// GeoJSON geometry.
+    #[serde(default)]
+    pub geometry: Option<TomTomProjectedGeometry>,
+    /// Properties including snap result and route index.
+    #[serde(default)]
+    pub properties: Option<TomTomProjectedProperties>,
+}
+
+/// Geometry for a projected point (GeoJSON Point).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TomTomProjectedGeometry {
+    /// Point type.
+    #[serde(default, rename = "type")]
+    pub geo_type: Option<String>,
+    /// Coordinates as [longitude, latitude] (GeoJSON order).
+    #[serde(default)]
+    pub coordinates: Vec<f64>,
+}
+
+/// Properties for a projected point.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TomTomProjectedProperties {
+    /// Route index.
+    #[serde(default, rename = "routeIndex")]
+    pub route_index: Option<u32>,
+    /// Snap result: "Matched", "OffRoad", or "MaxDistanceExceeded".
+    #[serde(default, rename = "snapResult")]
+    pub snap_result: Option<String>,
+}
+
+/// Distance summary from TomTom Snap to Roads.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct TomTomDistances {
+    /// Total distance.
+    #[serde(default)]
+    pub total: Option<f64>,
+    /// Distance unit.
+    #[serde(default)]
+    pub unit: Option<String>,
+}
+
+impl From<TomTomProjectedPoint> for MatchedPoint {
+    fn from(pp: TomTomProjectedPoint) -> Self {
+        let coordinate = pp.geometry
+            .and_then(|g| {
+                // GeoJSON coordinates are [longitude, latitude]
+                if g.coordinates.len() >= 2 {
+                    Coordinate::new(g.coordinates[1], g.coordinates[0]).ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(Coordinate::ORIGIN);
+
         MatchedPoint {
-            coordinate: sp.coordinate.map(|c| Coordinate::new(c.latitude, c.longitude)
-                .unwrap_or(Coordinate::ORIGIN))
-                .unwrap_or(Coordinate::ORIGIN),
+            coordinate,
             confidence: None,
             road_name: None,
         }
     }
-}
-
-/// Response from TomTom Snap to Roads API.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TomTomSnapResponse {
-    #[serde(default, rename = "snappedPoints")]
-    pub snapped_points: Vec<TomTomSnapPoint>,
-}
-
-/// A snapped point from TomTom Snap to Roads.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TomTomSnapPoint {
-    #[serde(default)]
-    pub coordinate: Option<TomTomSnapCoordinate>,
-    #[serde(default, rename = "originalIndex")]
-    pub original_index: Option<u32>,
-    #[serde(default, rename = "routeOffset")]
-    pub route_offset: Option<f64>,
-}
-
-/// Coordinate from TomTom Snap to Roads.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TomTomSnapCoordinate {
-    #[serde(default)]
-    pub latitude: f64,
-    #[serde(default)]
-    pub longitude: f64,
 }

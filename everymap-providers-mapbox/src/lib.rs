@@ -13,7 +13,8 @@ pub use domain::geo::{MapBoxLatLng, MapBoxBounds};
 // Search (Geocoding API)
 pub use domain::search::{
     MapBoxGeocoder,
-    MapBoxSearchResponse, MapBoxFeature, MapBoxProperties, MapBoxGeometry,
+    MapBoxSearchResponse, MapBoxFeature, MapBoxProperties, MapBoxCoordinates,
+    MapBoxContext, MapBoxContextEntry, MapBoxGeometry,
 };
 
 // Routing (Directions API)

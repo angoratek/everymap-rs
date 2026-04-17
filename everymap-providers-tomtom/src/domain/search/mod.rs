@@ -92,11 +92,81 @@ impl From<TomTomSearchResult> for SearchResult {
     }
 }
 
+impl From<TomTomReverseGeocodeResult> for SearchResult {
+    fn from(r: TomTomReverseGeocodeResult) -> Self {
+        // Reverse geocode position is a "lat,lon" string
+        let coordinate = r.position
+            .as_deref()
+            .and_then(|s| {
+                let parts: Vec<&str> = s.split(',').collect();
+                if parts.len() == 2 {
+                    let lat = parts[0].parse::<f64>().ok()?;
+                    let lng = parts[1].parse::<f64>().ok()?;
+                    Coordinate::new(lat, lng).ok()
+                } else {
+                    None
+                }
+            })
+            .unwrap_or(Coordinate::ORIGIN);
+
+        // Extract bounding_box before moving address
+        let bounding_box = r.address.as_ref().and_then(|a| {
+            a.bounding_box.as_ref().and_then(|bb| {
+                fn parse_lat_lon(s: &str) -> Option<Coordinate> {
+                    let parts: Vec<&str> = s.split(',').collect();
+                    if parts.len() == 2 {
+                        let lat = parts[0].parse::<f64>().ok()?;
+                        let lng = parts[1].parse::<f64>().ok()?;
+                        Coordinate::new(lat, lng).ok()
+                    } else {
+                        None
+                    }
+                }
+                let ne = bb.north_east.as_deref().and_then(parse_lat_lon)?;
+                let sw = bb.south_west.as_deref().and_then(parse_lat_lon)?;
+                Some(BoundingBox::new(ne, sw))
+            })
+        });
+
+        let title = r.address.as_ref().and_then(|a| a.freeform_address.clone());
+
+        let address = r.address.map(|a| {
+            let mut addr = Address::empty();
+            addr.label = a.freeform_address;
+            addr.street = a.street_name.or(a.street);
+            addr.city = a.municipality.or(a.local_name);
+            addr.state = a.country_subdivision;
+            addr.country = a.country;
+            addr.country_code = a.country_code;
+            addr.postal_code = a.postal_code;
+            addr.district = a.neighbourhood.or(a.municipality_subdivision);
+            addr
+        }).unwrap_or_else(Address::empty);
+
+        SearchResult {
+            id: r.id,
+            title,
+            coordinate,
+            address,
+            result_type: SearchResultType::ExactMatch,
+            distance: r.dist,
+            confidence: None,
+            categories: Vec::new(),
+            bounding_box,
+            raw: None,
+        }
+    }
+}
+
 impl From<TomTomSearchResponse> for SearchResponse {
     fn from(res: TomTomSearchResponse) -> Self {
-        SearchResponse {
-            items: res.results.into_iter().map(|r| r.into()).collect(),
-        }
+        // Forward geocode uses "results", reverse geocode uses "addresses"
+        let items = if !res.results.is_empty() {
+            res.results.into_iter().map(|r| r.into()).collect()
+        } else {
+            res.addresses.into_iter().map(|r| r.into()).collect()
+        };
+        SearchResponse { items }
     }
 }
 

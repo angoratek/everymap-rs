@@ -56,8 +56,8 @@ impl From<RadarDirectionsRoute> for RouteResult {
                 instruction: s.instructions,
                 distance: Some(s.distance.value),
                 duration: Some(s.duration.value * 60.0), // Radar returns minutes
-                start_coordinate: Some(Coordinate::new(s.start_location.latitude, s.start_location.longitude).unwrap_or(Coordinate::ORIGIN)),
-                end_coordinate: Some(Coordinate::new(s.end_location.latitude, s.end_location.longitude).unwrap_or(Coordinate::ORIGIN)),
+                start_coordinate: s.start_location.map(|l| Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)),
+                end_coordinate: s.end_location.map(|l| Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)),
             })
             .collect();
 
@@ -197,8 +197,8 @@ mod tests {
         let step = RadarDirectionsStep {
             distance: RadarMetric { value: 200.0, text: "200 m".to_string() },
             duration: RadarMetric { value: 0.5, text: "30 sec".to_string() },
-            start_location: RadarLocation { latitude: 40.71, longitude: -74.00 },
-            end_location: RadarLocation { latitude: 40.72, longitude: -74.01 },
+            start_location: Some(RadarLocation { latitude: 40.71, longitude: -74.00 }),
+            end_location: Some(RadarLocation { latitude: 40.72, longitude: -74.01 }),
             bearing_before: 0.0,
             bearing_after: 90.0,
             instructions: Some("Turn left on Main St".to_string()),

@@ -41,6 +41,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - `cargo test` — runs 540+ tests (unit + contract + CLI integration + error cases)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
+- See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
 
 ## Provider Domain Coverage
 
@@ -86,6 +87,17 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 ## Git Rules
 - **Never commit without explicit user approval.** Always ask before committing.
 - Do not push to remote unless explicitly asked.
+
+## API Compatibility Notes
+- TomTom reverse geocode returns `addresses` (not `results`), position as `"lat,lon"` string
+- TomTom isoline uses `distanceBudgetInMeters`/`timeBudgetInSec` (not `distance`/`time`)
+- TomTom match-route uses `lon,lat;lon,lat` format (longitude first, semicolon-separated); needs `fields` param for `projectedPoints`
+- TomTom tour endpoint is `/routing/waypointoptimization/1`; request body uses `waypoints`; response returns `optimizedOrder`
+- MapBox search v6 puts data in `properties` (`full_address`, `name`, `coordinates`, `bbox`, `context`), not top-level `place_name`/`text`/`center`
+- MapBox static image URL has no `.png` extension; default style is `streets-v12`
+- Radar routing step fields are `snake_case` (`start_location`) while leg fields are `camelCase` (`startLocation`)
+- Radar geofence/trip IDs use `_id` field name (with underscore prefix)
+- Radar trip creation requires `externalId` parameter
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.

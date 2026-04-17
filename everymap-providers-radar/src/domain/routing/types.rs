@@ -35,24 +35,31 @@ pub struct RadarDirectionsLeg {
 }
 
 /// A step within a route leg (turn-by-turn).
+/// Radar API returns step fields in snake_case (unlike the leg level which uses camelCase).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct RadarDirectionsStep {
     pub distance: RadarMetric,
     pub duration: RadarMetric,
-    pub start_location: RadarLocation,
-    pub end_location: RadarLocation,
+    #[serde(default)]
+    pub start_location: Option<RadarLocation>,
+    #[serde(default)]
+    pub end_location: Option<RadarLocation>,
     #[serde(default)]
     pub bearing_before: f64,
     #[serde(default)]
     pub bearing_after: f64,
     pub instructions: Option<String>,
+    #[serde(default)]
     pub banner_instructions: Option<String>,
+    #[serde(default)]
     pub voice_instructions: Option<String>,
     pub geometry: Option<RadarGeometry>,
     pub mode: Option<String>,
+    #[serde(default, alias = "manuever")]
     pub maneuver: Option<String>,
+    #[serde(default)]
     pub street_name: Option<String>,
+    #[serde(default)]
     pub exit_name: Option<String>,
 }
 

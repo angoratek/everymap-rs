@@ -15,7 +15,7 @@ async fn test_imaging_contract() {
     let image_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     Mock::given(method("GET"))
-        .and(path("/styles/v1/mapbox/streets-v12/static/13.405,52.52,10/512x512@2x.png"))
+        .and(path("/styles/v1/mapbox/streets-v12/static/13.405,52.52,10/512x512@2x"))
         .respond_with(
             ResponseTemplate::new(200)
                 .set_body_raw(image_data.clone(), "image/png"),

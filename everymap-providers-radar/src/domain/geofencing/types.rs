@@ -30,7 +30,7 @@ pub struct RadarGeofenceGetResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarGeofence {
-    #[serde(default)]
+    #[serde(default, rename = "_id")]
     pub id: String,
     #[serde(default)]
     pub live: Option<bool>,

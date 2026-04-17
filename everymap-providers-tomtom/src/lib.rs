@@ -14,6 +14,7 @@ pub use domain::geo::{TomTomLatLng, TomTomBounds};
 pub use domain::search::{
     TomTomGeocoder,
     TomTomSearchResponse, TomTomSearchResult, TomTomAddress, TomTomPosition, TomTomBoundingBox,
+    TomTomReverseGeocodeResult, TomTomReverseGeocodeAddress, TomTomReverseGeocodeBoundingBox,
 };
 
 // Routing (Routing API)
@@ -37,13 +38,14 @@ pub use domain::isoline::{
 // Matching (Snap to Roads API)
 pub use domain::matching::{
     TomTomRouteMatcher,
-    TomTomSnapResponse, TomTomSnapPoint,
+    TomTomSnapResponse, TomTomProjectedPoint, TomTomProjectedGeometry, TomTomProjectedProperties,
+    TomTomDistances,
 };
 
 // Tour (Waypoint Optimization API)
 pub use domain::tour::{
     TomTomTourPlanner,
-    TomTomOptimizationResponse, TomTomOptimizedWaypoint,
+    TomTomOptimizationResponse, TomTomOptimizationSummary, TomTomTourRouteSummary,
 };
 
 // Tiling (Map Display API)

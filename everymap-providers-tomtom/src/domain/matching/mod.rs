@@ -35,13 +35,16 @@ impl RouteMatcher for TomTomRouteMatcher {
     async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
         let url = format!("{}/snapToRoads/1", self.base_url);
 
-        // TomTom uses comma-separated lat,lon pairs separated by colons
+        // TomTom snapToRoads uses semicolon-separated "lon,lat" pairs (longitude first)
         let points_str: String = points.iter()
-            .map(|p| format!("{},{}", p.lat, p.lng))
+            .map(|p| format!("{},{}", p.lng, p.lat))
             .collect::<Vec<_>>()
-            .join(":");
+            .join(";");
 
-        let mut params: Vec<(&str, String)> = vec![("points", points_str)];
+        let mut params: Vec<(&str, String)> = vec![
+            ("points", points_str),
+            ("fields", "{projectedPoints{type,geometry{type,coordinates},properties{routeIndex,snapResult}},route{type,geometry{type,coordinates}},distances{total,unit}}".to_string()),
+        ];
 
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
@@ -56,13 +59,17 @@ impl RouteMatcher for TomTomRouteMatcher {
 
         let result: TomTomSnapResponse = self.client.request_json(builder).await?;
 
-        let matched_points: Vec<MatchedPoint> = result.snapped_points.into_iter()
+        let matched_points: Vec<MatchedPoint> = result.projected_points.into_iter()
             .map(MatchedPoint::from)
             .collect();
 
+        let distance = result.distances
+            .and_then(|d| d.total)
+            .unwrap_or(0.0);
+
         Ok(TraceResponse {
             matched_points,
-            distance: 0.0,
+            distance,
             duration: None,
             raw: None,
         })

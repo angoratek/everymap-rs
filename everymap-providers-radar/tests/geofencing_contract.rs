@@ -29,7 +29,7 @@ async fn test_search_geofences_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "geofences": [{
-                "id": "gf_abc123",
+                "_id": "gf_abc123",
                 "tag": "store",
                 "externalId": "ext_1",
                 "description": "NYC Store Zone",
@@ -88,7 +88,7 @@ async fn test_create_geofence_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "geofence": {
-                "id": "gf_new123",
+                "_id": "gf_new123",
                 "tag": "store",
                 "description": "New Store Zone",
                 "type": "circle",
@@ -123,7 +123,7 @@ async fn test_get_geofence_contract() {
         .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
             "meta": { "code": 200 },
             "geofence": {
-                "id": "gf_abc123",
+                "_id": "gf_abc123",
                 "tag": "store",
                 "description": "NYC Store Zone",
                 "type": "circle",
