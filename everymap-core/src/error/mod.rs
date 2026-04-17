@@ -133,6 +133,18 @@ impl EveryMapError {
     }
 }
 
+// Maintain backward compatibility: `From<reqwest::Error>` now maps to `ClientError`
+// rather than `HttpError` since we have richer HTTP error handling now.
+// `SerializationError` keeps its `from` impl for serde_json::Error.
+
+impl From<serde_json::Error> for EveryMapError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::SerializationError { source: err }
+    }
+}
+
+pub type EveryMapResult<T> = Result<T, EveryMapError>;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -484,15 +496,3 @@ mod tests {
         }
     }
 }
-
-// Maintain backward compatibility: `From<reqwest::Error>` now maps to `ClientError`
-// rather than `HttpError` since we have richer HTTP error handling now.
-// `SerializationError` keeps its `from` impl for serde_json::Error.
-
-impl From<serde_json::Error> for EveryMapError {
-    fn from(err: serde_json::Error) -> Self {
-        Self::SerializationError { source: err }
-    }
-}
-
-pub type EveryMapResult<T> = Result<T, EveryMapError>;

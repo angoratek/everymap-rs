@@ -96,7 +96,7 @@ async fn live_reverse_geocode_berlin() {
             assert!(!res.items.is_empty(), "Reverse geocode should return at least one result");
             let first = &res.items[0];
             println!("[reverse-geocode] first result: {:?} at {}",
-                first.address.label.as_ref().map(|l| l.as_str()).unwrap_or("(no label)"),
+                first.address.label.as_deref().unwrap_or("(no label)"),
                 first.coordinate);
         }
         Err(e) => {
@@ -359,7 +359,6 @@ async fn live_tour_3_stops_berlin() {
 
     let opts = TourOptions {
         provider_extra: Some(serde_json::to_value(problem).unwrap()),
-        ..Default::default()
     };
 
     let res = planner.optimize_tour(&stops, &opts).await;

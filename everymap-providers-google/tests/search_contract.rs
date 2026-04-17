@@ -139,7 +139,7 @@ async fn test_reverse_geocode_contract() {
     let result = geocoder.reverse_geocode(&coord, &ReverseGeocodeOptions::default()).await.unwrap();
 
     assert_eq!(result.items.len(), 1);
-    assert!(result.items[0].title.as_ref().map_or(false, |t| t.contains("Pariser Platz")));
+    assert!(result.items[0].title.as_ref().is_some_and(|t| t.contains("Pariser Platz")));
 }
 
 #[tokio::test]
