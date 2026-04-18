@@ -11,7 +11,7 @@ pub enum ScenarioParams {
     Tour { stops: Vec<Coordinate> },
     Traffic { location: Coordinate },
     Tile { z: u32, x: u32, y: u32 },
-    Positioning,
+    Positioning { provider_extra: Option<serde_json::Value> },
     Attributes { bbox: String },
     Image { center: Coordinate, zoom: u32 },
     GeofenceSearch { near: Coordinate, radius: f64 },
@@ -30,7 +30,7 @@ impl ScenarioParams {
             ScenarioParams::Tour { .. } => "tour",
             ScenarioParams::Traffic { .. } => "traffic",
             ScenarioParams::Tile { .. } => "tiling",
-            ScenarioParams::Positioning => "positioning",
+            ScenarioParams::Positioning { .. } => "positioning",
             ScenarioParams::Attributes { .. } => "attributes",
             ScenarioParams::Image { .. } => "imaging",
             ScenarioParams::GeofenceSearch { .. } => "geofencing",
@@ -136,9 +136,16 @@ pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
         },
         // Positioning
         BenchmarkScenario {
-            name: "Default positioning".to_string(),
-            description: "Default network positioning request".to_string(),
-            params: ScenarioParams::Positioning,
+            name: "WiFi positioning".to_string(),
+            description: "Network positioning with WiFi observations".to_string(),
+            params: ScenarioParams::Positioning {
+                provider_extra: Some(serde_json::json!({
+                    "wlan": [
+                        {"mac": "00:11:22:33:44:55", "signalStrength": -65},
+                        {"mac": "aa:bb:cc:dd:ee:ff", "signalStrength": -70}
+                    ]
+                })),
+            },
         },
         // Attributes
         BenchmarkScenario {

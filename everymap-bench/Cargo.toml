@@ -2,18 +2,22 @@
 name = "everymap-bench"
 version = "0.2.0"
 edition = "2021"
+publish = false
+description = "Cross-provider benchmark framework for EveryMap"
+license = "MIT"
+repository = "https://github.com/angoratek/everymap-rs"
 
 [[bin]]
 name = "everymap-bench"
 path = "src/main.rs"
 
 [dependencies]
-everymap-core = { path = "../everymap-core" }
-everymap-providers-here = { path = "../everymap-providers-here" }
-everymap-providers-google = { path = "../everymap-providers-google" }
-everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
-everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }
-everymap-providers-radar = { path = "../everymap-providers-radar" }
+everymap-core = { workspace = true }
+everymap-providers-here = { workspace = true }
+everymap-providers-google = { workspace = true }
+everymap-providers-tomtom = { workspace = true }
+everymap-providers-mapbox = { workspace = true }
+everymap-providers-radar = { workspace = true }
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { workspace = true }
 serde = { workspace = true }

@@ -2,6 +2,11 @@
 name = "everymap-core"
 version = "0.2.0"
 edition = "2021"
+description = "Core traits, types, and error handling for EveryMap — unified geospatial API abstraction"
+license = "MIT"
+repository = "https://github.com/angoratek/everymap-rs"
+keywords = ["geospatial", "maps", "api", "abstraction"]
+categories = ["api-bindings", "science::geo"]
 
 [features]
 integration = []
@@ -18,7 +23,7 @@ flexpolyline = { workspace = true }
 zeroize = { workspace = true }
 
 [dev-dependencies]
-everymap-providers-here = { path = "../everymap-providers-here" }
-everymap-providers-google = { path = "../everymap-providers-google" }
-everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
-everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }
+everymap-providers-here = { workspace = true }
+everymap-providers-google = { workspace = true }
+everymap-providers-tomtom = { workspace = true }
+everymap-providers-mapbox = { workspace = true }

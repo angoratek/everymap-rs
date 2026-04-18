@@ -37,3 +37,18 @@ jobs:
         with:
           tool: nextest
       - run: cargo nextest run --all-features
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release -p everymap-cli
+
+  check-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: chmod +x scripts/check-publish-readiness.sh
+      - run: ./scripts/check-publish-readiness.sh --verbose

@@ -28,6 +28,16 @@ pub fn format_markdown(report: &BenchmarkReport) -> String {
         md.push_str(&format!("**Most results**: {}\n", most));
     }
 
+    if let Some(percentiles) = &report.percentiles {
+        md.push_str("\n## Percentile Latency\n\n");
+        md.push_str("| Provider | p50 (ms) | p95 (ms) | p99 (ms) | Min (ms) | Max (ms) | OK/Err |\n");
+        md.push_str("|----------|----------|----------|----------|----------|----------|--------|\n");
+        for p in percentiles {
+            md.push_str(&format!("| {} | {} | {} | {} | {} | {} | {}/{} |\n",
+                p.provider, p.p50_ms, p.p95_ms, p.p99_ms, p.min_ms, p.max_ms, p.success_count, p.error_count));
+        }
+    }
+
     md
 }
 
@@ -35,9 +45,9 @@ pub fn format_markdown(report: &BenchmarkReport) -> String {
 pub fn format_table(report: &BenchmarkReport) -> String {
     let mut table = String::new();
     table.push_str(&format!("Benchmark: {} ({})\n", report.scenario, report.domain));
-    table.push_str(&"-".repeat(70).to_string());
+    table.push_str(&"-".repeat(70));
     table.push_str(&format!("{:<12} {:>12} {:>8} {:>8}  {}\n", "Provider", "Duration(ms)", "Success", "Results", "Error"));
-    table.push_str(&"-".repeat(70).to_string());
+    table.push_str(&"-".repeat(70));
 
     for result in &report.results {
         let success = if result.success { "OK" } else { "FAIL" };
@@ -48,6 +58,16 @@ pub fn format_table(report: &BenchmarkReport) -> String {
 
     if let Some(fastest) = &report.fastest {
         table.push_str(&format!("\nFastest: {}\n", fastest));
+    }
+
+    if let Some(percentiles) = &report.percentiles {
+        table.push_str(&format!("\n{:<12} {:>10} {:>10} {:>10} {:>10} {:>10}  {}\n",
+            "Provider", "p50(ms)", "p95(ms)", "p99(ms)", "Min(ms)", "Max(ms)", "OK/Err"));
+        table.push_str(&"-".repeat(70));
+        for p in percentiles {
+            table.push_str(&format!("{:<12} {:>10} {:>10} {:>10} {:>10} {:>10}  {}/{}\n",
+                p.provider, p.p50_ms, p.p95_ms, p.p99_ms, p.min_ms, p.max_ms, p.success_count, p.error_count));
+        }
     }
 
     table

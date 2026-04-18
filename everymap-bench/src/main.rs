@@ -11,10 +11,6 @@ use std::sync::Arc;
 #[derive(Parser)]
 #[command(name = "everymap-bench", version, about = "Cross-provider benchmark framework for EveryMap")]
 struct Cli {
-    /// Run all benchmarks for all configured providers
-    #[arg(long)]
-    all: bool,
-
     /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging, geofencing, tracking, fraud)
     #[arg(long)]
     domain: Option<String>,
@@ -22,6 +18,14 @@ struct Cli {
     /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar)
     #[arg(long, default_value = "here,google,tomtom,mapbox,radar")]
     providers: String,
+
+    /// Number of measured iterations per scenario (default: 1)
+    #[arg(long, default_value = "1")]
+    iterations: u32,
+
+    /// Number of warmup iterations to discard before measuring (default: 0)
+    #[arg(long, default_value = "0")]
+    warmup: u32,
 
     /// Output format (json, table, markdown)
     #[arg(long, default_value = "table")]
@@ -69,6 +73,53 @@ fn get_key_param(provider: &str) -> &'static str {
         "google" | "tomtom" => "key",
         "mapbox" => "access_token",
         _ => "key",
+    }
+}
+
+async fn run_scenario(scenario: &scenarios::BenchmarkScenario, providers: &benchmark::BenchProviders) -> benchmark::BenchmarkResult {
+    match &scenario.params {
+        ScenarioParams::Geocode { query } => {
+            benchmark::bench_geocode(providers, query).await
+        }
+        ScenarioParams::ReverseGeocode { coord } => {
+            benchmark::bench_reverse_geocode(providers, coord).await
+        }
+        ScenarioParams::Route { start, end } => {
+            benchmark::bench_route(providers, start, end).await
+        }
+        ScenarioParams::Isoline { center, range } => {
+            benchmark::bench_isoline(providers, center, *range).await
+        }
+        ScenarioParams::Matching { points } => {
+            benchmark::bench_matching(providers, points).await
+        }
+        ScenarioParams::Tour { stops } => {
+            benchmark::bench_tour(providers, stops).await
+        }
+        ScenarioParams::Traffic { location } => {
+            benchmark::bench_traffic(providers, location).await
+        }
+        ScenarioParams::Tile { z, x, y } => {
+            benchmark::bench_tile(providers, *z, *x, *y).await
+        }
+        ScenarioParams::Positioning { provider_extra } => {
+            benchmark::bench_positioning(providers, provider_extra).await
+        }
+        ScenarioParams::Attributes { bbox } => {
+            benchmark::bench_attributes(providers, bbox).await
+        }
+        ScenarioParams::Image { center, zoom } => {
+            benchmark::bench_image(providers, center, *zoom).await
+        }
+        ScenarioParams::GeofenceSearch { near, radius } => {
+            benchmark::bench_geofence_search(providers, near, *radius).await
+        }
+        ScenarioParams::TripCreate { origin, destination } => {
+            benchmark::bench_trip_create(providers, origin, destination).await
+        }
+        ScenarioParams::FraudCheck { lat, lng } => {
+            benchmark::bench_fraud_check(providers, *lat, *lng).await
+        }
     }
 }
 
@@ -122,57 +173,20 @@ async fn main() {
 
     // Run each scenario against each provider
     for scenario in &scenarios {
-        let mut results = Vec::new();
+        let mut all_results = Vec::new();
 
         for providers in &provider_instances {
-            let result = match &scenario.params {
-                ScenarioParams::Geocode { query } => {
-                    benchmark::bench_geocode(providers, query).await
-                }
-                ScenarioParams::ReverseGeocode { coord } => {
-                    benchmark::bench_reverse_geocode(providers, coord).await
-                }
-                ScenarioParams::Route { start, end } => {
-                    benchmark::bench_route(providers, start, end).await
-                }
-                ScenarioParams::Isoline { center, range } => {
-                    benchmark::bench_isoline(providers, center, *range).await
-                }
-                ScenarioParams::Matching { points } => {
-                    benchmark::bench_matching(providers, points).await
-                }
-                ScenarioParams::Tour { stops } => {
-                    benchmark::bench_tour(providers, stops).await
-                }
-                ScenarioParams::Traffic { location } => {
-                    benchmark::bench_traffic(providers, location).await
-                }
-                ScenarioParams::Tile { z, x, y } => {
-                    benchmark::bench_tile(providers, *z, *x, *y).await
-                }
-                ScenarioParams::Positioning => {
-                    benchmark::bench_positioning(providers).await
-                }
-                ScenarioParams::Attributes { bbox } => {
-                    benchmark::bench_attributes(providers, bbox).await
-                }
-                ScenarioParams::Image { center, zoom } => {
-                    benchmark::bench_image(providers, center, *zoom).await
-                }
-                ScenarioParams::GeofenceSearch { near, radius } => {
-                    benchmark::bench_geofence_search(providers, near, *radius).await
-                }
-                ScenarioParams::TripCreate { origin, destination } => {
-                    benchmark::bench_trip_create(providers, origin, destination).await
-                }
-                ScenarioParams::FraudCheck { lat, lng } => {
-                    benchmark::bench_fraud_check(providers, *lat, *lng).await
-                }
-            };
-            results.push(result);
+            // Warmup runs (discard results)
+            for _ in 0..cli.warmup {
+                let _ = run_scenario(scenario, providers).await;
+            }
+            // Measured iterations
+            for _ in 0..cli.iterations {
+                all_results.push(run_scenario(scenario, providers).await);
+            }
         }
 
-        let report = benchmark::build_report(scenario.params.domain(), &scenario.name, results);
+        let report = benchmark::build_report(scenario.params.domain(), &scenario.name, all_results);
 
         let output = match cli.output.as_str() {
             "json" => report::format_json(&report),

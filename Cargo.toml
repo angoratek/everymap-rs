@@ -22,3 +22,9 @@ futures = "0.3"
 flexpolyline = "1.0"
 wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
+everymap-core = { path = "everymap-core", version = "0.2.0" }
+everymap-providers-here = { path = "everymap-providers-here", version = "0.2.0" }
+everymap-providers-google = { path = "everymap-providers-google", version = "0.2.0" }
+everymap-providers-tomtom = { path = "everymap-providers-tomtom", version = "0.2.0" }
+everymap-providers-mapbox = { path = "everymap-providers-mapbox", version = "0.2.0" }
+everymap-providers-radar = { path = "everymap-providers-radar", version = "0.2.0" }
