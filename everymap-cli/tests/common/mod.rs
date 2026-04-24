@@ -145,6 +145,29 @@ pub fn cli_with_key() -> Command {
     cmd
 }
 
+/// Build a CLI command with `EVERYMAP_API_KEY` env var removed.
+///
+/// Use this for tests that verify the "API key required" error path.
+/// Removes the env var that clap reads for `--api-key` so the CLI
+/// actually sees a missing key.
+pub fn cli_no_key_env() -> Command {
+    let mut cmd = cli();
+    cmd.env_remove("EVERYMAP_API_KEY");
+    cmd
+}
+
+/// Build a CLI command with no API key available from any source.
+///
+/// Removes `EVERYMAP_API_KEY` env var and sets `HOME` to a temp directory
+/// so `~/.everymap/config.toml` won't be found. This forces the
+/// "API key required" error path.
+pub fn cli_no_key() -> Command {
+    let mut cmd = cli();
+    cmd.env_remove("EVERYMAP_API_KEY")
+       .env("HOME", "/tmp/everymap-test-no-config");
+    cmd
+}
+
 // ============================================================
 // Predicate / assertion string constants
 // ============================================================

@@ -62,7 +62,8 @@ fn tile_options_from_core(opts: &TileOptions) -> HereTileOptions {
                     "base" => TileLayer::Base,
                     "core" => TileLayer::Core,
                     "hybrid" => TileLayer::Hybrid,
-                    _ => TileLayer::Mapbox,
+                    "mapbox" => TileLayer::Mapbox,
+                    _ => TileLayer::Base,
                 };
             }
             if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {

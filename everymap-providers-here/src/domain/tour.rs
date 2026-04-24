@@ -167,14 +167,26 @@ impl TourPlanner for HereTourPlanner {
 
         // Ensure fleet has at least one vehicle type if not provided
         if problem.fleet.types.is_empty() {
+            let start_location = stops.first()
+                .map(|s| TourLocation { lat: s.lat, lng: s.lng });
+            let departure_time = options.provider_extra.as_ref()
+                .and_then(|e| e.get("departure_time"))
+                .and_then(|v| v.as_str())
+                .map(String::from)
+                .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
             problem.fleet.types = vec![VehicleType {
                 id: "vehicle_1".to_string(),
                 profile: "car_profile".to_string(),
                 costs: VehicleCosts { fixed: Some(0.0), distance: Some(1.0), time: Some(0.0), job: None },
                 shifts: vec![VehicleShift {
-                    start: ShiftStart { time: None, earliest: None, location: None },
+                    start: ShiftStart {
+                        time: Some(departure_time),
+                        earliest: None,
+                        location: start_location,
+                    },
                     ..Default::default()
                 }],
+                capacity: Some(vec![10]),
                 amount: Some(1),
                 ..Default::default()
             }];

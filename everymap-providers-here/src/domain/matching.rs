@@ -225,6 +225,17 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
         }).collect());
     }
 
+    // Convert core transport_mode to HERE match mode (provider_extra can still override)
+    if let Some(tm) = &opts.transport_mode {
+        here_opts.mode = match tm {
+            everymap_core::domains::routing::TransportMode::Car => Some(MatchMode::Car),
+            everymap_core::domains::routing::TransportMode::Truck => Some(MatchMode::Truck),
+            everymap_core::domains::routing::TransportMode::Pedestrian => Some(MatchMode::Pedestrian),
+            everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
+            _ => Some(MatchMode::Car),
+        };
+    }
+
     // Extract HERE-specific options from provider_extra
     if let Some(extra) = &opts.provider_extra {
         if let Some(obj) = extra.as_object() {
@@ -448,6 +459,11 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
                 }
             }
         }
+    }
+
+    // Default to car mode if none specified
+    if here_opts.mode.is_none() {
+        here_opts.mode = Some(MatchMode::Car);
     }
 
     here_opts

@@ -102,12 +102,18 @@ enum Commands {
         /// Trace points as semicolon-separated lat,lng pairs (e.g., "52.5,13.3;52.6,13.4")
         #[arg(long)]
         trace: String,
+        /// Transport mode for matching (car, truck, pedestrian, bicycle) — default: car
+        #[arg(long, default_value = "car")]
+        transport: String,
     },
     /// Optimize a tour visiting multiple stops
     Tour {
         /// Stop coordinates as space-separated lat,lng pairs
         #[arg(long, num_args = 1..)]
         stops: Vec<String>,
+        /// Departure time (ISO 8601, e.g., "2026-04-21T08:00:00Z") — default: now
+        #[arg(long)]
+        departure: Option<String>,
     },
     /// Get a map tile
     Tile {
@@ -120,6 +126,9 @@ enum Commands {
         /// Y coordinate
         #[arg(long)]
         y: u32,
+        /// Tile layer (base, core, hybrid) — default: base
+        #[arg(long, default_value = "base")]
+        layer: String,
     },
     /// Query road attributes
     Attributes {
@@ -435,7 +444,7 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::MatchRoute { trace } => {
+        Commands::MatchRoute { trace, transport } => {
             let matcher = registry.route_matcher();
             let points: Vec<Coordinate> = trace.split(';')
                 .filter_map(|p| parse_coordinate(p.trim()).ok())
@@ -443,7 +452,14 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
             if points.is_empty() {
                 exit_with_error("No valid coordinates in trace. Use format: 'lat,lng;lat,lng'");
             }
-            let opts = MatchingOptions::default();
+            let transport_mode = parse_transport_mode(transport);
+            let opts = MatchingOptions {
+                transport_mode: Some(transport_mode),
+                provider_extra: Some(serde_json::json!({
+                    "transport_mode": transport
+                })),
+                ..Default::default()
+            };
             match matcher.match_route(&points, &opts).await {
                 Ok(res) => {
                     print_output(&serde_json::json!({
@@ -455,7 +471,7 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Tour { stops } => {
+        Commands::Tour { stops, departure } => {
             let planner = registry.tour_planner();
             let coordinates: Vec<Coordinate> = stops.iter()
                 .filter_map(|s| parse_coordinate(s).ok())
@@ -463,7 +479,13 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
             if coordinates.len() < 2 {
                 exit_with_error("At least 2 stops required for tour optimization");
             }
-            let opts = TourOptions::default();
+            let mut provider_extra = serde_json::json!({});
+            if let Some(dep) = departure {
+                provider_extra["departure_time"] = serde_json::json!(dep);
+            }
+            let opts = TourOptions {
+                provider_extra: Some(provider_extra),
+            };
             match planner.optimize_tour(&coordinates, &opts).await {
                 Ok(res) => {
                     let stop_list: Vec<serde_json::Value> = res.stops.iter().map(|s| {
@@ -483,9 +505,12 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Tile { z, x, y } => {
+        Commands::Tile { z, x, y, layer } => {
             let tile_provider = registry.tile_provider();
-            let opts = TileOptions::default();
+            let opts = TileOptions {
+                format: None,
+                provider_extra: Some(serde_json::json!({ "layer": layer })),
+            };
             match tile_provider.get_tile(*z, *x, *y, &opts).await {
                 Ok(res) => {
                     println!("Retrieved tile ({} bytes, content_type: {:?})", res.data.len(), res.content_type);

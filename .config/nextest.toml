@@ -1,0 +1,13 @@
+[profile.default]
+fail-fast = false
+retries = 1
+slow-timeout = "30s"
+failure-output = "immediate-final"
+
+[profile.ci]
+inherit = "default"
+fail-fast = true
+retries = 0
+
+[profile.ci.junit]
+path = "target/nextest/junit.xml"

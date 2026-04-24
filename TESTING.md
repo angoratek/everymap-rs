@@ -220,6 +220,42 @@ cargo run -p everymap-bench -- --domain routing --here-key $KEY
 cargo run -p everymap-bench -- --all --output markdown --here-key $KEY
 ```
 
+## Nextest (Enhanced Test Runner)
+
+[cargo-nextest](https://nexte.st/) provides faster, more informative test output.
+
+### Install
+
+```bash
+cargo install cargo-nextest --locked
+```
+
+### Run
+
+```bash
+# All tests (default profile: retries=1, slow-timeout=30s, no fail-fast)
+cargo nextest run --all-features
+
+# CI profile (fail-fast, no retries, JUnit XML report)
+cargo nextest run --all-features --profile ci
+
+# Dev-friendly wrapper script
+./scripts/test.sh              # all tests
+./scripts/test.sh --here       # only HERE provider
+./scripts/test.sh --cli        # only CLI crate
+./scripts/test.sh --ci         # CI profile with JUnit XML
+./scripts/test.sh --live       # include live API tests
+```
+
+### Profiles
+
+Defined in `.config/nextest.toml`:
+
+| Profile | fail-fast | retries | slow-timeout | JUnit XML |
+|---------|-----------|---------|--------------|-----------|
+| default | false | 1 | 30s | no |
+| ci      | true  | 0 | 30s | `target/nextest/junit.xml` |
+
 ## CI Pipeline
 
 The CI runs 3 parallel jobs (`.github/workflows/ci.yml`):

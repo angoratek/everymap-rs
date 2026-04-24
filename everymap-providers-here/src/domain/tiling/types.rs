@@ -4,14 +4,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub enum TileLayer {
     #[default]
-    #[serde(rename = "mapbox")]
-    Mapbox,
     #[serde(rename = "base")]
     Base,
     #[serde(rename = "core")]
     Core,
     #[serde(rename = "hybrid")]
     Hybrid,
+    #[serde(rename = "mapbox")]
+    Mapbox,
 }
 
 /// Tile format for the response.
