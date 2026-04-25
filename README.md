@@ -92,6 +92,8 @@ let geocoder: Box<dyn Geocoder> = Box::new(GoogleGeocoder::new(client));
 
 ### CLI Usage
 
+> **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
+
 ```bash
 # HERE provider (default)
 everymap --api-key $HERE_KEY geocode "Brandenburg Gate, Berlin"
@@ -111,10 +113,10 @@ everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng
 # [providers.google]
 # api_key = "your-google-key"
 
-# Output formats
-everymap geocode "Paris" --output json      # compact JSON
-everymap geocode "Paris" --output pretty     # formatted JSON
-everymap geocode "Paris" --output summary    # condensed human-readable
+# Output formats — flag goes before the subcommand
+everymap --output json geocode "Paris"       # compact JSON
+everymap --output pretty geocode "Paris"     # formatted JSON
+everymap --output summary geocode "Paris"    # condensed human-readable
 
 # All 19 commands
 everymap geocode "Berlin"
@@ -126,17 +128,17 @@ everymap isoline --lat 52.52 --lng 13.40 --range 1000
 everymap match-route --trace "52.5,13.3;52.6,13.4"
 everymap tour --stops "52.5,13.3" "52.6,13.4"
 everymap tile --z 14 --x 8800 --y 5374
-everymap attributes --bbox "52.0,13.0,52.5,13.5"
+everymap attributes --bbox "52.0,13.0;52.5,13.5"
 everymap map-image --lat 52.52 --lng 13.40 --zoom 14
 # Radar-specific:
 everymap --provider radar geofence-search --lat 40.71 --lng -74.01
-everymap --provider radar geofence-create --tag "warehouse" --geometry "circle:40.71,-74.01,500"
-everymap --provider radar geofence-get --id gf_123
-everymap --provider radar geofence-delete --id gf_123
-everymap --provider radar trip-create --origin "40.71,-74.01" --destination "42.36,-71.06"
-everymap --provider radar trip-update --id trip_123 --lat 41.0 --lng -73.0
-everymap --provider radar trip-get --id trip_123
-everymap --provider radar fraud-check --lat 40.71 --lng -74.01
+everymap --provider radar geofence-create --lat 40.71 --lng -74.01 --radius 500
+everymap --provider radar geofence-get gf_123
+everymap --provider radar geofence-delete gf_123
+everymap --provider radar trip-create --origin "40.71,-74.01" --destination "42.36,-71.06" --mode car
+everymap --provider radar trip-update --trip-id trip_123 --status started
+everymap --provider radar trip-get trip_123
+everymap --provider radar fraud-check --device-id dev_1 --lat 40.71 --lng -74.01
 ```
 
 ### Benchmarking
@@ -188,7 +190,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 540+ tests (unit + contract + CLI integration + error cases), all passing.
+- **TDD**: 747 tests (unit + contract + CLI integration + error cases), all passing with nextest.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
@@ -198,7 +200,8 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 
 ```bash
 cargo build                              # Build all 8 workspace crates
-cargo test                               # Run 540+ tests
+cargo nextest run --all-features         # Run 747 tests (install: cargo install cargo-nextest)
+cargo test                               # Or use cargo test
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
 ```

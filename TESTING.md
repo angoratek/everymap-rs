@@ -142,6 +142,8 @@ Located in `everymap-providers-here/tests/live_api.rs`. Silently skip if `EVERYM
 
 Test each provider's supported domains via the CLI:
 
+> **Note:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
+
 ```bash
 # --- HERE (10 domains) ---
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary geocode "Berlin"
@@ -152,8 +154,8 @@ cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary iso
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary match-route --trace "52.5,13.3;52.6,13.4"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tour --stops "52.5163,13.3777" "52.5165,13.3810" "52.5200,13.4050"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary position
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --z 14 --x 8800 --y 5374
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary attributes --bbox "52.0,13.0,52.5,13.5" --layer roads
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --z 14 --x 4494 --y 2832
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary attributes --bbox "52.0,13.0;52.5,13.5" --layer roads
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 
 # --- TomTom (8 domains) ---

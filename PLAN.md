@@ -113,7 +113,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 | Workspace crates | 8 |
 | Domain traits | 13 |
 | CLI commands | 19 |
-| Total tests | 540+ |
+| Total tests | 747 (nextest) |
 | Real implementations | 38 across 5 providers |
 | Clippy warnings | 0 |
 | Version | 0.2.0 |
@@ -121,7 +121,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 540+ tests (unit + contract + CLI integration + error cases), all passing
+- **TDD**: 747 tests (unit + contract + CLI integration + error cases), all passing with nextest
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green

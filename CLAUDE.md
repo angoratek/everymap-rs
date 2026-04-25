@@ -76,6 +76,7 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 10. Add provider to `everymap-bench/src/benchmark.rs` `BenchProviders::new()`
 
 ## CLI Usage
+- Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand
 - `--provider here` (default) or `--provider google` or `--provider tomtom` or `--provider mapbox` or `--provider radar`
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
