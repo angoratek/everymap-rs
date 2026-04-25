@@ -16,10 +16,7 @@ pub enum EveryMapError {
 
     /// Authentication failed (invalid API key, expired token, etc.).
     #[error("Authentication failed: {message}")]
-    AuthError {
-        message: String,
-        provider: String,
-    },
+    AuthError { message: String, provider: String },
 
     /// Provider-specific error (e.g., HERE returned an error response).
     #[error("{provider} error: {code} - {message}")]
@@ -42,9 +39,7 @@ pub enum EveryMapError {
 
     /// Failed to deserialize a response body.
     #[error("Failed to deserialize response: {source}")]
-    SerializationError {
-        source: serde_json::Error,
-    },
+    SerializationError { source: serde_json::Error },
 
     /// An error occurred in the underlying HTTP client.
     #[error("HTTP client error: {0}")]
@@ -52,10 +47,7 @@ pub enum EveryMapError {
 
     /// The requested domain is not supported by this provider.
     #[error("{provider} does not support {domain}")]
-    UnsupportedDomain {
-        provider: String,
-        domain: String,
-    },
+    UnsupportedDomain { provider: String, domain: String },
 
     /// An unknown or unexpected error occurred.
     #[error("Unknown error occurred")]
@@ -73,7 +65,11 @@ impl EveryMapError {
     }
 
     /// Create an HTTP error with a response body.
-    pub fn http_with_body(status: u16, message: impl Into<String>, body: impl Into<String>) -> Self {
+    pub fn http_with_body(
+        status: u16,
+        message: impl Into<String>,
+        body: impl Into<String>,
+    ) -> Self {
         Self::HttpError {
             status,
             message: message.into(),
@@ -82,7 +78,11 @@ impl EveryMapError {
     }
 
     /// Create a provider error.
-    pub fn provider(provider: impl Into<String>, code: impl Into<String>, message: impl Into<String>) -> Self {
+    pub fn provider(
+        provider: impl Into<String>,
+        code: impl Into<String>,
+        message: impl Into<String>,
+    ) -> Self {
         Self::ProviderError {
             provider: provider.into(),
             code: code.into(),
@@ -193,7 +193,11 @@ mod tests {
     fn test_provider_error() {
         let err = EveryMapError::provider("here", "E400", "Bad request");
         match &err {
-            EveryMapError::ProviderError { provider, code, message } => {
+            EveryMapError::ProviderError {
+                provider,
+                code,
+                message,
+            } => {
                 assert_eq!(provider, "here");
                 assert_eq!(code, "E400");
                 assert_eq!(message, "Bad request");
@@ -452,7 +456,11 @@ mod tests {
     #[test]
     fn test_http_error_with_body_contains_body() {
         match EveryMapError::http_with_body(500, "Error", "detailed body") {
-            EveryMapError::HttpError { status, message, body } => {
+            EveryMapError::HttpError {
+                status,
+                message,
+                body,
+            } => {
                 assert_eq!(status, 500);
                 assert_eq!(message, "Error");
                 assert_eq!(body, Some("detailed body".to_string()));
@@ -464,7 +472,11 @@ mod tests {
     #[test]
     fn test_http_error_without_body() {
         match EveryMapError::http(404, "Not Found") {
-            EveryMapError::HttpError { status, message, body } => {
+            EveryMapError::HttpError {
+                status,
+                message,
+                body,
+            } => {
                 assert_eq!(status, 404);
                 assert_eq!(message, "Not Found");
                 assert_eq!(body, None);
@@ -478,7 +490,10 @@ mod tests {
     #[test]
     fn test_rate_limited_retry_after_some() {
         match EveryMapError::rate_limited("here", Some(120)) {
-            EveryMapError::RateLimited { provider, retry_after_secs } => {
+            EveryMapError::RateLimited {
+                provider,
+                retry_after_secs,
+            } => {
                 assert_eq!(provider, "here");
                 assert_eq!(retry_after_secs, Some(120));
             }
@@ -489,7 +504,9 @@ mod tests {
     #[test]
     fn test_rate_limited_retry_after_none() {
         match EveryMapError::rate_limited("here", None) {
-            EveryMapError::RateLimited { retry_after_secs, .. } => {
+            EveryMapError::RateLimited {
+                retry_after_secs, ..
+            } => {
                 assert_eq!(retry_after_secs, None);
             }
             _ => panic!("Expected RateLimited"),

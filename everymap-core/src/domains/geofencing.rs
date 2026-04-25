@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -94,10 +94,14 @@ pub struct GeofenceResponse {
 #[async_trait]
 pub trait GeofenceProvider: Send + Sync {
     /// Search for geofences near a location.
-    async fn search_geofences(&self, options: &GeofenceOptions) -> EveryMapResult<GeofenceResponse>;
+    async fn search_geofences(&self, options: &GeofenceOptions)
+        -> EveryMapResult<GeofenceResponse>;
 
     /// Create a new geofence.
-    async fn create_geofence(&self, options: &GeofenceCreateOptions) -> EveryMapResult<GeofenceResult>;
+    async fn create_geofence(
+        &self,
+        options: &GeofenceCreateOptions,
+    ) -> EveryMapResult<GeofenceResult>;
 
     /// Get a geofence by ID.
     async fn get_geofence(&self, id: &str) -> EveryMapResult<GeofenceResult>;
@@ -145,7 +149,11 @@ mod tests {
 
     #[test]
     fn test_geofence_type_all_variants_serde() {
-        let variants = [GeofenceType::Circle, GeofenceType::Polygon, GeofenceType::Isochrone];
+        let variants = [
+            GeofenceType::Circle,
+            GeofenceType::Polygon,
+            GeofenceType::Isochrone,
+        ];
         for v in &variants {
             let json = serde_json::to_string(v).unwrap();
             let back: GeofenceType = serde_json::from_str(&json).unwrap();
@@ -233,7 +241,11 @@ mod tests {
 
     #[test]
     fn test_geofence_type_all_variants_distinct() {
-        let variants = [GeofenceType::Circle, GeofenceType::Polygon, GeofenceType::Isochrone];
+        let variants = [
+            GeofenceType::Circle,
+            GeofenceType::Polygon,
+            GeofenceType::Isochrone,
+        ];
         for i in 0..variants.len() {
             for j in 0..variants.len() {
                 if i != j {

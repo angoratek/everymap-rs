@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for traffic data retrieval.
@@ -75,7 +75,11 @@ pub struct TrafficResponse {
 
 #[async_trait]
 pub trait TrafficProvider: Send + Sync {
-    async fn get_traffic(&self, location: &Coordinate, options: &TrafficOptions) -> EveryMapResult<TrafficResponse>;
+    async fn get_traffic(
+        &self,
+        location: &Coordinate,
+        options: &TrafficOptions,
+    ) -> EveryMapResult<TrafficResponse>;
 }
 
 #[cfg(test)]

@@ -118,7 +118,10 @@ impl ProviderClient {
     ///
     /// Returns an `EveryMapError::HttpError` for non-2xx status codes,
     /// and `EveryMapError::RateLimited` for 429 responses.
-    pub async fn request(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<reqwest::Response> {
+    pub async fn request(
+        &self,
+        builder: reqwest::RequestBuilder,
+    ) -> EveryMapResult<reqwest::Response> {
         let start = Instant::now();
         let builder = self.auth_provider.apply(builder).await?;
         let response: reqwest::Response = builder.send().await?;
@@ -197,7 +200,10 @@ impl ProviderClient {
             EveryMapError::provider(
                 self.provider_name,
                 "DESERIALIZATION_ERROR",
-                format!("Failed to deserialize response: {}\nResponse body (first {} bytes): {}", e, ERROR_BODY_LIMIT, snippet),
+                format!(
+                    "Failed to deserialize response: {}\nResponse body (first {} bytes): {}",
+                    e, ERROR_BODY_LIMIT, snippet
+                ),
             )
         })
     }
@@ -208,9 +214,7 @@ impl ProviderClient {
         url: &str,
         body: &serde_json::Value,
     ) -> EveryMapResult<T> {
-        let builder = self
-            .build_request(reqwest::Method::POST, url)
-            .json(body);
+        let builder = self.build_request(reqwest::Method::POST, url).json(body);
         self.request_json(builder).await
     }
 }
@@ -240,9 +244,9 @@ pub fn truncate_str(s: &str, limit: usize) -> String {
     } else {
         let end = s
             .char_indices()
-            .take_while(|(idx, _)| *idx < limit)
+            .take_while(|(byte_index, _)| *byte_index < limit)
             .last()
-            .map(|(idx, c)| idx + c.len_utf8())
+            .map(|(byte_index, char_value)| byte_index + char_value.len_utf8())
             .unwrap_or(limit.min(s.len()));
         format!("{}...\n[truncated, {} bytes total]", &s[..end], s.len())
     }
@@ -301,7 +305,10 @@ mod tests {
 
     #[test]
     fn test_provider_client_new() {
-        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new("test".to_string(), "key".to_string()));
+        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new(
+            "test".to_string(),
+            "key".to_string(),
+        ));
         let client = ProviderClient::new(auth, "test");
         assert_eq!(client.provider_name(), "test");
         assert!(!client.is_verbose());
@@ -309,7 +316,10 @@ mod tests {
 
     #[test]
     fn test_provider_client_verbose() {
-        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new("test".to_string(), "key".to_string()));
+        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new(
+            "test".to_string(),
+            "key".to_string(),
+        ));
         let mut client = ProviderClient::new(auth, "test");
         client.set_verbose(true);
         assert!(client.is_verbose());

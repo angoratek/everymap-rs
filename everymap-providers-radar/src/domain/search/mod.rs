@@ -1,12 +1,12 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    Geocoder, GeocodeOptions, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Address, Coordinate};
-use crate::client::RadarClient;
 pub use types::*;
 
 const GEOCODING_BASE_URL: &str = "https://api.radar.io/v1/geocode/forward";
@@ -28,8 +28,16 @@ impl RadarGeocoder {
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<RadarClient>, base_url: String, reverse_base_url: String) -> Self {
-        Self { client, base_url, reverse_base_url }
+    pub fn with_base_url(
+        client: std::sync::Arc<RadarClient>,
+        base_url: String,
+        reverse_base_url: String,
+    ) -> Self {
+        Self {
+            client,
+            base_url,
+            reverse_base_url,
+        }
     }
 }
 
@@ -50,23 +58,68 @@ impl From<RadarAddress> for SearchResult {
         };
 
         let address = Address {
-            label: if addr.formatted_address.is_empty() { None } else { Some(addr.formatted_address.clone()) },
-            street: if addr.street.is_empty() { None } else { Some(addr.street.clone()) },
-            house_number: if addr.number.is_empty() { None } else { Some(addr.number.clone()) },
-            city: if addr.city.is_empty() { None } else { Some(addr.city.clone()) },
+            label: if addr.formatted_address.is_empty() {
+                None
+            } else {
+                Some(addr.formatted_address.clone())
+            },
+            street: if addr.street.is_empty() {
+                None
+            } else {
+                Some(addr.street.clone())
+            },
+            house_number: if addr.number.is_empty() {
+                None
+            } else {
+                Some(addr.number.clone())
+            },
+            city: if addr.city.is_empty() {
+                None
+            } else {
+                Some(addr.city.clone())
+            },
             district: addr.neighborhood.clone(),
-            state: if addr.state.is_empty() { None } else { Some(addr.state.clone()) },
-            state_code: if addr.state_code.is_empty() { None } else { Some(addr.state_code.clone()) },
-            postal_code: if addr.postal_code.is_empty() { None } else { Some(addr.postal_code.clone()) },
-            country: if addr.country.is_empty() { None } else { Some(addr.country.clone()) },
-            country_code: if addr.country_code.is_empty() { None } else { Some(addr.country_code.clone()) },
-            county: if addr.county.is_empty() { None } else { Some(addr.county.clone()) },
+            state: if addr.state.is_empty() {
+                None
+            } else {
+                Some(addr.state.clone())
+            },
+            state_code: if addr.state_code.is_empty() {
+                None
+            } else {
+                Some(addr.state_code.clone())
+            },
+            postal_code: if addr.postal_code.is_empty() {
+                None
+            } else {
+                Some(addr.postal_code.clone())
+            },
+            country: if addr.country.is_empty() {
+                None
+            } else {
+                Some(addr.country.clone())
+            },
+            country_code: if addr.country_code.is_empty() {
+                None
+            } else {
+                Some(addr.country_code.clone())
+            },
+            county: if addr.county.is_empty() {
+                None
+            } else {
+                Some(addr.county.clone())
+            },
             ..Address::default()
         };
 
-        let title = if addr.formatted_address.is_empty() { None } else { Some(addr.formatted_address.clone()) };
+        let title = if addr.formatted_address.is_empty() {
+            None
+        } else {
+            Some(addr.formatted_address.clone())
+        };
         let distance = addr.distance;
-        let coordinate = Coordinate::new(addr.latitude, addr.longitude).unwrap_or(Coordinate::ORIGIN);
+        let coordinate =
+            Coordinate::new(addr.latitude, addr.longitude).unwrap_or(Coordinate::ORIGIN);
 
         Self {
             id: None,
@@ -85,7 +138,11 @@ impl From<RadarAddress> for SearchResult {
 
 #[async_trait]
 impl Geocoder for RadarGeocoder {
-    async fn geocode(&self, query: &str, options: &GeocodeOptions) -> EveryMapResult<SearchResponse> {
+    async fn geocode(
+        &self,
+        query: &str,
+        options: &GeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
         let mut params: Vec<(&str, String)> = vec![("query", query.to_string())];
 
         if let Some(limit) = options.limit {
@@ -106,7 +163,8 @@ impl Geocoder for RadarGeocoder {
             }
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::GET, &self.base_url)
             .query(&params);
 
@@ -116,21 +174,31 @@ impl Geocoder for RadarGeocoder {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Geocoding request failed with status {}", radar_res.meta.code),
+                format!(
+                    "Geocoding request failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 
-        let items: Vec<SearchResult> = radar_res.addresses.into_iter()
+        let items: Vec<SearchResult> = radar_res
+            .addresses
+            .into_iter()
             .map(SearchResult::from)
             .collect();
 
         Ok(SearchResponse { items })
     }
 
-    async fn reverse_geocode(&self, coordinate: &Coordinate, options: &ReverseGeocodeOptions) -> EveryMapResult<SearchResponse> {
-        let mut params: Vec<(&str, String)> = vec![
-            ("coordinates", format!("{},{}", coordinate.lat, coordinate.lng)),
-        ];
+    async fn reverse_geocode(
+        &self,
+        coordinate: &Coordinate,
+        options: &ReverseGeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
+        let mut params: Vec<(&str, String)> = vec![(
+            "coordinates",
+            format!("{},{}", coordinate.lat, coordinate.lng),
+        )];
 
         if let Some(limit) = options.limit {
             params.push(("limit", limit.to_string()));
@@ -147,7 +215,8 @@ impl Geocoder for RadarGeocoder {
             }
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::GET, &self.reverse_base_url)
             .query(&params);
 
@@ -157,11 +226,16 @@ impl Geocoder for RadarGeocoder {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Reverse geocoding request failed with status {}", radar_res.meta.code),
+                format!(
+                    "Reverse geocoding request failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 
-        let items: Vec<SearchResult> = radar_res.addresses.into_iter()
+        let items: Vec<SearchResult> = radar_res
+            .addresses
+            .into_iter()
             .map(SearchResult::from)
             .collect();
 
@@ -207,7 +281,10 @@ mod tests {
 
         assert!((result.confidence.unwrap() - 1.0).abs() < f64::EPSILON);
         assert!(matches!(result.result_type, SearchResultType::ExactMatch));
-        assert_eq!(result.title.as_deref(), Some("350 5th Avenue, New York, NY 10018"));
+        assert_eq!(
+            result.title.as_deref(),
+            Some("350 5th Avenue, New York, NY 10018")
+        );
         assert!((result.coordinate.lat - 40.7128).abs() < f64::EPSILON);
         assert!((result.coordinate.lng - (-74.006)).abs() < f64::EPSILON);
         assert_eq!(result.address.street.as_deref(), Some("5th Avenue"));

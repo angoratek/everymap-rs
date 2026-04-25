@@ -1,9 +1,9 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions, AttributeResponse};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider, AttributeResponse};
+use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
 pub use types::*;
@@ -48,7 +48,10 @@ impl HereAttributeProvider {
 
     /// Get map attributes for a spatial filter.
     /// This is the primary method that maps to GET /v8/maps/attributes.
-    pub async fn get_map_attributes(&self, options: &HereAttributeOptions) -> EveryMapResult<serde_json::Value> {
+    pub async fn get_map_attributes(
+        &self,
+        options: &HereAttributeOptions,
+    ) -> EveryMapResult<serde_json::Value> {
         let url = format!("{}/maps/attributes", self.base_url);
         let mut params: Vec<(String, String)> = vec![];
 
@@ -67,11 +70,13 @@ impl HereAttributeProvider {
         if let Some(lang) = &options.lang {
             params.push(("lang".to_string(), lang.clone()));
         }
-        if let Some(pv) = &options.political_view {
-            params.push(("politicalView".to_string(), pv.clone()));
+        if let Some(political_view) = &options.political_view {
+            params.push(("politicalView".to_string(), political_view.clone()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -80,7 +85,11 @@ impl HereAttributeProvider {
     /// Get road attributes for a bounding box.
     /// Convenience method that returns typed road attribute data.
     /// The bbox can be "lat1,lon1,lat2,lon2" or "lat1,lon1;lat2,lon2".
-    pub async fn get_road_attributes(&self, bbox: &str, includes: Option<Vec<String>>) -> EveryMapResult<HereRoadAttributesResponse> {
+    pub async fn get_road_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<HereRoadAttributesResponse> {
         let url = format!("{}/maps/attributes", self.base_url);
         let mut params: Vec<(String, String)> = vec![];
         params.push(("in".to_string(), format!("bbox:{}", bbox.replace(';', ","))));
@@ -88,14 +97,20 @@ impl HereAttributeProvider {
             params.push(("layers".to_string(), inc.join(",")));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
 
     /// Get segment (topology) attributes for a bounding box.
     /// The bbox can be "lat1,lon1,lat2,lon2" or "lat1,lon1;lat2,lon2".
-    pub async fn get_segment_attributes(&self, bbox: &str, includes: Option<Vec<String>>) -> EveryMapResult<HereSegmentAttributesResponse> {
+    pub async fn get_segment_attributes(
+        &self,
+        bbox: &str,
+        includes: Option<Vec<String>>,
+    ) -> EveryMapResult<HereSegmentAttributesResponse> {
         let url = format!("{}/maps/attributes", self.base_url);
         let mut params: Vec<(String, String)> = vec![];
         params.push(("in".to_string(), format!("bbox:{}", bbox.replace(';', ","))));
@@ -103,7 +118,9 @@ impl HereAttributeProvider {
             params.push(("layers".to_string(), inc.join(",")));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -115,7 +132,9 @@ impl HereAttributeProvider {
         let mut params: Vec<(String, String)> = vec![];
         params.push(("in".to_string(), format!("bbox:{}", bbox.replace(';', ","))));
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -127,7 +146,9 @@ impl HereAttributeProvider {
         let mut params: Vec<(String, String)> = vec![];
         params.push(("in".to_string(), format!("bbox:{}", bbox.replace(';', ","))));
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -139,17 +160,24 @@ impl HereAttributeProvider {
         let mut params: Vec<(String, String)> = vec![];
         params.push(("in".to_string(), format!("bbox:{}", bbox.replace(';', ","))));
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
 
     /// Get road attributes by specific feature IDs.
-    pub async fn get_road_attributes_by_ids(&self, ids: &[String]) -> EveryMapResult<HereRoadAttributesResponse> {
+    pub async fn get_road_attributes_by_ids(
+        &self,
+        ids: &[String],
+    ) -> EveryMapResult<HereRoadAttributesResponse> {
         let url = format!("{}/maps/attributes", self.base_url);
         let params: Vec<(String, String)> = vec![("ids".to_string(), ids.join(","))];
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -159,9 +187,8 @@ impl HereAttributeProvider {
     pub async fn get_speed_limits(&self, bbox: &str) -> EveryMapResult<HereRoadAttributesResponse> {
         // Convert semicolon-separated bbox to comma-separated if needed
         let normalized_bbox = bbox.replace(';', ",");
-        self.get_road_attributes(&normalized_bbox, Some(vec![
-            "SPEED_LIMITS_FCn".to_string(),
-        ])).await
+        self.get_road_attributes(&normalized_bbox, Some(vec!["SPEED_LIMITS_FCn".to_string()]))
+            .await
     }
 }
 
@@ -176,7 +203,8 @@ fn attribute_options_from_core(opts: &AttributeOptions) -> HereAttributeOptions 
     // Convert bbox to the HERE `in` filter format
     if let Some(bbox) = &opts.bbox {
         // If bbox already starts with "bbox:", "proximity:", or "tile:", use as-is
-        if bbox.starts_with("bbox:") || bbox.starts_with("proximity:") || bbox.starts_with("tile:") {
+        if bbox.starts_with("bbox:") || bbox.starts_with("proximity:") || bbox.starts_with("tile:")
+        {
             here_opts.in_filter = Some(bbox.clone());
         } else {
             // Convert "lat1,lon1;lat2,lon2" or "south,west;north,east" to "bbox:..."
@@ -188,13 +216,21 @@ fn attribute_options_from_core(opts: &AttributeOptions) -> HereAttributeOptions 
     if let Some(extra) = &opts.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("layers").and_then(|v| v.as_array()) {
-                here_opts.layers = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.layers = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
                 here_opts.in_filter = Some(v.to_string());
             }
             if let Some(v) = obj.get("ids").and_then(|v| v.as_array()) {
-                here_opts.ids = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.ids = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("srs").and_then(|v| v.as_str()) {
                 here_opts.srs = Some(v.to_string());
@@ -210,7 +246,10 @@ fn attribute_options_from_core(opts: &AttributeOptions) -> HereAttributeOptions 
 
 #[async_trait]
 impl AttributeProvider for HereAttributeProvider {
-    async fn get_attributes(&self, options: &AttributeOptions) -> EveryMapResult<AttributeResponse> {
+    async fn get_attributes(
+        &self,
+        options: &AttributeOptions,
+    ) -> EveryMapResult<AttributeResponse> {
         let here_opts = attribute_options_from_core(options);
 
         let data = self.get_map_attributes(&here_opts).await?;

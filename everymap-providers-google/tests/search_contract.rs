@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_google::GoogleGeocoder;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_contract() {
@@ -43,15 +43,24 @@ async fn test_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
-    let result = geocoder.geocode("Brandenburg Gate, Berlin", &GeocodeOptions::default()).await.unwrap();
+    let result = geocoder
+        .geocode("Brandenburg Gate, Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(result.items.len(), 1);
     let item = &result.items[0];
-    assert_eq!(item.title, Some("Brandenburger Tor, 10117 Berlin, Germany".to_string()));
+    assert_eq!(
+        item.title,
+        Some("Brandenburger Tor, 10117 Berlin, Germany".to_string())
+    );
     assert_eq!(item.id, Some("ChIJiQ7xR0ROqEcRkR7QsRVEs".to_string()));
     assert!(item.coordinate.lat > 52.5 && item.coordinate.lat < 52.6);
     assert!(item.coordinate.lng > 13.3 && item.coordinate.lng < 13.4);
@@ -87,7 +96,10 @@ async fn test_geocode_with_options() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
@@ -131,15 +143,24 @@ async fn test_reverse_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
     let coord = Coordinate::new(52.5163, 13.3777).unwrap();
-    let result = geocoder.reverse_geocode(&coord, &ReverseGeocodeOptions::default()).await.unwrap();
+    let result = geocoder
+        .reverse_geocode(&coord, &ReverseGeocodeOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(result.items.len(), 1);
-    assert!(result.items[0].title.as_ref().is_some_and(|t| t.contains("Pariser Platz")));
+    assert!(result.items[0]
+        .title
+        .as_ref()
+        .is_some_and(|t| t.contains("Pariser Platz")));
 }
 
 #[tokio::test]
@@ -156,11 +177,17 @@ async fn test_geocode_zero_results() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
-    let result = geocoder.geocode("nonexistentxyz123", &GeocodeOptions::default()).await.unwrap();
+    let result = geocoder
+        .geocode("nonexistentxyz123", &GeocodeOptions::default())
+        .await
+        .unwrap();
     assert_eq!(result.items.len(), 0);
 }
 
@@ -179,7 +206,10 @@ async fn test_geocode_error_response() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 

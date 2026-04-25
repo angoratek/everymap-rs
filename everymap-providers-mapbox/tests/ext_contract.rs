@@ -1,12 +1,12 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::types::Coordinate;
 use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::ext::{MapBoxGeocoderExt, MapBoxRouterExt};
 use everymap_providers_mapbox::MapBoxGeocoder;
 use everymap_providers_mapbox::MapBoxRouter;
-use everymap_providers_mapbox::ext::{MapBoxGeocoderExt, MapBoxRouterExt};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_permanent_geocode_contract() {
@@ -41,16 +41,25 @@ async fn test_permanent_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
-    let res = geocoder.permanent_geocode("Brandenburg Gate", Some(1), None).await.unwrap();
+    let res = geocoder
+        .permanent_geocode("Brandenburg Gate", Some(1), None)
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 1);
     assert_eq!(res.features[0].id, Some("dXJuOm1ieHBsYzpBY1E2".to_string()));
     let props = res.features[0].properties.as_ref().unwrap();
-    assert_eq!(props.full_address, Some("Brandenburg Gate, Berlin, Germany".to_string()));
+    assert_eq!(
+        props.full_address,
+        Some("Brandenburg Gate, Berlin, Germany".to_string())
+    );
     let coords = props.coordinates.as_ref().unwrap();
     assert_eq!(coords.longitude, 13.3777);
     assert_eq!(coords.latitude, 52.5163);
@@ -111,7 +120,10 @@ async fn test_batch_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -119,8 +131,14 @@ async fn test_batch_geocode_contract() {
     let res = geocoder.batch_geocode(&queries, None).await.unwrap();
 
     assert_eq!(res.len(), 2);
-    assert_eq!(res[0].features[0].properties.as_ref().unwrap().name, Some("Berlin".to_string()));
-    assert_eq!(res[1].features[0].properties.as_ref().unwrap().name, Some("Paris".to_string()));
+    assert_eq!(
+        res[0].features[0].properties.as_ref().unwrap().name,
+        Some("Berlin".to_string())
+    );
+    assert_eq!(
+        res[1].features[0].properties.as_ref().unwrap().name,
+        Some("Paris".to_string())
+    );
 }
 
 #[tokio::test]
@@ -159,12 +177,17 @@ async fn test_route_with_profile_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/directions/v5/mapbox/driving/13.3777,52.5163;2.3522,48.8566"))
+        .and(path(
+            "/directions/v5/mapbox/driving/13.3777,52.5163;2.3522,48.8566",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let router = MapBoxRouter::with_base_url(client, server.uri());
 
@@ -172,7 +195,10 @@ async fn test_route_with_profile_contract() {
         Coordinate::new(52.5163, 13.3777).unwrap(),
         Coordinate::new(48.8566, 2.3522).unwrap(),
     ];
-    let res = router.route_with_profile(&coords, "driving", None).await.unwrap();
+    let res = router
+        .route_with_profile(&coords, "driving", None)
+        .await
+        .unwrap();
 
     assert_eq!(res.code, Some("Ok".to_string()));
     assert_eq!(res.routes.len(), 1);
@@ -186,7 +212,10 @@ async fn test_route_with_profile_contract() {
 async fn test_route_with_profile_insufficient_coords() {
     let server = MockServer::start().await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let router = MapBoxRouter::with_base_url(client, server.uri());
 

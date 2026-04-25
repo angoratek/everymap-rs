@@ -80,7 +80,9 @@ impl TomTomGeocoderExt for super::domain::search::TomTomGeocoder {
             params.push(("language", lang.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -93,7 +95,10 @@ impl TomTomGeocoderExt for super::domain::search::TomTomGeocoder {
         limit: Option<u32>,
         language: Option<&str>,
     ) -> EveryMapResult<super::domain::search::TomTomSearchResponse> {
-        let url = format!("{}/search/2/categorySearch/{}.json", self.base_url, category);
+        let url = format!(
+            "{}/search/2/categorySearch/{}.json",
+            self.base_url, category
+        );
         let mut params: Vec<(&str, String)> = vec![
             ("lat", location.lat.to_string()),
             ("lon", location.lng.to_string()),
@@ -108,7 +113,9 @@ impl TomTomGeocoderExt for super::domain::search::TomTomGeocoder {
             params.push(("language", lang.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -121,15 +128,19 @@ impl TomTomTrafficExt for super::domain::traffic::TomTomTraffic {
         location: &Coordinate,
         language: Option<&str>,
     ) -> EveryMapResult<super::domain::traffic::TomTomFlowResponse> {
-        let url = format!("{}/traffic/services/4/flowSegmentData/absolute/10/json", self.base_url);
-        let mut params: Vec<(&str, String)> = vec![
-            ("point", format!("{},{}", location.lat, location.lng)),
-        ];
+        let url = format!(
+            "{}/traffic/services/4/flowSegmentData/absolute/10/json",
+            self.base_url
+        );
+        let mut params: Vec<(&str, String)> =
+            vec![("point", format!("{},{}", location.lat, location.lng))];
         if let Some(lang) = language {
             params.push(("language", lang.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -148,7 +159,9 @@ impl TomTomTrafficExt for super::domain::traffic::TomTomTraffic {
             params.push(("language", lang.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }

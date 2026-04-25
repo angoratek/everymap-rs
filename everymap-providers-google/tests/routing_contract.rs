@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
-use everymap_core::types::Coordinate;
-use everymap_providers_google::GoogleRouter;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
+use everymap_core::types::Coordinate;
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleRouter;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_routing_contract() {
@@ -71,7 +71,10 @@ async fn test_routing_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let router = GoogleRouter::with_base_url(client, server.uri());
 
@@ -90,7 +93,10 @@ async fn test_routing_contract() {
     assert_eq!(route.duration, 36720.0);
     assert!(!route.geometry.points.is_empty());
     assert_eq!(route.steps.len(), 2);
-    assert_eq!(route.steps[0].instruction, Some("Head <b>north</b>".to_string()));
+    assert_eq!(
+        route.steps[0].instruction,
+        Some("Head <b>north</b>".to_string())
+    );
     assert!(route.bounding_box.is_some());
 }
 
@@ -130,7 +136,10 @@ async fn test_routing_with_pedestrian_mode() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let router = GoogleRouter::with_base_url(client, server.uri());
 
@@ -162,7 +171,10 @@ async fn test_routing_error_response() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let router = GoogleRouter::with_base_url(client, server.uri());
 

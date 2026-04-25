@@ -35,7 +35,13 @@ fn test_position_no_args_google() {
 #[test]
 fn test_route_invalid_origin_format() {
     cli_with_key()
-        .args(["route", "--origin", "badformat", "--destination", BERLIN_COORDS])
+        .args([
+            "route",
+            "--origin",
+            "badformat",
+            "--destination",
+            BERLIN_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin"));
 }
@@ -43,7 +49,13 @@ fn test_route_invalid_origin_format() {
 #[test]
 fn test_route_invalid_destination_format() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", "nocoords"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            "nocoords",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid destination"));
 }
@@ -51,7 +63,13 @@ fn test_route_invalid_destination_format() {
 #[test]
 fn test_route_invalid_origin_non_numeric() {
     cli_with_key()
-        .args(["route", "--origin", "abc,def", "--destination", BERLIN_COORDS])
+        .args([
+            "route",
+            "--origin",
+            "abc,def",
+            "--destination",
+            BERLIN_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin"));
 }
@@ -59,7 +77,13 @@ fn test_route_invalid_origin_non_numeric() {
 #[test]
 fn test_route_negative_longitude() {
     cli_with_key()
-        .args(["route", "--origin", NYC_COORDS, "--destination", BOSTON_COORDS])
+        .args([
+            "route",
+            "--origin",
+            NYC_COORDS,
+            "--destination",
+            BOSTON_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -71,7 +95,15 @@ fn test_route_negative_longitude() {
 #[test]
 fn test_route_transport_car() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "car"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "car",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -79,7 +111,15 @@ fn test_route_transport_car() {
 #[test]
 fn test_route_transport_truck() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "truck"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "truck",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -87,7 +127,15 @@ fn test_route_transport_truck() {
 #[test]
 fn test_route_transport_pedestrian() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "pedestrian"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "pedestrian",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -95,7 +143,15 @@ fn test_route_transport_pedestrian() {
 #[test]
 fn test_route_transport_bicycle() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "bicycle"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "bicycle",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -103,7 +159,15 @@ fn test_route_transport_bicycle() {
 #[test]
 fn test_route_transport_scooter() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "scooter"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "scooter",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -111,7 +175,15 @@ fn test_route_transport_scooter() {
 #[test]
 fn test_route_transport_bus() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "bus"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "bus",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -119,7 +191,15 @@ fn test_route_transport_bus() {
 #[test]
 fn test_route_transport_taxi() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "taxi"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "taxi",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -127,7 +207,15 @@ fn test_route_transport_taxi() {
 #[test]
 fn test_route_transport_unknown_falls_back_to_car() {
     cli_with_key()
-        .args(["route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "unicycle"])
+        .args([
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "unicycle",
+        ])
         .assert()
         .stderr(predicate::str::contains("Invalid origin").not());
 }
@@ -207,7 +295,11 @@ fn test_match_route_single_point() {
 #[test]
 fn test_match_route_many_points() {
     cli_with_key()
-        .args(["match-route", "--trace", "52.5,13.3;52.6,13.4;52.7,13.5;52.8,13.6;52.9,13.7"])
+        .args([
+            "match-route",
+            "--trace",
+            "52.5,13.3;52.6,13.4;52.7,13.5;52.8,13.6;52.9,13.7",
+        ])
         .assert()
         .stderr(predicate::str::contains("No valid coordinates").not());
 }
@@ -215,7 +307,13 @@ fn test_match_route_many_points() {
 #[test]
 fn test_match_route_negative_longitude() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "match-route", "--trace", TRACE_NYC])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "match-route",
+            "--trace",
+            TRACE_NYC,
+        ])
         .assert()
         .stderr(predicate::str::contains("No valid coordinates").not());
 }
@@ -227,7 +325,9 @@ fn test_match_route_negative_longitude() {
 #[test]
 fn test_isoline_custom_range() {
     cli_with_key()
-        .args(["isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG, "--range", "5000"])
+        .args([
+            "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG, "--range", "5000",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -235,7 +335,9 @@ fn test_isoline_custom_range() {
 #[test]
 fn test_isoline_zero_range() {
     cli_with_key()
-        .args(["isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG, "--range", "0"])
+        .args([
+            "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG, "--range", "0",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -315,7 +417,15 @@ fn test_map_image_requires_lng() {
 #[test]
 fn test_map_image_negative_longitude() {
     cli_with_key()
-        .args(["map-image", "--lat", NYC_LAT, "--lng=", NYC_LNG, "--zoom", "14"])
+        .args([
+            "map-image",
+            "--lat",
+            NYC_LAT,
+            "--lng=",
+            NYC_LNG,
+            "--zoom",
+            "14",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -335,7 +445,15 @@ fn test_attributes_no_bbox() {
 #[test]
 fn test_attributes_with_layer() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "attributes", "--bbox", BERLIN_BBOX, "--layer", "segments"])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--layer",
+            "segments",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -343,7 +461,15 @@ fn test_attributes_with_layer() {
 #[test]
 fn test_attributes_with_format() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "attributes", "--bbox", BERLIN_BBOX, "--format", "geojson"])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--format",
+            "geojson",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -351,7 +477,16 @@ fn test_attributes_with_format() {
 #[test]
 fn test_attributes_with_ids() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "attributes", "--bbox", BERLIN_BBOX, "--ids", "id1", "id2"])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--ids",
+            "id1",
+            "id2",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -359,7 +494,15 @@ fn test_attributes_with_ids() {
 #[test]
 fn test_attributes_with_include() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "attributes", "--bbox", BERLIN_BBOX, "--include", "speedLimit,roadClass"])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--include",
+            "speedLimit,roadClass",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -368,12 +511,21 @@ fn test_attributes_with_include() {
 fn test_attributes_all_optional_args() {
     cli_with_key()
         .args([
-            "--provider", PROVIDER_HERE, "attributes",
-            "--bbox", BERLIN_BBOX,
-            "--layer", "roads",
-            "--format", "json",
-            "--ids", "id1", "id2", "id3",
-            "--include", "speedLimit,roadClass,functionalClass",
+            "--provider",
+            PROVIDER_HERE,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--layer",
+            "roads",
+            "--format",
+            "json",
+            "--ids",
+            "id1",
+            "id2",
+            "id3",
+            "--include",
+            "speedLimit,roadClass,functionalClass",
         ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
@@ -386,7 +538,17 @@ fn test_attributes_all_optional_args() {
 #[test]
 fn test_geofence_search_with_tags() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-search", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--tags", "store,warehouse"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-search",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--tags",
+            "store,warehouse",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -394,7 +556,17 @@ fn test_geofence_search_with_tags() {
 #[test]
 fn test_geofence_search_with_limit() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-search", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--limit", "10"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-search",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--limit",
+            "10",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -402,7 +574,21 @@ fn test_geofence_search_with_limit() {
 #[test]
 fn test_geofence_search_all_optional_args() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-search", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--radius", "2000", "--tags", TAG_STORE, "--limit", "5"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-search",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--radius",
+            "2000",
+            "--tags",
+            TAG_STORE,
+            "--limit",
+            "5",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -410,7 +596,13 @@ fn test_geofence_search_all_optional_args() {
 #[test]
 fn test_geofence_search_requires_lng() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-search", "--lat", NYC_LAT_POSLNG])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-search",
+            "--lat",
+            NYC_LAT_POSLNG,
+        ])
         .assert()
         .failure();
 }
@@ -422,7 +614,19 @@ fn test_geofence_search_requires_lng() {
 #[test]
 fn test_geofence_create_with_description() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--radius", RADIUS_500, "--description", "NYC Store Zone"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--radius",
+            RADIUS_500,
+            "--description",
+            "NYC Store Zone",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -430,7 +634,15 @@ fn test_geofence_create_with_description() {
 #[test]
 fn test_geofence_create_requires_radius() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+        ])
         .assert()
         .failure();
 }
@@ -438,7 +650,15 @@ fn test_geofence_create_requires_radius() {
 #[test]
 fn test_geofence_create_requires_lat() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lng", NYC_LNG_POS, "--radius", RADIUS_500])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lng",
+            NYC_LNG_POS,
+            "--radius",
+            RADIUS_500,
+        ])
         .assert()
         .failure();
 }
@@ -446,7 +666,15 @@ fn test_geofence_create_requires_lat() {
 #[test]
 fn test_geofence_create_requires_lng() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lat", NYC_LAT_POSLNG, "--radius", RADIUS_500])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--radius",
+            RADIUS_500,
+        ])
         .assert()
         .failure();
 }
@@ -454,7 +682,19 @@ fn test_geofence_create_requires_lng() {
 #[test]
 fn test_geofence_create_tag_only() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--radius", RADIUS_500, "--tag", "warehouse"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--radius",
+            RADIUS_500,
+            "--tag",
+            "warehouse",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -462,7 +702,21 @@ fn test_geofence_create_tag_only() {
 #[test]
 fn test_geofence_create_all_optional_args() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "geofence-create", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--radius", RADIUS_500, "--tag", TAG_STORE, "--description", "Main store zone"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "geofence-create",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--radius",
+            RADIUS_500,
+            "--tag",
+            TAG_STORE,
+            "--description",
+            "Main store zone",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -474,7 +728,15 @@ fn test_geofence_create_all_optional_args() {
 #[test]
 fn test_trip_create_with_external_id() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-create", "--mode", TRANSPORT_CAR, "--external-id", "ext_order_123"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-create",
+            "--mode",
+            TRANSPORT_CAR,
+            "--external-id",
+            "ext_order_123",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -482,7 +744,15 @@ fn test_trip_create_with_external_id() {
 #[test]
 fn test_trip_create_with_tag() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-create", "--mode", TRANSPORT_CAR, "--tag", "delivery"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-create",
+            "--mode",
+            TRANSPORT_CAR,
+            "--tag",
+            "delivery",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -491,12 +761,19 @@ fn test_trip_create_with_tag() {
 fn test_trip_create_all_optional_args() {
     cli_with_key()
         .args([
-            "--provider", PROVIDER_RADAR, "trip-create",
-            "--origin", NYC_COORDS,
-            "--destination", BOSTON_COORDS,
-            "--mode", TRANSPORT_CAR,
-            "--external-id", "ext_123",
-            "--tag", "delivery",
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-create",
+            "--origin",
+            NYC_COORDS,
+            "--destination",
+            BOSTON_COORDS,
+            "--mode",
+            TRANSPORT_CAR,
+            "--external-id",
+            "ext_123",
+            "--tag",
+            "delivery",
         ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
@@ -517,7 +794,15 @@ fn test_trip_create_default_mode() {
 #[test]
 fn test_trip_update_status_pending() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "pending"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "pending",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -525,7 +810,15 @@ fn test_trip_update_status_pending() {
 #[test]
 fn test_trip_update_status_started() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "started"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "started",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -533,7 +826,15 @@ fn test_trip_update_status_started() {
 #[test]
 fn test_trip_update_status_approaching() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "approaching"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "approaching",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -541,7 +842,15 @@ fn test_trip_update_status_approaching() {
 #[test]
 fn test_trip_update_status_arrived() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "arrived"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "arrived",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -549,7 +858,15 @@ fn test_trip_update_status_arrived() {
 #[test]
 fn test_trip_update_status_completed() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "completed"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "completed",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -557,7 +874,13 @@ fn test_trip_update_status_completed() {
 #[test]
 fn test_trip_update_requires_trip_id() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--status", "started"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--status",
+            "started",
+        ])
         .assert()
         .failure();
 }
@@ -565,7 +888,13 @@ fn test_trip_update_requires_trip_id() {
 #[test]
 fn test_trip_update_requires_status() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+        ])
         .assert()
         .failure();
 }
@@ -573,7 +902,15 @@ fn test_trip_update_requires_status() {
 #[test]
 fn test_trip_update_invalid_status() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "unknown_status"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "unknown_status",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -585,7 +922,17 @@ fn test_trip_update_invalid_status() {
 #[test]
 fn test_fraud_check_default_accuracy() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "fraud-check", "--device-id", TEST_DEVICE_ID, "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "fraud-check",
+            "--device-id",
+            TEST_DEVICE_ID,
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -593,7 +940,19 @@ fn test_fraud_check_default_accuracy() {
 #[test]
 fn test_fraud_check_zero_accuracy() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "fraud-check", "--device-id", TEST_DEVICE_ID, "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--accuracy", "0"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "fraud-check",
+            "--device-id",
+            TEST_DEVICE_ID,
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--accuracy",
+            "0",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -601,7 +960,19 @@ fn test_fraud_check_zero_accuracy() {
 #[test]
 fn test_fraud_check_high_accuracy() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "fraud-check", "--device-id", TEST_DEVICE_ID, "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--accuracy", "100"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "fraud-check",
+            "--device-id",
+            TEST_DEVICE_ID,
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--accuracy",
+            "100",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -609,7 +980,21 @@ fn test_fraud_check_high_accuracy() {
 #[test]
 fn test_fraud_check_all_optional_args() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "fraud-check", "--device-id", TEST_DEVICE_ID, "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS, "--accuracy", "5.0", "--user-id", "user_abc"])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "fraud-check",
+            "--device-id",
+            TEST_DEVICE_ID,
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+            "--accuracy",
+            "5.0",
+            "--user-id",
+            "user_abc",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -617,7 +1002,15 @@ fn test_fraud_check_all_optional_args() {
 #[test]
 fn test_fraud_check_requires_device_id() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "fraud-check", "--lat", NYC_LAT_POSLNG, "--lng", NYC_LNG_POS])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "fraud-check",
+            "--lat",
+            NYC_LAT_POSLNG,
+            "--lng",
+            NYC_LNG_POS,
+        ])
         .assert()
         .failure();
 }
@@ -697,7 +1090,15 @@ fn test_geocode_radar() {
 #[test]
 fn test_route_here() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -705,7 +1106,15 @@ fn test_route_here() {
 #[test]
 fn test_route_google() {
     cli_with_key()
-        .args(["--provider", PROVIDER_GOOGLE, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--provider",
+            PROVIDER_GOOGLE,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -713,7 +1122,15 @@ fn test_route_google() {
 #[test]
 fn test_route_tomtom() {
     cli_with_key()
-        .args(["--provider", PROVIDER_TOMTOM, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--provider",
+            PROVIDER_TOMTOM,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -721,7 +1138,15 @@ fn test_route_tomtom() {
 #[test]
 fn test_route_mapbox() {
     cli_with_key()
-        .args(["--provider", PROVIDER_MAPBOX, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--provider",
+            PROVIDER_MAPBOX,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -729,7 +1154,15 @@ fn test_route_mapbox() {
 #[test]
 fn test_route_radar() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "route", "--origin", NYC_COORDS, "--destination", BOSTON_COORDS])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "route",
+            "--origin",
+            NYC_COORDS,
+            "--destination",
+            BOSTON_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -741,7 +1174,13 @@ fn test_route_radar() {
 #[test]
 fn test_match_route_here() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "match-route", "--trace", TRACE_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "match-route",
+            "--trace",
+            TRACE_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -749,7 +1188,13 @@ fn test_match_route_here() {
 #[test]
 fn test_match_route_google() {
     cli_with_key()
-        .args(["--provider", PROVIDER_GOOGLE, "match-route", "--trace", TRACE_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_GOOGLE,
+            "match-route",
+            "--trace",
+            TRACE_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -757,7 +1202,13 @@ fn test_match_route_google() {
 #[test]
 fn test_match_route_tomtom() {
     cli_with_key()
-        .args(["--provider", PROVIDER_TOMTOM, "match-route", "--trace", TRACE_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_TOMTOM,
+            "match-route",
+            "--trace",
+            TRACE_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -765,7 +1216,13 @@ fn test_match_route_tomtom() {
 #[test]
 fn test_match_route_mapbox() {
     cli_with_key()
-        .args(["--provider", PROVIDER_MAPBOX, "match-route", "--trace", TRACE_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_MAPBOX,
+            "match-route",
+            "--trace",
+            TRACE_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -773,7 +1230,13 @@ fn test_match_route_mapbox() {
 #[test]
 fn test_match_route_radar() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "match-route", "--trace", TRACE_NYC])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "match-route",
+            "--trace",
+            TRACE_NYC,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }

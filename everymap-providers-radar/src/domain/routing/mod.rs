@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
-use everymap_core::domains::routing::{RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode};
+use everymap_core::domains::routing::{
+    RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode,
+};
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
-use crate::client::RadarClient;
 pub use types::*;
 
 const DIRECTIONS_BASE_URL: &str = "https://api.radar.io/v1/route/directions";
@@ -44,20 +46,27 @@ impl From<RadarDirectionsRoute> for RouteResult {
 
         let distance = route.distance.value;
         let duration = route.duration.value * 60.0; // Radar returns minutes
-        let geometry_str = route.geometry.as_ref()
+        let geometry_str = route
+            .geometry
+            .as_ref()
             .and_then(|g| g.polyline.as_ref())
             .cloned()
             .unwrap_or_default();
 
-        let steps: Vec<RouteStep> = route.legs
+        let steps: Vec<RouteStep> = route
+            .legs
             .into_iter()
             .flat_map(|leg| leg.steps)
             .map(|s| RouteStep {
                 instruction: s.instructions,
                 distance: Some(s.distance.value),
                 duration: Some(s.duration.value * 60.0), // Radar returns minutes
-                start_coordinate: s.start_location.map(|l| Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)),
-                end_coordinate: s.end_location.map(|l| Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)),
+                start_coordinate: s.start_location.map(|l| {
+                    Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)
+                }),
+                end_coordinate: s.end_location.map(|l| {
+                    Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)
+                }),
             })
             .collect();
 
@@ -65,8 +74,7 @@ impl From<RadarDirectionsRoute> for RouteResult {
             distance,
             duration,
             geometry: everymap_core::types::Polyline::new(
-                everymap_core::types::FlexiblePolyline::decode(&geometry_str)
-                    .unwrap_or_default()
+                everymap_core::types::FlexiblePolyline::decode(&geometry_str).unwrap_or_default(),
             ),
             transport_mode: None,
             steps,
@@ -78,7 +86,12 @@ impl From<RadarDirectionsRoute> for RouteResult {
 
 #[async_trait]
 impl everymap_core::domains::routing::Router for RadarRouter {
-    async fn calculate_route(&self, start: &Coordinate, end: &Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse> {
+    async fn calculate_route(
+        &self,
+        start: &Coordinate,
+        end: &Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse> {
         let locations = format!("{},{}|{},{}", start.lat, start.lng, end.lat, end.lng);
         let mut params: Vec<(&str, String)> = vec![("locations", locations)];
 
@@ -114,14 +127,15 @@ impl everymap_core::domains::routing::Router for RadarRouter {
             params.push(("geometry", "polyline6".to_string()));
         }
 
-        if let Some(dt) = &options.departure_time {
-            params.push(("departureTime", dt.clone()));
+        if let Some(departure_time) = &options.departure_time {
+            params.push(("departureTime", departure_time.clone()));
         }
         if let Some(lang) = &options.language {
             params.push(("lang", lang.clone()));
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::GET, &self.base_url)
             .query(&params);
 
@@ -131,11 +145,16 @@ impl everymap_core::domains::routing::Router for RadarRouter {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Directions request failed with status {}", radar_res.meta.code),
+                format!(
+                    "Directions request failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 
-        let routes: Vec<RouteResult> = radar_res.routes.into_iter()
+        let routes: Vec<RouteResult> = radar_res
+            .routes
+            .into_iter()
             .map(RouteResult::from)
             .collect();
 
@@ -146,8 +165,8 @@ impl everymap_core::domains::routing::Router for RadarRouter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::types::{RadarLocation, RadarMetric, RadarGeometry};
-    use types::{RadarDirectionsRoute, RadarDirectionsLeg, RadarDirectionsStep};
+    use crate::domain::types::{RadarGeometry, RadarLocation, RadarMetric};
+    use types::{RadarDirectionsLeg, RadarDirectionsRoute, RadarDirectionsStep};
 
     #[test]
     fn test_map_transport_mode() {
@@ -164,8 +183,14 @@ mod tests {
             geometry: Some(RadarGeometry {
                 polyline: Some("BFoz5xJ67i1B1B7PzIhacL2U1GE4".to_string()),
             }),
-            distance: RadarMetric { value: 15000.0, text: "15 km".to_string() },
-            duration: RadarMetric { value: 25.0, text: "25 min".to_string() },
+            distance: RadarMetric {
+                value: 15000.0,
+                text: "15 km".to_string(),
+            },
+            duration: RadarMetric {
+                value: 25.0,
+                text: "25 min".to_string(),
+            },
             legs: vec![],
         };
         let result: RouteResult = route.into();
@@ -181,8 +206,14 @@ mod tests {
     fn test_radar_directions_route_no_geometry() {
         let route = RadarDirectionsRoute {
             geometry: None,
-            distance: RadarMetric { value: 5000.0, text: "5 km".to_string() },
-            duration: RadarMetric { value: 10.0, text: "10 min".to_string() },
+            distance: RadarMetric {
+                value: 5000.0,
+                text: "5 km".to_string(),
+            },
+            duration: RadarMetric {
+                value: 10.0,
+                text: "10 min".to_string(),
+            },
             legs: vec![],
         };
         let result: RouteResult = route.into();
@@ -195,10 +226,22 @@ mod tests {
     #[test]
     fn test_radar_directions_route_with_steps() {
         let step = RadarDirectionsStep {
-            distance: RadarMetric { value: 200.0, text: "200 m".to_string() },
-            duration: RadarMetric { value: 0.5, text: "30 sec".to_string() },
-            start_location: Some(RadarLocation { latitude: 40.71, longitude: -74.00 }),
-            end_location: Some(RadarLocation { latitude: 40.72, longitude: -74.01 }),
+            distance: RadarMetric {
+                value: 200.0,
+                text: "200 m".to_string(),
+            },
+            duration: RadarMetric {
+                value: 0.5,
+                text: "30 sec".to_string(),
+            },
+            start_location: Some(RadarLocation {
+                latitude: 40.71,
+                longitude: -74.00,
+            }),
+            end_location: Some(RadarLocation {
+                latitude: 40.72,
+                longitude: -74.01,
+            }),
             bearing_before: 0.0,
             bearing_after: 90.0,
             instructions: Some("Turn left on Main St".to_string()),
@@ -211,23 +254,44 @@ mod tests {
             exit_name: None,
         };
         let leg = RadarDirectionsLeg {
-            start_location: RadarLocation { latitude: 40.71, longitude: -74.00 },
-            end_location: RadarLocation { latitude: 40.72, longitude: -74.01 },
-            distance: RadarMetric { value: 200.0, text: "200 m".to_string() },
-            duration: RadarMetric { value: 0.5, text: "30 sec".to_string() },
+            start_location: RadarLocation {
+                latitude: 40.71,
+                longitude: -74.00,
+            },
+            end_location: RadarLocation {
+                latitude: 40.72,
+                longitude: -74.01,
+            },
+            distance: RadarMetric {
+                value: 200.0,
+                text: "200 m".to_string(),
+            },
+            duration: RadarMetric {
+                value: 0.5,
+                text: "30 sec".to_string(),
+            },
             geometry: None,
             steps: vec![step],
         };
         let route = RadarDirectionsRoute {
             geometry: Some(RadarGeometry { polyline: None }),
-            distance: RadarMetric { value: 200.0, text: "200 m".to_string() },
-            duration: RadarMetric { value: 0.5, text: "30 sec".to_string() },
+            distance: RadarMetric {
+                value: 200.0,
+                text: "200 m".to_string(),
+            },
+            duration: RadarMetric {
+                value: 0.5,
+                text: "30 sec".to_string(),
+            },
             legs: vec![leg],
         };
         let result: RouteResult = route.into();
 
         assert_eq!(result.steps.len(), 1);
-        assert_eq!(result.steps[0].instruction, Some("Turn left on Main St".to_string()));
+        assert_eq!(
+            result.steps[0].instruction,
+            Some("Turn left on Main St".to_string())
+        );
         assert_eq!(result.steps[0].distance, Some(200.0));
         // Duration for step also converted: 0.5 min * 60 = 30s
         assert_eq!(result.steps[0].duration, Some(30.0));

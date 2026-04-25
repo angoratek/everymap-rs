@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::domain::types::RadarMeta;
+use serde::{Deserialize, Serialize};
 
 /// Response from Radar forward/reverse geocoding.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,18 +200,18 @@ mod tests {
                 "distance": 0.5
             }]
         }"#;
-        let res: RadarGeocodeResponse = serde_json::from_str(json).unwrap();
-        assert_eq!(res.meta.code, 200);
-        assert_eq!(res.addresses.len(), 1);
-        assert_eq!(res.addresses[0].city, "New York");
-        assert_eq!(res.addresses[0].confidence.as_deref(), Some("exact"));
+        let response: RadarGeocodeResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(response.meta.code, 200);
+        assert_eq!(response.addresses.len(), 1);
+        assert_eq!(response.addresses[0].city, "New York");
+        assert_eq!(response.addresses[0].confidence.as_deref(), Some("exact"));
     }
 
     #[test]
     fn test_radar_geocode_response_empty_addresses() {
         let json = r#"{"meta": {"code": 200}}"#;
-        let res: RadarGeocodeResponse = serde_json::from_str(json).unwrap();
-        assert!(res.addresses.is_empty());
+        let response: RadarGeocodeResponse = serde_json::from_str(json).unwrap();
+        assert!(response.addresses.is_empty());
     }
 
     #[test]
@@ -222,10 +222,10 @@ mod tests {
             "proxy": false,
             "ip": "1.2.3.4"
         }"#;
-        let res: RadarIpGeocodeResponse = serde_json::from_str(json).unwrap();
-        assert!(res.address.is_some());
-        assert!(!res.proxy);
-        assert_eq!(res.ip, "1.2.3.4");
+        let response: RadarIpGeocodeResponse = serde_json::from_str(json).unwrap();
+        assert!(response.address.is_some());
+        assert!(!response.proxy);
+        assert_eq!(response.ip, "1.2.3.4");
     }
 
     #[test]

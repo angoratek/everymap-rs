@@ -5,79 +5,59 @@ pub mod ext;
 pub use client::RadarClient;
 
 // Shared types
-pub use domain::types::{RadarMeta, RadarMetric, RadarLocation, RadarGeometry, RadarTravelMode, RadarAvoid};
 pub use domain::geo::RadarLatLng;
+pub use domain::types::{
+    RadarAvoid, RadarGeometry, RadarLocation, RadarMeta, RadarMetric, RadarTravelMode,
+};
 
 // Search (Geocoding API)
-pub use domain::search::{
-    RadarGeocoder,
-};
 pub use domain::search::types::{
-    RadarGeocodeResponse, RadarAddress, RadarTimeZone,
-    RadarIpGeocodeResponse, RadarAutocompleteResponse, RadarAutocompleteOptions,
-    RadarAddressValidationResponse, RadarValidatedAddress, RadarValidationResult,
-    RadarAddressValidationOptions, RadarAddressMetadata,
+    RadarAddress, RadarAddressMetadata, RadarAddressValidationOptions,
+    RadarAddressValidationResponse, RadarAutocompleteOptions, RadarAutocompleteResponse,
+    RadarGeocodeResponse, RadarIpGeocodeResponse, RadarTimeZone, RadarValidatedAddress,
+    RadarValidationResult,
 };
+pub use domain::search::RadarGeocoder;
 
 // Routing (Directions API)
-pub use domain::routing::{
-    RadarRouter,
-};
 pub use domain::routing::types::{
-    RadarDirectionsResponse, RadarDirectionsRoute, RadarDirectionsLeg,
-    RadarDirectionsStep, RadarDistanceResponse, RadarDistanceRoutes,
-    RadarModeDistance, RadarMatrixResponse, RadarMatrixEntry,
+    RadarDirectionsLeg, RadarDirectionsResponse, RadarDirectionsRoute, RadarDirectionsStep,
+    RadarDistanceResponse, RadarDistanceRoutes, RadarMatrixEntry, RadarMatrixResponse,
+    RadarModeDistance,
 };
+pub use domain::routing::RadarRouter;
 
 // Matching (Route Match API)
-pub use domain::matching::{
-    RadarRouteMatcher,
-};
-pub use domain::matching::types::{
-    RadarRouteMatchResponse, RadarMatchedPoint, RadarRoadAttribute,
-};
+pub use domain::matching::types::{RadarMatchedPoint, RadarRoadAttribute, RadarRouteMatchResponse};
+pub use domain::matching::RadarRouteMatcher;
 
 // Tour (Optimize Route API)
-pub use domain::tour::{
-    RadarTourPlanner,
-};
-pub use domain::tour::types::{
-    RadarOptimizeResponse, RadarOptimizedRoute, RadarOptimizedLeg,
-};
+pub use domain::tour::types::{RadarOptimizeResponse, RadarOptimizedLeg, RadarOptimizedRoute};
+pub use domain::tour::RadarTourPlanner;
 
 // Geofencing
-pub use domain::geofencing::{
-    RadarGeofenceProvider,
-};
 pub use domain::geofencing::types::{
-    RadarGeofence, RadarGeofenceSearchResponse, RadarGeofenceCreateResponse,
-    RadarGeofenceGetResponse,
+    RadarGeofence, RadarGeofenceCreateResponse, RadarGeofenceGetResponse,
+    RadarGeofenceSearchResponse,
 };
+pub use domain::geofencing::RadarGeofenceProvider;
 
 // Tracking
-pub use domain::tracking::{
-    RadarTripTracker,
-};
-pub use domain::tracking::types::{
-    RadarTrip, RadarTripCreateResponse, RadarTripGetResponse,
-};
+pub use domain::tracking::types::{RadarTrip, RadarTripCreateResponse, RadarTripGetResponse};
+pub use domain::tracking::RadarTripTracker;
 
 // Fraud
-pub use domain::fraud::{
-    RadarFraudDetector,
-};
-pub use domain::fraud::types::{
-    RadarTrackResponse, RadarTrackUser, RadarFraudData,
-};
+pub use domain::fraud::types::{RadarFraudData, RadarTrackResponse, RadarTrackUser};
+pub use domain::fraud::RadarFraudDetector;
 
 // Unsupported domains (return UnsupportedDomain error)
 pub use domain::unsupported::{
-    RadarIsoline, RadarTraffic, RadarTileProvider, RadarPositioner,
-    RadarAttributeProvider, RadarMapImageProvider,
+    RadarAttributeProvider, RadarIsoline, RadarMapImageProvider, RadarPositioner,
+    RadarTileProvider, RadarTraffic,
 };
 
 // Extension traits
 pub use ext::{
-    RadarGeocoderExt, RadarRouterExt, RadarSearchExt, RadarMatchingExt,
-    RadarPlaceSearchResponse, RadarPlace, RadarChain,
+    RadarChain, RadarGeocoderExt, RadarMatchingExt, RadarPlace, RadarPlaceSearchResponse,
+    RadarRouterExt, RadarSearchExt,
 };

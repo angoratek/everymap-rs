@@ -1,12 +1,12 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_core::auth::ApiKeyProvider;
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
+use everymap_providers_here::client::HereClient;
 use everymap_providers_here::domain::positioning::{
     HerePositioner, HerePositioningOptions, WlanAccessPoint,
 };
-use everymap_providers_here::client::HereClient;
-use everymap_core::auth::ApiKeyProvider;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_positioning_contract() {
@@ -30,7 +30,10 @@ async fn test_positioning_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
@@ -64,7 +67,10 @@ async fn test_positioning_with_wlan() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
@@ -115,11 +121,17 @@ async fn test_positioning_locate() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
-    let res = positioner.locate(HerePositioningOptions::default()).await.unwrap();
+    let res = positioner
+        .locate(HerePositioningOptions::default())
+        .await
+        .unwrap();
 
     assert_eq!(res.location.lat, 52.5201);
     assert_eq!(res.location.lng, 13.4051);

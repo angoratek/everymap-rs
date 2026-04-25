@@ -1,20 +1,20 @@
-use everymap_core::domains::matching::RouteMatcher;
-use everymap_core::domains::matching::MatchingOptions;
 use everymap_core::auth::AuthProvider;
+use everymap_core::domains::matching::MatchingOptions;
+use everymap_core::domains::matching::RouteMatcher;
 use everymap_core::types::Coordinate;
-use everymap_providers_radar::{RadarRouteMatcher, RadarClient};
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_providers_radar::{RadarClient, RadarRouteMatcher};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_matching_mock() -> (MockServer, RadarRouteMatcher) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new(
+        "prj_test_pk_123".to_string(),
+    ));
     let client = Arc::new(RadarClient::new(auth));
-    let matcher = RadarRouteMatcher::with_base_url(
-        client,
-        format!("{}/v1/route/match", server.uri()),
-    );
+    let matcher =
+        RadarRouteMatcher::with_base_url(client, format!("{}/v1/route/match", server.uri()));
     (server, matcher)
 }
 
@@ -40,7 +40,9 @@ async fn test_matching_contract() {
         Coordinate::new(52.5163, 13.3777).unwrap(),
         Coordinate::new(52.517, 13.378).unwrap(),
     ];
-    let result = matcher.match_route(&points, &MatchingOptions::default()).await;
+    let result = matcher
+        .match_route(&points, &MatchingOptions::default())
+        .await;
     assert!(result.is_ok(), "match_route failed: {:?}", result.err());
     let resp = result.unwrap();
     assert_eq!(resp.matched_points.len(), 2);

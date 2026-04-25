@@ -1,10 +1,10 @@
 pub mod types;
 
+use crate::client::HereClient;
 use async_trait::async_trait;
-use everymap_core::domains::routing::{Router, RouteOptions, RouteResponse, RouteResult};
+use everymap_core::domains::routing::{RouteOptions, RouteResponse, RouteResult, Router};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Polyline;
-use crate::client::HereClient;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -20,8 +20,14 @@ impl From<HereRoute> for RouteResult {
         let (distance, duration, geometry, steps) = match &section {
             Some(s) => {
                 let dist = s.summary.as_ref().and_then(|sum| sum.length).unwrap_or(0.0);
-                let dur = s.summary.as_ref().and_then(|sum| sum.duration).unwrap_or(0.0);
-                let geom = s.polyline.clone()
+                let dur = s
+                    .summary
+                    .as_ref()
+                    .and_then(|sum| sum.duration)
+                    .unwrap_or(0.0);
+                let geom = s
+                    .polyline
+                    .clone()
                     .and_then(|p| p.into_polyline_string())
                     .map(|encoded| {
                         everymap_core::types::FlexiblePolyline::decode(&encoded)
@@ -29,15 +35,17 @@ impl From<HereRoute> for RouteResult {
                             .unwrap_or_else(|_| Polyline::new(vec![]))
                     })
                     .unwrap_or_else(|| Polyline::new(vec![]));
-                let route_steps: Vec<RouteStep> = s.turn_by_turn_actions.iter().map(|a| {
-                    RouteStep {
+                let route_steps: Vec<RouteStep> = s
+                    .turn_by_turn_actions
+                    .iter()
+                    .map(|a| RouteStep {
                         instruction: a.instruction.clone(),
                         distance: a.length,
                         duration: a.duration,
                         start_coordinate: None,
                         end_coordinate: None,
-                    }
-                }).collect();
+                    })
+                    .collect();
                 (dist, dur, geom, route_steps)
             }
             None => (0.0, 0.0, Polyline::new(vec![]), vec![]),
@@ -56,9 +64,18 @@ impl From<HereRoute> for RouteResult {
 
 impl From<HereRouteSection> for RouteResult {
     fn from(section: HereRouteSection) -> Self {
-        let distance = section.summary.as_ref().and_then(|s| s.length).unwrap_or(0.0);
-        let duration = section.summary.as_ref().and_then(|s| s.duration).unwrap_or(0.0);
-        let geometry = section.polyline
+        let distance = section
+            .summary
+            .as_ref()
+            .and_then(|s| s.length)
+            .unwrap_or(0.0);
+        let duration = section
+            .summary
+            .as_ref()
+            .and_then(|s| s.duration)
+            .unwrap_or(0.0);
+        let geometry = section
+            .polyline
             .and_then(|p| p.into_polyline_string())
             .map(|encoded| {
                 everymap_core::types::FlexiblePolyline::decode(&encoded)
@@ -66,15 +83,17 @@ impl From<HereRouteSection> for RouteResult {
                     .unwrap_or_else(|_| Polyline::new(vec![]))
             })
             .unwrap_or_else(|| Polyline::new(vec![]));
-        let steps: Vec<RouteStep> = section.turn_by_turn_actions.iter().map(|a| {
-            RouteStep {
+        let steps: Vec<RouteStep> = section
+            .turn_by_turn_actions
+            .iter()
+            .map(|a| RouteStep {
                 instruction: a.instruction.clone(),
                 distance: a.length,
                 duration: a.duration,
                 start_coordinate: None,
                 end_coordinate: None,
-            }
-        }).collect();
+            })
+            .collect();
         Self {
             distance,
             duration,
@@ -305,7 +324,9 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
     let transport_mode = match opts.transport_mode {
         Some(everymap_core::domains::routing::TransportMode::Car) | None => TransportMode::Car,
         Some(everymap_core::domains::routing::TransportMode::Truck) => TransportMode::Truck,
-        Some(everymap_core::domains::routing::TransportMode::Pedestrian) => TransportMode::Pedestrian,
+        Some(everymap_core::domains::routing::TransportMode::Pedestrian) => {
+            TransportMode::Pedestrian
+        }
         Some(everymap_core::domains::routing::TransportMode::Bicycle) => TransportMode::Bicycle,
         Some(everymap_core::domains::routing::TransportMode::Scooter) => TransportMode::Scooter,
         Some(everymap_core::domains::routing::TransportMode::Bus) => TransportMode::Bus,
@@ -323,13 +344,20 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
 
     // Convert avoid types
     if !opts.avoid.is_empty() {
-        here_opts.avoid = Some(opts.avoid.iter().map(|a| match a {
-            everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
-            everymap_core::domains::routing::AvoidType::Ferries => "ferries".to_string(),
-            everymap_core::domains::routing::AvoidType::Tunnels => "tunnels".to_string(),
-            everymap_core::domains::routing::AvoidType::Highways => "highways".to_string(),
-            everymap_core::domains::routing::AvoidType::DirtRoads => "dirtRoads".to_string(),
-        }).collect());
+        here_opts.avoid = Some(
+            opts.avoid
+                .iter()
+                .map(|a| match a {
+                    everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
+                    everymap_core::domains::routing::AvoidType::Ferries => "ferries".to_string(),
+                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels".to_string(),
+                    everymap_core::domains::routing::AvoidType::Highways => "highways".to_string(),
+                    everymap_core::domains::routing::AvoidType::DirtRoads => {
+                        "dirtRoads".to_string()
+                    }
+                })
+                .collect(),
+        );
     }
 
     // Extract HERE-specific options from provider_extra
@@ -342,28 +370,47 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
                 };
             }
             if let Some(v) = obj.get("via").and_then(|v| v.as_array()) {
-                here_opts.via = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.via = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("arrival_time").and_then(|v| v.as_str()) {
                 here_opts.arrival_time = Some(v.to_string());
             }
             if let Some(v) = obj.get("exclude").and_then(|v| v.as_array()) {
-                here_opts.exclude = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.exclude = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("units").and_then(|v| v.as_str()) {
-                here_opts.units = serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
+                here_opts.units =
+                    serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("spans").and_then(|v| v.as_array()) {
-                here_opts.spans = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.spans = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("vehicle").and_then(|v| v.as_array()) {
-                here_opts.vehicle = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.vehicle = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("consumption_model").and_then(|v| v.as_str()) {
-                here_opts.consumption_model = serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
+                here_opts.consumption_model =
+                    serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("traffic").and_then(|v| v.as_str()) {
-                here_opts.traffic = serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
+                here_opts.traffic =
+                    serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("billing_tag").and_then(|v| v.as_str()) {
                 here_opts.billing_tag = Some(v.to_string());
@@ -390,7 +437,11 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
                 here_opts.tolls = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("max_speed_on_segment").and_then(|v| v.as_array()) {
-                here_opts.max_speed_on_segment = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+                here_opts.max_speed_on_segment = Some(
+                    v.iter()
+                        .filter_map(|i| serde_json::from_value(i.clone()).ok())
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("customizations").and_then(|v| v.as_str()) {
                 here_opts.customizations = Some(v.to_string());
@@ -402,7 +453,8 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
                 here_opts.route_handle = Some(v.to_string());
             }
             if let Some(v) = obj.get("return_fields").and_then(|v| v.as_array()) {
-                let parsed: Vec<ReturnField> = v.iter()
+                let parsed: Vec<ReturnField> = v
+                    .iter()
                     .filter_map(|item| serde_json::from_value(item.clone()).ok())
                     .collect();
                 if !parsed.is_empty() {
@@ -417,7 +469,12 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
 
 #[async_trait]
 impl Router for HereRouter {
-    async fn calculate_route(&self, start: &everymap_core::types::Coordinate, end: &everymap_core::types::Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse> {
+    async fn calculate_route(
+        &self,
+        start: &everymap_core::types::Coordinate,
+        end: &everymap_core::types::Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse> {
         let here_opts = route_options_from_core(options);
 
         let transport = match here_opts.transport_mode {
@@ -444,22 +501,29 @@ impl Router for HereRouter {
             ("destination", format!("{},{}", end.lat, end.lng)),
         ];
 
-        if let Some(ret) = &here_opts.return_fields {
-            params.push(("return", ret.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
+        if let Some(return_fields) = &here_opts.return_fields {
+            params.push((
+                "return",
+                return_fields
+                    .iter()
+                    .map(crate::util::enum_as_str)
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ));
         } else {
             params.push(("return", "polyline,summary".to_string()));
         }
 
-        if let Some(alts) = here_opts.alternatives {
-            params.push(("alternatives", alts.to_string()));
+        if let Some(alternatives) = here_opts.alternatives {
+            params.push(("alternatives", alternatives.to_string()));
         }
         if let Some(via) = &here_opts.via {
             for v in via {
                 params.push(("via", v.clone()));
             }
         }
-        if let Some(dt) = &here_opts.departure_time {
-            params.push(("departureTime", dt.clone()));
+        if let Some(departure_time) = &here_opts.departure_time {
+            params.push(("departureTime", departure_time.clone()));
         }
         if let Some(at) = &here_opts.arrival_time {
             params.push(("arrivalTime", at.clone()));
@@ -482,14 +546,17 @@ impl Router for HereRouter {
         if let Some(vehicle) = &here_opts.vehicle {
             params.push(("vehicle", vehicle.join(",")));
         }
-        if let Some(cm) = &here_opts.consumption_model {
-            params.push(("consumptionModel", crate::util::enum_as_str(cm)));
+        if let Some(consumption_model) = &here_opts.consumption_model {
+            params.push((
+                "consumptionModel",
+                crate::util::enum_as_str(consumption_model),
+            ));
         }
         if let Some(traffic) = &here_opts.traffic {
             params.push(("traffic", crate::util::enum_as_str(traffic)));
         }
-        if let Some(bt) = &here_opts.billing_tag {
-            params.push(("billingTag", bt.clone()));
+        if let Some(billing_tag) = &here_opts.billing_tag {
+            params.push(("billingTag", billing_tag.clone()));
         }
         if let Some(currency) = &here_opts.currency {
             params.push(("currency", currency.clone()));
@@ -497,19 +564,19 @@ impl Router for HereRouter {
         if let Some(customizations) = &here_opts.customizations {
             params.push(("customizations", customizations.clone()));
         }
-        if let Some(rh) = &here_opts.route_handle {
-            params.push(("routeHandle", rh.clone()));
+        if let Some(route_handle) = &here_opts.route_handle {
+            params.push(("routeHandle", route_handle.clone()));
         }
 
         let url = format!("{}/routes", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereRouteApiResponse = self.client.request_json(builder).await?;
 
-        let routes: Vec<RouteResult> = here_res.routes.into_iter()
-            .map(RouteResult::from)
-            .collect();
+        let routes: Vec<RouteResult> = here_res.routes.into_iter().map(RouteResult::from).collect();
 
         Ok(RouteResponse { routes })
     }

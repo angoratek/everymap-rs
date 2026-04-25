@@ -1,10 +1,10 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
 use everymap_core::domains::tour::{TourOptions, TourResponse, TourStop};
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
-use crate::client::RadarClient;
 pub use types::*;
 
 const OPTIMIZE_BASE_URL: &str = "https://api.radar.io/v1/route/optimize";
@@ -30,12 +30,19 @@ impl RadarTourPlanner {
 
 #[async_trait]
 impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
-    async fn optimize_tour(&self, stops: &[Coordinate], _options: &TourOptions) -> EveryMapResult<TourResponse> {
+    async fn optimize_tour(
+        &self,
+        stops: &[Coordinate],
+        _options: &TourOptions,
+    ) -> EveryMapResult<TourResponse> {
         if stops.len() < 2 {
-            return Err(EveryMapError::ValidationError("At least 2 stops are required for tour optimization".to_string()));
+            return Err(EveryMapError::ValidationError(
+                "At least 2 stops are required for tour optimization".to_string(),
+            ));
         }
 
-        let locations: Vec<String> = stops.iter()
+        let locations: Vec<String> = stops
+            .iter()
             .map(|s| format!("{},{}", s.lat, s.lng))
             .collect();
 
@@ -59,7 +66,8 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             }
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::GET, &self.base_url)
             .query(&params);
 
@@ -69,14 +77,24 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Optimize request failed with status {}", radar_res.meta.code),
+                format!(
+                    "Optimize request failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 
-        let tour_stops: Vec<TourStop> = radar_res.route.legs.iter()
+        let tour_stops: Vec<TourStop> = radar_res
+            .route
+            .legs
+            .iter()
             .flat_map(|leg| {
                 let start = TourStop {
-                    coordinate: Coordinate::new(leg.start_location.latitude, leg.start_location.longitude).unwrap_or(Coordinate::ORIGIN),
+                    coordinate: Coordinate::new(
+                        leg.start_location.latitude,
+                        leg.start_location.longitude,
+                    )
+                    .unwrap_or(Coordinate::ORIGIN),
                     arrival_time: None,
                     departure_time: None,
                     duration: Some(leg.duration.value * 60.0),
@@ -87,14 +105,13 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             .collect();
 
         // Add the final destination
-        let final_stop = radar_res.route.legs.last().map(|leg| {
-            TourStop {
-                coordinate: Coordinate::new(leg.end_location.latitude, leg.end_location.longitude).unwrap_or(Coordinate::ORIGIN),
-                arrival_time: None,
-                departure_time: None,
-                duration: None,
-                distance_from_previous: None,
-            }
+        let final_stop = radar_res.route.legs.last().map(|leg| TourStop {
+            coordinate: Coordinate::new(leg.end_location.latitude, leg.end_location.longitude)
+                .unwrap_or(Coordinate::ORIGIN),
+            arrival_time: None,
+            departure_time: None,
+            duration: None,
+            distance_from_previous: None,
         });
 
         let mut all_stops = tour_stops;

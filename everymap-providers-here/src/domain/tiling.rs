@@ -1,9 +1,9 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::tiling::{TileProvider, TileOptions, TileResponse};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::tiling::{TileOptions, TileProvider, TileResponse};
+use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
 pub use types::*;
@@ -77,7 +77,13 @@ fn tile_options_from_core(opts: &TileOptions) -> HereTileOptions {
 
 #[async_trait]
 impl TileProvider for HereTileProvider {
-    async fn get_tile(&self, z: u32, x: u32, y: u32, options: &TileOptions) -> EveryMapResult<TileResponse> {
+    async fn get_tile(
+        &self,
+        z: u32,
+        x: u32,
+        y: u32,
+        options: &TileOptions,
+    ) -> EveryMapResult<TileResponse> {
         let here_opts = tile_options_from_core(options);
 
         let layer = match &here_opts.layer {
@@ -99,13 +105,14 @@ impl TileProvider for HereTileProvider {
 
         let mut builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        if let Some(pv) = &here_opts.political_view {
-            builder = builder.query(&[("politicalView", pv)]);
+        if let Some(political_view) = &here_opts.political_view {
+            builder = builder.query(&[("politicalView", political_view)]);
         }
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| {
@@ -113,12 +120,8 @@ impl TileProvider for HereTileProvider {
                 s.split(';').next().unwrap_or(s).trim().to_string()
             });
 
-        let data = response.bytes().await?
-            .to_vec();
+        let data = response.bytes().await?.to_vec();
 
-        Ok(TileResponse {
-            data,
-            content_type,
-        })
+        Ok(TileResponse { data, content_type })
     }
 }

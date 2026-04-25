@@ -1,6 +1,6 @@
+use crate::error::EveryMapResult;
 use async_trait::async_trait;
 use reqwest::RequestBuilder;
-use crate::error::EveryMapResult;
 
 /// Trait for applying authentication to outgoing HTTP requests.
 #[async_trait]

@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::tour::{TourPlanner, TourOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_tomtom::TomTomTourPlanner;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomTourPlanner;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_tour_optimization_contract() {
@@ -28,7 +28,10 @@ async fn test_tour_optimization_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let tour = TomTomTourPlanner::with_base_url(client, server.uri());
 

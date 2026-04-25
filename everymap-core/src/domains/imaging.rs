@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for static map image generation.
@@ -31,7 +31,13 @@ impl ImageResponse {
 
 #[async_trait]
 pub trait MapImageProvider: Send + Sync {
-    async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse>;
+    async fn get_image(
+        &self,
+        center: &Coordinate,
+        zoom: u32,
+        size: (u32, u32),
+        options: &ImageOptions,
+    ) -> EveryMapResult<ImageResponse>;
 }
 
 #[cfg(test)]
@@ -58,7 +64,8 @@ mod tests {
 
     #[test]
     fn test_image_response_construction() {
-        let response = ImageResponse::new(vec![0x89, 0x50, 0x4E, 0x47], Some("image/png".to_string()));
+        let response =
+            ImageResponse::new(vec![0x89, 0x50, 0x4E, 0x47], Some("image/png".to_string()));
         assert_eq!(response.data.len(), 4);
         assert_eq!(response.content_type, Some("image/png".to_string()));
     }
@@ -70,7 +77,9 @@ mod tests {
         let opts = ImageOptions {
             format: Some("jpg".to_string()),
             language: Some("ja".to_string()),
-            provider_extra: Some(serde_json::json!({"maptype": "satellite", "markers": [{"lat": 35.6762, "lng": 139.6503}]})),
+            provider_extra: Some(
+                serde_json::json!({"maptype": "satellite", "markers": [{"lat": 35.6762, "lng": 139.6503}]}),
+            ),
         };
         let json = serde_json::to_string(&opts).unwrap();
         let back: ImageOptions = serde_json::from_str(&json).unwrap();
@@ -96,7 +105,8 @@ mod tests {
 
     #[test]
     fn test_image_response_jpeg_content_type() {
-        let response = ImageResponse::new(vec![0xFF, 0xD8, 0xFF, 0xE0], Some("image/jpeg".to_string()));
+        let response =
+            ImageResponse::new(vec![0xFF, 0xD8, 0xFF, 0xE0], Some("image/jpeg".to_string()));
         assert_eq!(response.content_type, Some("image/jpeg".to_string()));
     }
 

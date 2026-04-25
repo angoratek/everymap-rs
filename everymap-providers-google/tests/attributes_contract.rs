@@ -1,10 +1,10 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_providers_google::GoogleAttributeProvider;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider};
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleAttributeProvider;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_attributes_by_place_ids() {
@@ -31,7 +31,10 @@ async fn test_attributes_by_place_ids() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
@@ -82,7 +85,10 @@ async fn test_attributes_along_path() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
@@ -106,7 +112,10 @@ async fn test_attributes_along_path() {
 async fn test_attributes_missing_params() {
     let server = MockServer::start().await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
@@ -138,7 +147,10 @@ async fn test_attributes_with_units() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 

@@ -1,18 +1,16 @@
-use everymap_core::domains::fraud::{FraudDetector, FraudCheckOptions};
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
-use everymap_providers_radar::{RadarFraudDetector, RadarClient};
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_core::domains::fraud::{FraudCheckOptions, FraudDetector};
+use everymap_providers_radar::{RadarClient, RadarFraudDetector};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_fraud_mock() -> (MockServer, RadarFraudDetector) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> =
+        Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let detector = RadarFraudDetector::with_base_url(
-        client,
-        format!("{}/v1/track", server.uri()),
-    );
+    let detector = RadarFraudDetector::with_base_url(client, format!("{}/v1/track", server.uri()));
     (server, detector)
 }
 

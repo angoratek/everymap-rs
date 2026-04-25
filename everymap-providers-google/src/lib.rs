@@ -5,26 +5,23 @@ pub mod ext;
 pub use client::GoogleClient;
 
 // Shared types
-pub use domain::geo::{GoogleLatLng, GoogleBounds};
+pub use domain::geo::{GoogleBounds, GoogleLatLng};
 
 // Search (Geocoding API)
 pub use domain::search::{
-    GoogleGeocoder,
-    GoogleGeocodeResponse, GoogleGeocodeResult, GoogleGeometry,
-    GoogleAddressComponent, GooglePlusCode,
+    GoogleAddressComponent, GoogleGeocodeResponse, GoogleGeocodeResult, GoogleGeocoder,
+    GoogleGeometry, GooglePlusCode,
 };
 
 // Routing (Directions API)
 pub use domain::routing::{
-    GoogleRouter,
-    GoogleDirectionsResponse, GoogleRoute, GoogleRouteLeg, GoogleRouteStep,
-    GoogleDistance, GoogleDuration, GooglePolyline, GoogleGeocodedWaypoint,
+    GoogleDirectionsResponse, GoogleDistance, GoogleDuration, GoogleGeocodedWaypoint,
+    GooglePolyline, GoogleRoute, GoogleRouteLeg, GoogleRouteStep, GoogleRouter,
 };
 
 // Matching (Roads API snapToRoads)
 pub use domain::matching::{
-    GoogleRouteMatcher,
-    GoogleSnapResponse, GoogleSnappedPoint, GoogleLocation, GoogleMatchOptions,
+    GoogleLocation, GoogleMatchOptions, GoogleRouteMatcher, GoogleSnapResponse, GoogleSnappedPoint,
 };
 
 // Imaging (Static Maps API)
@@ -32,22 +29,20 @@ pub use domain::imaging::GoogleMapImageProvider;
 
 // Positioning (Geolocation API)
 pub use domain::positioning::{
-    GooglePositioner,
-    GooglePositioningOptions, GoogleWifiAccessPoint, GoogleCellTower,
-    GoogleGeolocationResponse, GoogleGeolocationLocation,
+    GoogleCellTower, GoogleGeolocationLocation, GoogleGeolocationResponse, GooglePositioner,
+    GooglePositioningOptions, GoogleWifiAccessPoint,
 };
 
 // Attributes (Roads API speedLimits)
 pub use domain::attributes::{
-    GoogleAttributeProvider,
-    GoogleAttributeOptions, GoogleSpeedLimitsResponse, GoogleSpeedLimit,
-    GoogleSnappedSpeedPoint, GoogleSpeedLocation,
+    GoogleAttributeOptions, GoogleAttributeProvider, GoogleSnappedSpeedPoint, GoogleSpeedLimit,
+    GoogleSpeedLimitsResponse, GoogleSpeedLocation,
 };
 
 // Unsupported domains (return UnsupportedDomain error)
 pub use domain::unsupported::{
-    GoogleIsoline, GoogleTraffic, GoogleTourPlanner, GoogleTileProvider,
+    GoogleIsoline, GoogleTileProvider, GoogleTourPlanner, GoogleTraffic,
 };
 
 // Extension traits
-pub use ext::{GooglePositionerExt, GoogleAttributeExt};
+pub use ext::{GoogleAttributeExt, GooglePositionerExt};

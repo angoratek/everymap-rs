@@ -1,8 +1,8 @@
+use crate::client::GoogleClient;
 use async_trait::async_trait;
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
+use everymap_core::domains::imaging::{ImageOptions, ImageResponse, MapImageProvider};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::GoogleClient;
 use std::sync::Arc;
 
 const STATIC_MAPS_BASE_URL: &str = "https://maps.googleapis.com/maps/api/staticmap";
@@ -28,9 +28,18 @@ impl GoogleMapImageProvider {
 
 #[async_trait]
 impl MapImageProvider for GoogleMapImageProvider {
-    async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
+    async fn get_image(
+        &self,
+        center: &Coordinate,
+        zoom: u32,
+        size: (u32, u32),
+        options: &ImageOptions,
+    ) -> EveryMapResult<ImageResponse> {
         let mut params: Vec<(String, String)> = vec![
-            ("center".to_string(), format!("{},{}", center.lat, center.lng)),
+            (
+                "center".to_string(),
+                format!("{},{}", center.lat, center.lng),
+            ),
             ("zoom".to_string(), zoom.to_string()),
             ("size".to_string(), format!("{}x{}", size.0, size.1)),
         ];
@@ -74,12 +83,15 @@ impl MapImageProvider for GoogleMapImageProvider {
         }
 
         let url = self.base_url.clone();
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());

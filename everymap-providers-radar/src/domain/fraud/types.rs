@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::domain::types::RadarMeta;
+use serde::{Deserialize, Serialize};
 
 /// Response from Radar Track API (used for fraud detection).
 #[derive(Debug, Clone, Serialize, Deserialize)]

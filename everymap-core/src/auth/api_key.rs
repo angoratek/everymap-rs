@@ -1,8 +1,8 @@
+use crate::auth::provider::AuthProvider;
+use crate::error::EveryMapResult;
 use async_trait::async_trait;
 use reqwest::RequestBuilder;
 use zeroize::Zeroize;
-use crate::auth::provider::AuthProvider;
-use crate::error::EveryMapResult;
 
 /// Provider for API Key based authentication.
 ///

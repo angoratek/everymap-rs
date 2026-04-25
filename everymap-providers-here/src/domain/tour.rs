@@ -1,9 +1,11 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::tour::{TourPlanner, TourOptions, TourResponse, TourStop as CoreTourStop};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::tour::{
+    TourOptions, TourPlanner, TourResponse, TourStop as CoreTourStop,
+};
+use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
 pub use types::*;
@@ -14,19 +16,25 @@ const TOUR_BASE_URL: &str = "https://tourplanning.hereapi.com/v3";
 
 impl From<TourSolution> for TourResponse {
     fn from(solution: TourSolution) -> Self {
-        let tour_stops: Vec<CoreTourStop> = solution.tours.first()
+        let tour_stops: Vec<CoreTourStop> = solution
+            .tours
+            .first()
             .map(|tour| {
-                tour.stops.iter()
+                tour.stops
+                    .iter()
                     .filter_map(|s| {
-                        s.location.as_ref().map(|loc| {
-                            Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN)
-                        }).map(|coord| CoreTourStop {
-                            coordinate: coord,
-                            arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
-                            departure_time: None,
-                            duration: None,
-                            distance_from_previous: None,
-                        })
+                        s.location
+                            .as_ref()
+                            .map(|loc| {
+                                Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN)
+                            })
+                            .map(|coord| CoreTourStop {
+                                coordinate: coord,
+                                arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
+                                departure_time: None,
+                                duration: None,
+                                distance_from_previous: None,
+                            })
                     })
                     .collect()
             })
@@ -71,7 +79,9 @@ impl HereTourPlanner {
     /// Returns the full rich response.
     pub async fn solve(&self, problem: TourProblem) -> EveryMapResult<TourSolution> {
         let url = format!("{}/problems", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::POST, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::POST, &url)
             .json(&problem);
 
         let solution: TourSolution = self.client.request_json(builder).await?;
@@ -82,7 +92,9 @@ impl HereTourPlanner {
     /// Returns the async submission result with status ID.
     pub async fn solve_async(&self, problem: TourProblem) -> EveryMapResult<AsyncSubmissionResult> {
         let url = format!("{}/problems/async", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::POST, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::POST, &url)
             .json(&problem);
 
         let result: AsyncSubmissionResult = self.client.request_json(builder).await?;
@@ -137,21 +149,32 @@ impl HereTourPlanner {
 
 #[async_trait]
 impl TourPlanner for HereTourPlanner {
-    async fn optimize_tour(&self, stops: &[everymap_core::types::Coordinate], options: &TourOptions) -> EveryMapResult<TourResponse> {
+    async fn optimize_tour(
+        &self,
+        stops: &[everymap_core::types::Coordinate],
+        options: &TourOptions,
+    ) -> EveryMapResult<TourResponse> {
         // Extract problem from provider_extra or create a default one
-        let mut problem = options.provider_extra.as_ref()
+        let mut problem = options
+            .provider_extra
+            .as_ref()
             .and_then(|extra| serde_json::from_value::<TourProblem>(extra.clone()).ok())
             .unwrap_or_default();
 
         // If the plan has no jobs but stops were provided, create simple delivery jobs
         if problem.plan.jobs.is_empty() && !stops.is_empty() {
-            problem.plan.jobs = stops.iter().enumerate().map(|(i, coord)| {
-                Job {
+            problem.plan.jobs = stops
+                .iter()
+                .enumerate()
+                .map(|(i, coord)| Job {
                     id: format!("stop_{}", i),
                     tasks: JobTasks {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
-                                location: TourLocation { lat: coord.lat, lng: coord.lng },
+                                location: TourLocation {
+                                    lat: coord.lat,
+                                    lng: coord.lng,
+                                },
                                 duration: 60,
                                 ..Default::default()
                             }],
@@ -161,15 +184,19 @@ impl TourPlanner for HereTourPlanner {
                         ..Default::default()
                     },
                     ..Default::default()
-                }
-            }).collect();
+                })
+                .collect();
         }
 
         // Ensure fleet has at least one vehicle type if not provided
         if problem.fleet.types.is_empty() {
-            let start_location = stops.first()
-                .map(|s| TourLocation { lat: s.lat, lng: s.lng });
-            let departure_time = options.provider_extra.as_ref()
+            let start_location = stops.first().map(|s| TourLocation {
+                lat: s.lat,
+                lng: s.lng,
+            });
+            let departure_time = options
+                .provider_extra
+                .as_ref()
                 .and_then(|e| e.get("departure_time"))
                 .and_then(|v| v.as_str())
                 .map(String::from)
@@ -177,7 +204,12 @@ impl TourPlanner for HereTourPlanner {
             problem.fleet.types = vec![VehicleType {
                 id: "vehicle_1".to_string(),
                 profile: "car_profile".to_string(),
-                costs: VehicleCosts { fixed: Some(0.0), distance: Some(1.0), time: Some(0.0), job: None },
+                costs: VehicleCosts {
+                    fixed: Some(0.0),
+                    distance: Some(1.0),
+                    time: Some(0.0),
+                    job: None,
+                },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         time: Some(departure_time),

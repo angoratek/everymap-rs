@@ -1,8 +1,8 @@
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider};
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_providers_mapbox::{MapBoxTraffic, MapBoxPositioner, MapBoxAttributeProvider};
+use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::{MapBoxAttributeProvider, MapBoxPositioner, MapBoxTraffic};
 
 #[tokio::test]
 async fn test_unsupported_traffic() {

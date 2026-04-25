@@ -102,7 +102,10 @@ mod tests {
     #[test]
     fn test_from_label_only_label_set() {
         let addr = Address::from_label("1 Main St, Springfield, IL 62701".to_string());
-        assert_eq!(addr.label.as_deref(), Some("1 Main St, Springfield, IL 62701"));
+        assert_eq!(
+            addr.label.as_deref(),
+            Some("1 Main St, Springfield, IL 62701")
+        );
         // All other fields should be None
         assert!(addr.street.is_none());
         assert!(addr.house_number.is_none());
@@ -150,7 +153,10 @@ mod tests {
             block: Some("5".to_string()),
             unit: Some("2A".to_string()),
         };
-        assert_eq!(addr.label.as_deref(), Some("123 Main St, Springfield, IL 62701"));
+        assert_eq!(
+            addr.label.as_deref(),
+            Some("123 Main St, Springfield, IL 62701")
+        );
         assert_eq!(addr.street.as_deref(), Some("Main St"));
         assert_eq!(addr.house_number.as_deref(), Some("123"));
         assert_eq!(addr.city.as_deref(), Some("Springfield"));

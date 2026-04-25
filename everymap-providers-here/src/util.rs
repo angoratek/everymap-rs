@@ -6,8 +6,8 @@
 /// All HERE API enums use `#[serde(rename = "...")]` on variants, guaranteeing
 /// string serialization. This helper returns an empty string on the impossible
 /// failure path rather than panicking.
-pub fn enum_as_str<T: serde::Serialize>(val: &T) -> String {
-    serde_json::to_value(val)
+pub fn enum_as_str<T: serde::Serialize>(value: &T) -> String {
+    serde_json::to_value(value)
         .ok()
         .and_then(|v| v.as_str().map(|s| s.to_string()))
         .unwrap_or_default()

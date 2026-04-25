@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::types::Coordinate;
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions};
-use everymap_providers_google::GoogleMapImageProvider;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::imaging::{ImageOptions, MapImageProvider};
+use everymap_core::types::Coordinate;
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleMapImageProvider;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_imaging_contract() {
@@ -16,20 +16,28 @@ async fn test_imaging_contract() {
     // The GoogleMapImageProvider uses base_url directly (no path appended),
     // so when we set base_url to server.uri(), requests go to "/"
     Mock::given(method("GET"))
-        .respond_with(ResponseTemplate::new(200)
-            .set_body_bytes(png_bytes)
-            .insert_header("content-type", "image/png"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(png_bytes)
+                .insert_header("content-type", "image/png"),
+        )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
     let opts = ImageOptions::default();
 
-    let res = provider.get_image(&center, 14, (800, 600), &opts).await.unwrap();
+    let res = provider
+        .get_image(&center, 14, (800, 600), &opts)
+        .await
+        .unwrap();
 
     assert!(!res.data.is_empty());
     assert_eq!(res.content_type, Some("image/png".to_string()));
@@ -42,13 +50,18 @@ async fn test_imaging_with_format_and_language() {
     let jpg_bytes: &[u8] = &[0xFF, 0xD8, 0xFF, 0xE0]; // JPEG header
 
     Mock::given(method("GET"))
-        .respond_with(ResponseTemplate::new(200)
-            .set_body_bytes(jpg_bytes)
-            .insert_header("content-type", "image/jpeg"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(jpg_bytes)
+                .insert_header("content-type", "image/jpeg"),
+        )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleMapImageProvider::with_base_url(client, server.uri());
 
@@ -59,7 +72,10 @@ async fn test_imaging_with_format_and_language() {
         provider_extra: None,
     };
 
-    let res = provider.get_image(&center, 10, (600, 400), &opts).await.unwrap();
+    let res = provider
+        .get_image(&center, 10, (600, 400), &opts)
+        .await
+        .unwrap();
 
     assert!(!res.data.is_empty());
     assert_eq!(res.content_type, Some("image/jpeg".to_string()));

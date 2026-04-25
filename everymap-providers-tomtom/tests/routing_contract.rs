@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
-use everymap_core::types::Coordinate;
-use everymap_providers_tomtom::TomTomRouter;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomRouter;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_routing_contract() {
@@ -36,12 +36,17 @@ async fn test_routing_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json"))
+        .and(path(
+            "/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let router = TomTomRouter::with_base_url(client, server.uri());
 

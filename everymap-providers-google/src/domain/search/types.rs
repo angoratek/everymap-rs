@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
+use crate::domain::geo::{GoogleBounds, GoogleLatLng};
 use everymap_core::domains::search::{SearchResponse, SearchResult};
-use crate::domain::geo::{GoogleLatLng, GoogleBounds};
+use serde::{Deserialize, Serialize};
 
 // ============================================================================
 // Response types — Google Geocoding API

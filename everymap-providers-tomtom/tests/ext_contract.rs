@@ -1,12 +1,12 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::types::Coordinate;
 use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::ext::{TomTomGeocoderExt, TomTomTrafficExt};
 use everymap_providers_tomtom::TomTomGeocoder;
 use everymap_providers_tomtom::TomTomTraffic;
-use everymap_providers_tomtom::ext::{TomTomGeocoderExt, TomTomTrafficExt};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_nearby_search_contract() {
@@ -37,12 +37,18 @@ async fn test_nearby_search_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
     let location = Coordinate::new(52.52, 13.405).unwrap();
-    let res = geocoder.nearby_search(&location, 5000, "restaurant", None, None).await.unwrap();
+    let res = geocoder
+        .nearby_search(&location, 5000, "restaurant", None, None)
+        .await
+        .unwrap();
 
     assert_eq!(res.results.len(), 1);
     assert_eq!(res.results[0].id, Some("tomtom_poi_1".to_string()));
@@ -76,12 +82,18 @@ async fn test_category_search_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
     let location = Coordinate::new(52.52, 13.405).unwrap();
-    let res = geocoder.category_search("RESTAURANT", &location, Some(3000), Some(5), None).await.unwrap();
+    let res = geocoder
+        .category_search("RESTAURANT", &location, Some(3000), Some(5), None)
+        .await
+        .unwrap();
 
     assert_eq!(res.results.len(), 1);
     assert_eq!(res.results[0].id, Some("tomtom_poi_2".to_string()));
@@ -115,7 +127,10 @@ async fn test_traffic_ext_get_flow() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
@@ -159,14 +174,26 @@ async fn test_traffic_ext_get_incidents() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
-    let res = traffic.get_incidents("52.4,13.3,52.6,13.5", None).await.unwrap();
+    let res = traffic
+        .get_incidents("52.4,13.3,52.6,13.5", None)
+        .await
+        .unwrap();
 
     assert_eq!(res.incidents.len(), 1);
     assert_eq!(res.incidents[0].id, Some("inc456".to_string()));
-    assert_eq!(res.incidents[0].start_time, Some("2026-04-12T10:00:00Z".to_string()));
-    assert_eq!(res.incidents[0].end_time, Some("2026-04-12T11:00:00Z".to_string()));
+    assert_eq!(
+        res.incidents[0].start_time,
+        Some("2026-04-12T10:00:00Z".to_string())
+    );
+    assert_eq!(
+        res.incidents[0].end_time,
+        Some("2026-04-12T11:00:00Z".to_string())
+    );
 }

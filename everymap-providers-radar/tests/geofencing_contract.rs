@@ -1,14 +1,17 @@
-use everymap_core::domains::geofencing::{GeofenceProvider, GeofenceOptions, GeofenceCreateOptions, GeofenceType};
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
-use everymap_providers_radar::{RadarGeofenceProvider, RadarClient};
+use everymap_core::domains::geofencing::{
+    GeofenceCreateOptions, GeofenceOptions, GeofenceProvider, GeofenceType,
+};
 use everymap_core::types::Coordinate;
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
+use everymap_providers_radar::{RadarClient, RadarGeofenceProvider};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_geofence_mock() -> (MockServer, RadarGeofenceProvider) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> =
+        Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
     let client = Arc::new(RadarClient::new(auth));
     let provider = RadarGeofenceProvider::with_base_url(
         client,
@@ -52,7 +55,10 @@ async fn test_search_geofences_contract() {
     assert_eq!(result.geofences.len(), 1);
     assert_eq!(result.geofences[0].id, "gf_abc123");
     assert_eq!(result.geofences[0].tag.as_deref(), Some("store"));
-    assert!(matches!(result.geofences[0].geofence_type, Some(GeofenceType::Circle)));
+    assert!(matches!(
+        result.geofences[0].geofence_type,
+        Some(GeofenceType::Circle)
+    ));
 }
 
 #[tokio::test]

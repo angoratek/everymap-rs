@@ -1,11 +1,13 @@
 pub mod types;
 
+use crate::client::MapBoxClient;
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{
+    MatchedPoint, MatchingOptions, RouteMatcher, TraceResponse,
+};
 use everymap_core::domains::routing::TransportMode;
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::MapBoxClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -34,7 +36,9 @@ impl MapBoxRouteMatcher {
 /// Convert core TransportMode to MapBox profile.
 fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     match mode {
-        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => "driving",
+        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => {
+            "driving"
+        }
         TransportMode::Pedestrian => "walking",
         TransportMode::Bicycle => "cycling",
         TransportMode::Scooter => "driving",
@@ -44,19 +48,33 @@ fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
 
 #[async_trait]
 impl RouteMatcher for MapBoxRouteMatcher {
-    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse> {
         if points.len() < 2 {
             return Err(everymap_core::error::EveryMapError::provider(
-                "mapbox", "INVALID_INPUT", "At least 2 points required for map matching"
+                "mapbox",
+                "INVALID_INPUT",
+                "At least 2 points required for map matching",
             ));
         }
 
-        let profile = options.transport_mode.as_ref().map(|m| transport_mode_to_profile(m)).unwrap_or("driving");
-        let coords: String = points.iter()
+        let profile = options
+            .transport_mode
+            .as_ref()
+            .map(|m| transport_mode_to_profile(m))
+            .unwrap_or("driving");
+        let coords: String = points
+            .iter()
             .map(|p| format!("{},{}", p.lng, p.lat))
             .collect::<Vec<_>>()
             .join(";");
-        let url = format!("{}/matching/v5/mapbox/{}/{}.json", self.base_url, profile, coords);
+        let url = format!(
+            "{}/matching/v5/mapbox/{}/{}.json",
+            self.base_url, profile, coords
+        );
 
         let mut params: Vec<(&str, String)> = vec![
             ("overview", "full".to_string()),
@@ -77,19 +95,25 @@ impl RouteMatcher for MapBoxRouteMatcher {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxMatchResponse = self.client.request_json(builder).await?;
 
         // Extract matched points from tracepoints
-        let matched_points: Vec<MatchedPoint> = result.tracepoints.into_iter()
+        let matched_points: Vec<MatchedPoint> = result
+            .tracepoints
+            .into_iter()
             .filter(|tp| tp.location.is_some())
             .map(MatchedPoint::from)
             .collect();
 
         // Get total distance/duration from the best matching
-        let (distance, duration) = result.matchings.first()
+        let (distance, duration) = result
+            .matchings
+            .first()
             .map(|m| (m.distance, m.duration))
             .unwrap_or((0.0, 0.0));
 

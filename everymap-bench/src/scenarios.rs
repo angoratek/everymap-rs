@@ -3,20 +3,56 @@ use everymap_core::types::Coordinate;
 /// Typed parameters for a benchmark scenario.
 #[derive(Debug, Clone)]
 pub enum ScenarioParams {
-    Geocode { query: String },
-    ReverseGeocode { coord: Coordinate },
-    Route { start: Coordinate, end: Coordinate },
-    Isoline { center: Coordinate, range: f64 },
-    Matching { points: Vec<Coordinate> },
-    Tour { stops: Vec<Coordinate> },
-    Traffic { location: Coordinate },
-    Tile { z: u32, x: u32, y: u32 },
-    Positioning { provider_extra: Option<serde_json::Value> },
-    Attributes { bbox: String },
-    Image { center: Coordinate, zoom: u32 },
-    GeofenceSearch { near: Coordinate, radius: f64 },
-    TripCreate { origin: Coordinate, destination: Coordinate },
-    FraudCheck { lat: f64, lng: f64 },
+    Geocode {
+        query: String,
+    },
+    ReverseGeocode {
+        coord: Coordinate,
+    },
+    Route {
+        start: Coordinate,
+        end: Coordinate,
+    },
+    Isoline {
+        center: Coordinate,
+        range: f64,
+    },
+    Matching {
+        points: Vec<Coordinate>,
+    },
+    Tour {
+        stops: Vec<Coordinate>,
+    },
+    Traffic {
+        location: Coordinate,
+    },
+    Tile {
+        z: u32,
+        x: u32,
+        y: u32,
+    },
+    Positioning {
+        provider_extra: Option<serde_json::Value>,
+    },
+    Attributes {
+        bbox: String,
+    },
+    Image {
+        center: Coordinate,
+        zoom: u32,
+    },
+    GeofenceSearch {
+        near: Coordinate,
+        radius: f64,
+    },
+    TripCreate {
+        origin: Coordinate,
+        destination: Coordinate,
+    },
+    FraudCheck {
+        lat: f64,
+        lng: f64,
+    },
 }
 
 impl ScenarioParams {
@@ -132,7 +168,11 @@ pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
         BenchmarkScenario {
             name: "Berlin tile z10".to_string(),
             description: "Fetch map tile at zoom 10 covering Berlin".to_string(),
-            params: ScenarioParams::Tile { z: 10, x: 550, y: 335 },
+            params: ScenarioParams::Tile {
+                z: 10,
+                x: 550,
+                y: 335,
+            },
         },
         // Positioning
         BenchmarkScenario {
@@ -186,7 +226,10 @@ pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
         BenchmarkScenario {
             name: "Fraud check NYC".to_string(),
             description: "Fraud check at NYC coordinates via Radar".to_string(),
-            params: ScenarioParams::FraudCheck { lat: 40.7128, lng: -74.0060 },
+            params: ScenarioParams::FraudCheck {
+                lat: 40.7128,
+                lng: -74.0060,
+            },
         },
     ];
 

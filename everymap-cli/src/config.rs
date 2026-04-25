@@ -51,7 +51,9 @@ impl Config {
                             eprintln!(
                                 "Warning: config file {:?} is group/world-readable (mode={:o}). \
                                  Consider running: chmod 600 {:?}",
-                                path, mode & 0o777, path
+                                path,
+                                mode & 0o777,
+                                path
                             );
                         }
                     }
@@ -73,7 +75,12 @@ impl Config {
     }
 
     /// Get the API key for a provider, checking CLI flag, then config, then env var.
-    pub fn resolve_api_key(&self, cli_key: &Option<String>, provider: &str, env_var: &str) -> Option<String> {
+    pub fn resolve_api_key(
+        &self,
+        cli_key: &Option<String>,
+        provider: &str,
+        env_var: &str,
+    ) -> Option<String> {
         // 1. CLI flag takes precedence
         if cli_key.is_some() {
             return cli_key.clone();

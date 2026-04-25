@@ -1,5 +1,5 @@
+use crate::domain::geo::{GoogleBounds, GoogleLatLng};
 use serde::{Deserialize, Serialize};
-use crate::domain::geo::{GoogleLatLng, GoogleBounds};
 
 // ============================================================================
 // Response types — Google Directions API

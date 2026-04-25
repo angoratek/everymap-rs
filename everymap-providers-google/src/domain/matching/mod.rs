@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::GoogleClient;
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{
+    MatchedPoint, MatchingOptions, RouteMatcher, TraceResponse,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::GoogleClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -33,10 +35,10 @@ impl GoogleRouteMatcher {
 }
 
 /// Convert core `MatchingOptions` to Google-specific parameters.
-fn matching_options_from_core(opts: &MatchingOptions) -> GoogleMatchOptions {
+fn matching_options_from_core(options: &MatchingOptions) -> GoogleMatchOptions {
     let mut google_opts = GoogleMatchOptions::default();
 
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("interpolate").and_then(|v| v.as_bool()) {
                 google_opts.interpolate = v;
@@ -52,11 +54,16 @@ fn matching_options_from_core(opts: &MatchingOptions) -> GoogleMatchOptions {
 
 #[async_trait]
 impl RouteMatcher for GoogleRouteMatcher {
-    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse> {
         let google_opts = matching_options_from_core(options);
 
         // Google snapToRoads requires at least 2 points, max 100
-        let path: String = points.iter()
+        let path: String = points
+            .iter()
             .map(|p| format!("{},{}", p.lat, p.lng))
             .collect::<Vec<_>>()
             .join("|");
@@ -68,19 +75,25 @@ impl RouteMatcher for GoogleRouteMatcher {
         }
 
         let url = format!("{}/snapToRoads", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
-        let res: GoogleSnapResponse = self.client.request_json(builder).await?;
+        let response: GoogleSnapResponse = self.client.request_json(builder).await?;
 
-        let matched_points: Vec<MatchedPoint> = res.snapped_points.into_iter().map(|sp| {
-            MatchedPoint {
-                coordinate: Coordinate::new(sp.location.latitude, sp.location.longitude)
-                    .unwrap_or(Coordinate::ORIGIN),
-                confidence: None, // Google doesn't provide confidence scores
-                road_name: sp.place_id, // Use place_id as an identifier
-            }
-        }).collect();
+        let matched_points: Vec<MatchedPoint> = response
+            .snapped_points
+            .into_iter()
+            .map(|sp| {
+                MatchedPoint {
+                    coordinate: Coordinate::new(sp.location.latitude, sp.location.longitude)
+                        .unwrap_or(Coordinate::ORIGIN),
+                    confidence: None, // Google doesn't provide confidence scores
+                    road_name: sp.place_id, // Use place_id as an identifier
+                }
+            })
+            .collect();
 
         // Google doesn't provide distance/duration in snapToRoads response
         Ok(TraceResponse {

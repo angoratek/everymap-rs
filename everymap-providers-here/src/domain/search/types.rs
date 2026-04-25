@@ -1,6 +1,6 @@
-use everymap_core::types::Coordinate;
-use everymap_core::domains::search::{SearchResult, SearchResultType, SearchResponse};
 use crate::domain::geo::HereLatLng;
+use everymap_core::domains::search::{SearchResponse, SearchResult, SearchResultType};
+use everymap_core::types::Coordinate;
 use serde::{Deserialize, Serialize};
 
 // --- Shared enums used across multiple search endpoints ---
@@ -175,10 +175,12 @@ pub struct HereSearchItem {
 
 impl From<HereSearchItem> for SearchResult {
     fn from(item: HereSearchItem) -> Self {
-        let coordinate = item.position
+        let coordinate = item
+            .position
             .map(Coordinate::from)
             .unwrap_or(Coordinate::ORIGIN);
-        let address = item.address
+        let address = item
+            .address
             .map(everymap_core::types::Address::from)
             .unwrap_or_default();
         let result_type = match item.result_type.as_deref() {
@@ -187,17 +189,16 @@ impl From<HereSearchItem> for SearchResult {
             Some("interpolated") => SearchResultType::Interpolated,
             _ => SearchResultType::Unknown,
         };
-        let bounding_box = item.map_view.and_then(|mv| {
-            match (mv.west, mv.south, mv.east, mv.north) {
-                (Some(w), Some(s), Some(e), Some(n)) => {
-                    everymap_core::types::BoundingBox::new(
+        let bounding_box =
+            item.map_view
+                .and_then(|mv| match (mv.west, mv.south, mv.east, mv.north) {
+                    (Some(w), Some(s), Some(e), Some(n)) => everymap_core::types::BoundingBox::new(
                         Coordinate::new(n, e).ok()?,
                         Coordinate::new(s, w).ok()?,
-                    ).into()
-                }
-                _ => None,
-            }
-        });
+                    )
+                    .into(),
+                    _ => None,
+                });
         SearchResult {
             id: item.id,
             coordinate,

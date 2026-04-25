@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions};
-use everymap_providers_here::domain::matching::HereRouteMatcher;
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::matching::HereRouteMatcher;
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_matching_contract() {
@@ -41,7 +41,10 @@ async fn test_matching_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let matcher = HereRouteMatcher::with_base_url(client, server.uri());
 
@@ -55,7 +58,10 @@ async fn test_matching_contract() {
 
     assert_eq!(res.distance, 120.0);
     assert_eq!(res.matched_points.len(), 2);
-    assert_eq!(res.matched_points[0].coordinate, Coordinate::new(52.5201, 13.4051).unwrap());
+    assert_eq!(
+        res.matched_points[0].coordinate,
+        Coordinate::new(52.5201, 13.4051).unwrap()
+    );
     assert_eq!(res.matched_points[0].confidence, Some(0.9));
 }
 
@@ -95,7 +101,10 @@ async fn test_matching_with_options() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let matcher = HereRouteMatcher::with_base_url(client, server.uri());
 

@@ -81,7 +81,12 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
+- Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.omv`, `map.png`)
+- `match-route` requires `--transport` (car, truck, pedestrian, bicycle; default: car)
+- `tour` supports `--departure` for ISO 8601 departure time (default: now)
+- `tile` supports `--layer` (base, core, hybrid; default: base) — HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
+- Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
 - 11 base commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
 - 8 Radar-specific commands: geofence-search, geofence-create, geofence-get, geofence-delete, trip-create, trip-update, trip-get, fraud-check
 
@@ -110,3 +115,4 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 - Don't duplicate client logic — use `ProviderClient` from core.
 - Don't write manual unsupported domain stubs — use `everymap_core::unsupported_*!` macros.
 - Don't duplicate CLI command handlers — use `ProviderRegistry` for unified dispatch.
+- Don't use abbreviations in variable or method names. Use full, descriptive names: `config` not `cfg`, `format` not `fmt`, `options` not `opts`, `result`/`response` not `res`, `message` not `msg`, `coordinate` not `coord`, `destination` not `dest`, `transport_mode` not `tm`, `index` not `idx`, `value` not `val`, `accuracy` not `acc`, `distance` not `dist`, `duration` not `dur`. Exception: standard Rust conventions like `lat`/`lng`/`lon` for geospatial coordinates.

@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::HereClient;
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{
+    MatchedPoint, MatchingOptions, RouteMatcher, TraceResponse,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::HereClient;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -183,24 +185,26 @@ struct HereMatchApiLeg {
 impl From<HereMatchedPoint> for MatchedPoint {
     fn from(p: HereMatchedPoint) -> Self {
         Self {
-            coordinate: Coordinate::new(
-                p.lat.unwrap_or(0.0),
-                p.lng.unwrap_or(0.0),
-            ).unwrap_or(Coordinate::ORIGIN),
+            coordinate: Coordinate::new(p.lat.unwrap_or(0.0), p.lng.unwrap_or(0.0))
+                .unwrap_or(Coordinate::ORIGIN),
             confidence: p.point_match_probability,
             road_name: None,
         }
     }
 }
 
-fn add_option(params: &mut Vec<(String, String)>, key: &str, val: Option<impl std::fmt::Display>) {
-    if let Some(v) = val {
+fn add_option(
+    params: &mut Vec<(String, String)>,
+    key: &str,
+    value: Option<impl std::fmt::Display>,
+) {
+    if let Some(v) = value {
         params.push((key.to_string(), v.to_string()));
     }
 }
 
-fn add_option_ref(params: &mut Vec<(String, String)>, key: &str, val: Option<&String>) {
-    if let Some(v) = val {
+fn add_option_ref(params: &mut Vec<(String, String)>, key: &str, value: Option<&String>) {
+    if let Some(v) = value {
         params.push((key.to_string(), v.clone()));
     }
 }
@@ -216,21 +220,30 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
 
     // Convert avoid types
     if !opts.avoid.is_empty() {
-        here_opts.avoid_features = Some(opts.avoid.iter().map(|a| match a {
-            everymap_core::domains::routing::AvoidType::Tolls => AvoidFeature::TollRoad,
-            everymap_core::domains::routing::AvoidType::Ferries => AvoidFeature::Ferry,
-            everymap_core::domains::routing::AvoidType::Tunnels => AvoidFeature::Tunnel,
-            everymap_core::domains::routing::AvoidType::Highways => AvoidFeature::ControlledAccessHighway,
-            everymap_core::domains::routing::AvoidType::DirtRoads => AvoidFeature::DirtRoad,
-        }).collect());
+        here_opts.avoid_features = Some(
+            opts.avoid
+                .iter()
+                .map(|a| match a {
+                    everymap_core::domains::routing::AvoidType::Tolls => AvoidFeature::TollRoad,
+                    everymap_core::domains::routing::AvoidType::Ferries => AvoidFeature::Ferry,
+                    everymap_core::domains::routing::AvoidType::Tunnels => AvoidFeature::Tunnel,
+                    everymap_core::domains::routing::AvoidType::Highways => {
+                        AvoidFeature::ControlledAccessHighway
+                    }
+                    everymap_core::domains::routing::AvoidType::DirtRoads => AvoidFeature::DirtRoad,
+                })
+                .collect(),
+        );
     }
 
     // Convert core transport_mode to HERE match mode (provider_extra can still override)
-    if let Some(tm) = &opts.transport_mode {
-        here_opts.mode = match tm {
+    if let Some(transport_mode) = &opts.transport_mode {
+        here_opts.mode = match transport_mode {
             everymap_core::domains::routing::TransportMode::Car => Some(MatchMode::Car),
             everymap_core::domains::routing::TransportMode::Truck => Some(MatchMode::Truck),
-            everymap_core::domains::routing::TransportMode::Pedestrian => Some(MatchMode::Pedestrian),
+            everymap_core::domains::routing::TransportMode::Pedestrian => {
+                Some(MatchMode::Pedestrian)
+            }
             everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
             _ => Some(MatchMode::Car),
         };
@@ -260,7 +273,10 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             if let Some(v) = obj.get("align_to_gps_time").and_then(|v| v.as_bool()) {
                 here_opts.align_to_gps_time = Some(v);
             }
-            if let Some(v) = obj.get("ignore_zero_speed_points").and_then(|v| v.as_bool()) {
+            if let Some(v) = obj
+                .get("ignore_zero_speed_points")
+                .and_then(|v| v.as_bool())
+            {
                 here_opts.ignore_zero_speed_points = Some(v);
             }
             if let Some(v) = obj.get("wp_dist").and_then(|v| v.as_u64()) {
@@ -321,13 +337,25 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
                 here_opts.hybrid = Some(v);
             }
             if let Some(v) = obj.get("avoid_links").and_then(|v| v.as_array()) {
-                here_opts.avoid_links = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.avoid_links = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("avoid_areas").and_then(|v| v.as_array()) {
-                here_opts.avoid_areas = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.avoid_areas = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("avoid_turns").and_then(|v| v.as_array()) {
-                here_opts.avoid_turns = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.avoid_turns = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("avoid_private").and_then(|v| v.as_bool()) {
                 here_opts.avoid_private = Some(v);
@@ -335,8 +363,15 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             if let Some(v) = obj.get("avoid_country_change").and_then(|v| v.as_bool()) {
                 here_opts.avoid_country_change = Some(v);
             }
-            if let Some(v) = obj.get("shipped_hazardous_goods").and_then(|v| v.as_array()) {
-                here_opts.shipped_hazardous_goods = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+            if let Some(v) = obj
+                .get("shipped_hazardous_goods")
+                .and_then(|v| v.as_array())
+            {
+                here_opts.shipped_hazardous_goods = Some(
+                    v.iter()
+                        .filter_map(|i| serde_json::from_value(i.clone()).ok())
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("tunnel_category") {
                 here_opts.tunnel_category = serde_json::from_value(v.clone()).ok();
@@ -398,7 +433,10 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             if let Some(v) = obj.get("vehicle_cost_on_ferry").and_then(|v| v.as_str()) {
                 here_opts.vehicle_cost_on_ferry = Some(v.to_string());
             }
-            if let Some(v) = obj.get("cost_per_consumption_unit").and_then(|v| v.as_str()) {
+            if let Some(v) = obj
+                .get("cost_per_consumption_unit")
+                .and_then(|v| v.as_str())
+            {
                 here_opts.cost_per_consumption_unit = Some(v.to_string());
             }
             if let Some(v) = obj.get("max_speed").and_then(|v| v.as_u64()) {
@@ -410,10 +448,16 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             if let Some(v) = obj.get("truck_verified").and_then(|v| v.as_bool()) {
                 here_opts.truck_verified = Some(v);
             }
-            if let Some(v) = obj.get("ignore_waypoint_vehicle_restriction").and_then(|v| v.as_bool()) {
+            if let Some(v) = obj
+                .get("ignore_waypoint_vehicle_restriction")
+                .and_then(|v| v.as_bool())
+            {
                 here_opts.ignore_waypoint_vehicle_restriction = Some(v);
             }
-            if let Some(v) = obj.get("admin_truck_restrictions").and_then(|v| v.as_bool()) {
+            if let Some(v) = obj
+                .get("admin_truck_restrictions")
+                .and_then(|v| v.as_bool())
+            {
                 here_opts.admin_truck_restrictions = Some(v);
             }
             if let Some(v) = obj.get("ignore_preferred_routes").and_then(|v| v.as_bool()) {
@@ -431,7 +475,10 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             if let Some(v) = obj.get("custom_attributes").and_then(|v| v.as_str()) {
                 here_opts.custom_attributes = Some(v.to_string());
             }
-            if let Some(v) = obj.get("custom_consumption_details").and_then(|v| v.as_str()) {
+            if let Some(v) = obj
+                .get("custom_consumption_details")
+                .and_then(|v| v.as_str())
+            {
                 here_opts.custom_consumption_details = Some(v.to_string());
             }
             if let Some(v) = obj.get("timeout").and_then(|v| v.as_u64()) {
@@ -445,16 +492,31 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             }
             // Convert transport_mode from core
             if let Some(v) = obj.get("transport_mode") {
-                if let Ok(tm) = serde_json::from_value::<everymap_core::domains::routing::TransportMode>(v.clone()) {
-                    here_opts.mode = match tm {
+                if let Ok(transport_mode) = serde_json::from_value::<
+                    everymap_core::domains::routing::TransportMode,
+                >(v.clone())
+                {
+                    here_opts.mode = match transport_mode {
                         everymap_core::domains::routing::TransportMode::Car => Some(MatchMode::Car),
-                        everymap_core::domains::routing::TransportMode::Truck => Some(MatchMode::Truck),
-                        everymap_core::domains::routing::TransportMode::Pedestrian => Some(MatchMode::Pedestrian),
-                        everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
+                        everymap_core::domains::routing::TransportMode::Truck => {
+                            Some(MatchMode::Truck)
+                        }
+                        everymap_core::domains::routing::TransportMode::Pedestrian => {
+                            Some(MatchMode::Pedestrian)
+                        }
+                        everymap_core::domains::routing::TransportMode::Bicycle => {
+                            Some(MatchMode::Bicycle)
+                        }
                         everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Car),
-                        everymap_core::domains::routing::TransportMode::Scooter => Some(MatchMode::Car),
-                        everymap_core::domains::routing::TransportMode::Taxi => Some(MatchMode::Car),
-                        everymap_core::domains::routing::TransportMode::Unknown => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Scooter => {
+                            Some(MatchMode::Car)
+                        }
+                        everymap_core::domains::routing::TransportMode::Taxi => {
+                            Some(MatchMode::Car)
+                        }
+                        everymap_core::domains::routing::TransportMode::Unknown => {
+                            Some(MatchMode::Car)
+                        }
                     };
                 }
             }
@@ -471,7 +533,11 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
 
 #[async_trait]
 impl RouteMatcher for HereRouteMatcher {
-    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse> {
         let opts = matching_options_from_core(options);
 
         // Use waypointN format: waypoint0=lat,lng&waypoint1=lat,lng&...
@@ -501,7 +567,11 @@ impl RouteMatcher for HereRouteMatcher {
         // Matching parameters
         add_option(&mut params, "mapMatchRadius", opts.map_match_radius);
         add_option(&mut params, "alignToGpsTime", opts.align_to_gps_time);
-        add_option(&mut params, "ignoreZeroSpeedPoints", opts.ignore_zero_speed_points);
+        add_option(
+            &mut params,
+            "ignoreZeroSpeedPoints",
+            opts.ignore_zero_speed_points,
+        );
         add_option(&mut params, "wpDist", opts.wp_dist);
         add_option_ref(&mut params, "speedFcCat", opts.speed_fc_cat.as_ref());
         add_option(&mut params, "mapMatchTolerance", opts.map_match_tolerance);
@@ -520,7 +590,11 @@ impl RouteMatcher for HereRouteMatcher {
         add_option(&mut params, "vehicleWeight", opts.vehicle_weight);
         add_option(&mut params, "trailerWeight", opts.trailer_weight);
         add_option(&mut params, "weightPerAxle", opts.weight_per_axle);
-        add_option(&mut params, "heightAbove1stAxle", opts.height_above_1st_axle);
+        add_option(
+            &mut params,
+            "heightAbove1stAxle",
+            opts.height_above_1st_axle,
+        );
         add_option(&mut params, "trailersCount", opts.trailers_count);
 
         // Emission & fuel
@@ -534,16 +608,34 @@ impl RouteMatcher for HereRouteMatcher {
         add_option(&mut params, "hybrid", opts.hybrid);
 
         // Restrictions
-        if let Some(links) = &opts.avoid_links { params.push(("avoidLinks".to_string(), links.join(","))); }
-        if let Some(areas) = &opts.avoid_areas { params.push(("avoidAreas".to_string(), areas.join(","))); }
-        if let Some(turns) = &opts.avoid_turns { params.push(("avoidTurns".to_string(), turns.join(","))); }
+        if let Some(links) = &opts.avoid_links {
+            params.push(("avoidLinks".to_string(), links.join(",")));
+        }
+        if let Some(areas) = &opts.avoid_areas {
+            params.push(("avoidAreas".to_string(), areas.join(",")));
+        }
+        if let Some(turns) = &opts.avoid_turns {
+            params.push(("avoidTurns".to_string(), turns.join(",")));
+        }
         if let Some(af) = &opts.avoid_features {
-            params.push(("avoidFeatures".to_string(), af.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
+            params.push((
+                "avoidFeatures".to_string(),
+                af.iter()
+                    .map(crate::util::enum_as_str)
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ));
         }
         add_option(&mut params, "avoidPrivate", opts.avoid_private);
         add_option(&mut params, "avoidCountryChange", opts.avoid_country_change);
         if let Some(hg) = &opts.shipped_hazardous_goods {
-            params.push(("shippedHazardousGoods".to_string(), hg.iter().map(crate::util::enum_as_str).collect::<Vec<_>>().join(",")));
+            params.push((
+                "shippedHazardousGoods".to_string(),
+                hg.iter()
+                    .map(crate::util::enum_as_str)
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ));
         }
         if let Some(tc) = &opts.tunnel_category {
             params.push(("tunnelCategory".to_string(), crate::util::enum_as_str(tc)));
@@ -563,12 +655,27 @@ impl RouteMatcher for HereRouteMatcher {
         // Response attributes
         add_option_ref(&mut params, "legAttributes", opts.leg_attributes.as_ref());
         add_option_ref(&mut params, "linkAttributes", opts.link_attributes.as_ref());
-        add_option_ref(&mut params, "responseAttributes", opts.response_attributes.as_ref());
-        add_option_ref(&mut params, "routeAttributes", opts.route_attributes.as_ref());
+        add_option_ref(
+            &mut params,
+            "responseAttributes",
+            opts.response_attributes.as_ref(),
+        );
+        add_option_ref(
+            &mut params,
+            "routeAttributes",
+            opts.route_attributes.as_ref(),
+        );
         add_option_ref(&mut params, "metaAttributes", opts.meta_attributes.as_ref());
-        add_option_ref(&mut params, "maneuverAttributes", opts.maneuver_attributes.as_ref());
+        add_option_ref(
+            &mut params,
+            "maneuverAttributes",
+            opts.maneuver_attributes.as_ref(),
+        );
         if let Some(fmt) = &opts.instruction_format {
-            params.push(("instructionFormat".to_string(), crate::util::enum_as_str(fmt)));
+            params.push((
+                "instructionFormat".to_string(),
+                crate::util::enum_as_str(fmt),
+            ));
         }
         add_option_ref(&mut params, "language", opts.language.as_ref());
 
@@ -578,27 +685,65 @@ impl RouteMatcher for HereRouteMatcher {
         add_option_ref(&mut params, "currency", opts.currency.as_ref());
         add_option_ref(&mut params, "driverCost", opts.driver_cost.as_ref());
         add_option_ref(&mut params, "vehicleCost", opts.vehicle_cost.as_ref());
-        add_option_ref(&mut params, "vehicleCostOnFerry", opts.vehicle_cost_on_ferry.as_ref());
-        add_option_ref(&mut params, "costPerConsumptionUnit", opts.cost_per_consumption_unit.as_ref());
+        add_option_ref(
+            &mut params,
+            "vehicleCostOnFerry",
+            opts.vehicle_cost_on_ferry.as_ref(),
+        );
+        add_option_ref(
+            &mut params,
+            "costPerConsumptionUnit",
+            opts.cost_per_consumption_unit.as_ref(),
+        );
 
         // Advanced
         add_option(&mut params, "maxSpeed", opts.max_speed);
         add_option(&mut params, "alternatives", opts.alternatives);
         add_option(&mut params, "truckVerified", opts.truck_verified);
-        add_option(&mut params, "ignoreWaypointVehicleRestriction", opts.ignore_waypoint_vehicle_restriction);
-        add_option(&mut params, "adminTruckRestrictions", opts.admin_truck_restrictions);
-        add_option(&mut params, "ignorePreferredRoutes", opts.ignore_preferred_routes);
-        add_option_ref(&mut params, "excludeZoneTypes", opts.exclude_zone_types.as_ref());
+        add_option(
+            &mut params,
+            "ignoreWaypointVehicleRestriction",
+            opts.ignore_waypoint_vehicle_restriction,
+        );
+        add_option(
+            &mut params,
+            "adminTruckRestrictions",
+            opts.admin_truck_restrictions,
+        );
+        add_option(
+            &mut params,
+            "ignorePreferredRoutes",
+            opts.ignore_preferred_routes,
+        );
+        add_option_ref(
+            &mut params,
+            "excludeZoneTypes",
+            opts.exclude_zone_types.as_ref(),
+        );
         add_option_ref(&mut params, "overlays", opts.overlays.as_ref());
-        add_option_ref(&mut params, "customRestrLimit", opts.custom_restrict_limit.as_ref());
-        add_option_ref(&mut params, "customAttributes", opts.custom_attributes.as_ref());
-        add_option_ref(&mut params, "customConsumptionDetails", opts.custom_consumption_details.as_ref());
+        add_option_ref(
+            &mut params,
+            "customRestrLimit",
+            opts.custom_restrict_limit.as_ref(),
+        );
+        add_option_ref(
+            &mut params,
+            "customAttributes",
+            opts.custom_attributes.as_ref(),
+        );
+        add_option_ref(
+            &mut params,
+            "customConsumptionDetails",
+            opts.custom_consumption_details.as_ref(),
+        );
         add_option(&mut params, "timeout", opts.timeout);
         add_option(&mut params, "drivingReport", opts.driving_report);
         add_option_ref(&mut params, "ehorizonLimits", opts.ehorizon_limits.as_ref());
 
         let url = format!("{}/match/routelinks", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereMatchApiResponseWrapper = self.client.request_json(builder).await?;
@@ -607,11 +752,14 @@ impl RouteMatcher for HereRouteMatcher {
         let route = here_res.response.route.into_iter().next();
         let (matched_points, distance, duration) = match route {
             Some(r) => {
-                let points = r.waypoint.into_iter()
+                let points = r
+                    .waypoint
+                    .into_iter()
                     .filter_map(|wp| {
-                        let pos = wp.mapped_position.or(wp.original_position)?;
+                        let position = wp.mapped_position.or(wp.original_position)?;
                         Some(MatchedPoint {
-                            coordinate: Coordinate::new(pos.latitude, pos.longitude).unwrap_or(Coordinate::ORIGIN),
+                            coordinate: Coordinate::new(position.latitude, position.longitude)
+                                .unwrap_or(Coordinate::ORIGIN),
                             confidence: wp.confidence_value,
                             road_name: None,
                         })
@@ -619,7 +767,15 @@ impl RouteMatcher for HereRouteMatcher {
                     .collect();
                 let total_length: f64 = r.leg.iter().map(|l| l.length).sum();
                 let total_time: f64 = r.leg.iter().map(|l| l.travel_time).sum();
-                (points, total_length, if total_time > 0.0 { Some(total_time) } else { None })
+                (
+                    points,
+                    total_length,
+                    if total_time > 0.0 {
+                        Some(total_time)
+                    } else {
+                        None
+                    },
+                )
             }
             None => (vec![], 0.0, None),
         };

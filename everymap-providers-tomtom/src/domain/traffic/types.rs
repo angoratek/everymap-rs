@@ -1,11 +1,17 @@
+use everymap_core::domains::traffic::{IncidentSeverity, TrafficFlow, TrafficIncident};
 use serde::{Deserialize, Serialize};
-use everymap_core::domains::traffic::{TrafficFlow, TrafficIncident, IncidentSeverity};
 
 /// Calculate jam factor from current/free-flow speed ratio.
 fn calculate_jam_factor(current: f64, free_flow: f64) -> f64 {
-    if free_flow <= 0.0 { return 0.0; }
+    if free_flow <= 0.0 {
+        return 0.0;
+    }
     let ratio = current / free_flow;
-    if ratio >= 1.0 { 0.0 } else { (1.0 - ratio) * 10.0 }
+    if ratio >= 1.0 {
+        0.0
+    } else {
+        (1.0 - ratio) * 10.0
+    }
 }
 
 /// Map TomTom severity string to core IncidentSeverity.

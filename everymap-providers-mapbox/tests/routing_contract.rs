@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::routing::{Router, RouteOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_mapbox::MapBoxRouter;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::routing::{RouteOptions, Router};
+use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxRouter;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_routing_contract() {
@@ -46,12 +46,17 @@ async fn test_routing_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/directions/v5/mapbox/driving/13.405,52.52;2.3522,48.8566"))
+        .and(path(
+            "/directions/v5/mapbox/driving/13.405,52.52;2.3522,48.8566",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let router = MapBoxRouter::with_base_url(client, server.uri());
 

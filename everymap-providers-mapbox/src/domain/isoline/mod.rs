@@ -1,11 +1,13 @@
 pub mod types;
 
+use crate::client::MapBoxClient;
 use async_trait::async_trait;
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineResponse, IsolineResult, RangeType};
+use everymap_core::domains::isoline::{
+    IsolineOptions, IsolineProvider, IsolineResponse, IsolineResult, RangeType,
+};
 use everymap_core::domains::routing::TransportMode;
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::MapBoxClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -34,7 +36,9 @@ impl MapBoxIsoline {
 /// Convert core TransportMode to MapBox profile.
 fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     match mode {
-        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => "driving",
+        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => {
+            "driving"
+        }
         TransportMode::Pedestrian => "walking",
         TransportMode::Bicycle => "cycling",
         TransportMode::Scooter => "driving",
@@ -49,10 +53,13 @@ fn extract_polygon_coordinates(geom: &serde_json::Value) -> Vec<Coordinate> {
         .and_then(|ring| ring.as_array())
         .map(|ring| {
             ring.iter()
-                .filter_map(|coord| {
-                    let arr = coord.as_array()?;
+                .filter_map(|coordinate| {
+                    let arr = coordinate.as_array()?;
                     if arr.len() >= 2 {
-                        Some(Coordinate::new(arr[1].as_f64()?, arr[0].as_f64()?).unwrap_or(Coordinate::ORIGIN))
+                        Some(
+                            Coordinate::new(arr[1].as_f64()?, arr[0].as_f64()?)
+                                .unwrap_or(Coordinate::ORIGIN),
+                        )
                     } else {
                         None
                     }
@@ -64,10 +71,22 @@ fn extract_polygon_coordinates(geom: &serde_json::Value) -> Vec<Coordinate> {
 
 #[async_trait]
 impl IsolineProvider for MapBoxIsoline {
-    async fn get_isoline(&self, center: &Coordinate, range: f64, options: &IsolineOptions) -> EveryMapResult<IsolineResponse> {
-        let profile = options.transport_mode.as_ref().map(|m| transport_mode_to_profile(m)).unwrap_or("driving");
+    async fn get_isoline(
+        &self,
+        center: &Coordinate,
+        range: f64,
+        options: &IsolineOptions,
+    ) -> EveryMapResult<IsolineResponse> {
+        let profile = options
+            .transport_mode
+            .as_ref()
+            .map(|m| transport_mode_to_profile(m))
+            .unwrap_or("driving");
         let coords = format!("{},{}", center.lng, center.lat);
-        let url = format!("{}/isochrone/v1/mapbox/{}/{}", self.base_url, profile, coords);
+        let url = format!(
+            "{}/isochrone/v1/mapbox/{}/{}",
+            self.base_url, profile, coords
+        );
 
         let mut params: Vec<(&str, String)> = Vec::new();
 
@@ -84,7 +103,9 @@ impl IsolineProvider for MapBoxIsoline {
             }
             RangeType::Consumption => {
                 return Err(everymap_core::error::EveryMapError::provider(
-                    "mapbox", "UNSUPPORTED_RANGE_TYPE", "MapBox Isochrone API does not support consumption-based ranges"
+                    "mapbox",
+                    "UNSUPPORTED_RANGE_TYPE",
+                    "MapBox Isochrone API does not support consumption-based ranges",
                 ));
             }
         }
@@ -102,31 +123,41 @@ impl IsolineProvider for MapBoxIsoline {
 
         params.push(("polygons", "true".to_string()));
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxIsochroneResponse = self.client.request_json(builder).await?;
 
-        let isolines: Vec<IsolineResult> = result.features.into_iter().map(|f| {
-            let polygon = f.geometry
-                .and_then(|g| g.coordinates)
-                .map(|coords| extract_polygon_coordinates(&coords))
-                .unwrap_or_default();
+        let isolines: Vec<IsolineResult> = result
+            .features
+            .into_iter()
+            .map(|f| {
+                let polygon = f
+                    .geometry
+                    .and_then(|g| g.coordinates)
+                    .map(|coords| extract_polygon_coordinates(&coords))
+                    .unwrap_or_default();
 
-            let range_val = f.properties
-                .and_then(|p| p.contour)
-                .map(|c| match options.range_type.as_ref().unwrap_or(&RangeType::Time) {
-                    RangeType::Time => (c as f64) * 60.0, // minutes to seconds
-                    RangeType::Distance => c as f64,       // already meters
-                    RangeType::Consumption => c as f64,
+                let range_val = f.properties.and_then(|p| p.contour).map(|c| {
+                    match options.range_type.as_ref().unwrap_or(&RangeType::Time) {
+                        RangeType::Time => (c as f64) * 60.0, // minutes to seconds
+                        RangeType::Distance => c as f64,      // already meters
+                        RangeType::Consumption => c as f64,
+                    }
                 });
 
-            IsolineResult {
-                polygon,
-                range: range_val,
-            }
-        }).collect();
+                IsolineResult {
+                    polygon,
+                    range: range_val,
+                }
+            })
+            .collect();
 
-        Ok(IsolineResponse { isolines, raw: None })
+        Ok(IsolineResponse {
+            isolines,
+            raw: None,
+        })
     }
 }

@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions};
-use everymap_providers_google::GoogleRouteMatcher;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
+use everymap_core::types::Coordinate;
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleRouteMatcher;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_matching_contract() {
@@ -32,7 +32,10 @@ async fn test_matching_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let matcher = GoogleRouteMatcher::with_base_url(client, server.uri());
 
@@ -45,9 +48,18 @@ async fn test_matching_contract() {
     let res = matcher.match_route(&points, &opts).await.unwrap();
 
     assert_eq!(res.matched_points.len(), 2);
-    assert_eq!(res.matched_points[0].coordinate, Coordinate::new(52.5201, 13.4051).unwrap());
-    assert_eq!(res.matched_points[0].road_name, Some("ChIJxxxxxxxx".to_string()));
-    assert_eq!(res.matched_points[1].coordinate, Coordinate::new(52.5301, 13.4101).unwrap());
+    assert_eq!(
+        res.matched_points[0].coordinate,
+        Coordinate::new(52.5201, 13.4051).unwrap()
+    );
+    assert_eq!(
+        res.matched_points[0].road_name,
+        Some("ChIJxxxxxxxx".to_string())
+    );
+    assert_eq!(
+        res.matched_points[1].coordinate,
+        Coordinate::new(52.5301, 13.4101).unwrap()
+    );
     assert_eq!(res.distance, 0.0); // Google doesn't provide distance
 }
 
@@ -80,7 +92,10 @@ async fn test_matching_with_interpolate() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let matcher = GoogleRouteMatcher::with_base_url(client, server.uri());
 

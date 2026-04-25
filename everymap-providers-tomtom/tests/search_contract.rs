@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_tomtom::TomTomGeocoder;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_contract() {
@@ -35,7 +35,10 @@ async fn test_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
@@ -80,7 +83,10 @@ async fn test_reverse_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 

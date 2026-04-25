@@ -8,44 +8,40 @@ pub use client::TomTomClient;
 pub use ext::{TomTomGeocoderExt, TomTomTrafficExt};
 
 // Shared types
-pub use domain::geo::{TomTomLatLng, TomTomBounds};
+pub use domain::geo::{TomTomBounds, TomTomLatLng};
 
 // Search (Geocoding API)
 pub use domain::search::{
-    TomTomGeocoder,
-    TomTomSearchResponse, TomTomSearchResult, TomTomAddress, TomTomPosition, TomTomBoundingBox,
-    TomTomReverseGeocodeResult, TomTomReverseGeocodeAddress, TomTomReverseGeocodeBoundingBox,
+    TomTomAddress, TomTomBoundingBox, TomTomGeocoder, TomTomPosition, TomTomReverseGeocodeAddress,
+    TomTomReverseGeocodeBoundingBox, TomTomReverseGeocodeResult, TomTomSearchResponse,
+    TomTomSearchResult,
 };
 
 // Routing (Routing API)
 pub use domain::routing::{
+    TomTomRoute, TomTomRouteLeg, TomTomRoutePoint, TomTomRouteResponse, TomTomRouteSummary,
     TomTomRouter,
-    TomTomRouteResponse, TomTomRoute, TomTomRouteSummary, TomTomRouteLeg, TomTomRoutePoint,
 };
 
 // Traffic (Traffic API)
 pub use domain::traffic::{
-    TomTomTraffic,
-    TomTomFlowResponse, TomTomFlowSegmentData, TomTomIncidentsResponse, TomTomIncident, TomTomIncidentGeometry,
+    TomTomFlowResponse, TomTomFlowSegmentData, TomTomIncident, TomTomIncidentGeometry,
+    TomTomIncidentsResponse, TomTomTraffic,
 };
 
 // Isoline (Routing API — reachable range)
-pub use domain::isoline::{
-    TomTomIsoline,
-    TomTomReachableRangeResponse, TomTomReachableRange,
-};
+pub use domain::isoline::{TomTomIsoline, TomTomReachableRange, TomTomReachableRangeResponse};
 
 // Matching (Snap to Roads API)
 pub use domain::matching::{
-    TomTomRouteMatcher,
-    TomTomSnapResponse, TomTomProjectedPoint, TomTomProjectedGeometry, TomTomProjectedProperties,
-    TomTomDistances,
+    TomTomDistances, TomTomProjectedGeometry, TomTomProjectedPoint, TomTomProjectedProperties,
+    TomTomRouteMatcher, TomTomSnapResponse,
 };
 
 // Tour (Waypoint Optimization API)
 pub use domain::tour::{
-    TomTomTourPlanner,
-    TomTomOptimizationResponse, TomTomOptimizationSummary, TomTomTourRouteSummary,
+    TomTomOptimizationResponse, TomTomOptimizationSummary, TomTomTourPlanner,
+    TomTomTourRouteSummary,
 };
 
 // Tiling (Map Display API)
@@ -55,4 +51,4 @@ pub use domain::tiling::TomTomTileProvider;
 pub use domain::imaging::TomTomMapImageProvider;
 
 // Unsupported domains
-pub use domain::unsupported::{TomTomPositioner, TomTomAttributeProvider};
+pub use domain::unsupported::{TomTomAttributeProvider, TomTomPositioner};

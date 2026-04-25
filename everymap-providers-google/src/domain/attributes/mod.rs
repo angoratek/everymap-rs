@@ -1,9 +1,9 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions, AttributeResponse};
-use everymap_core::error::{EveryMapError, EveryMapResult};
 use crate::client::GoogleClient;
+use async_trait::async_trait;
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider, AttributeResponse};
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use std::sync::Arc;
 
 pub use types::*;
@@ -33,19 +33,25 @@ impl GoogleAttributeProvider {
 
     /// Get speed limits by place IDs.
     /// GET /v1/speedLimits?placeId=...&placeId=...&units=...
-    pub async fn get_speed_limits_by_ids(&self, place_ids: &[String], units: Option<&str>) -> EveryMapResult<GoogleSpeedLimitsResponse> {
+    pub async fn get_speed_limits_by_ids(
+        &self,
+        place_ids: &[String],
+        units: Option<&str>,
+    ) -> EveryMapResult<GoogleSpeedLimitsResponse> {
         let url = format!("{}/speedLimits", self.base_url);
         let mut params: Vec<(&str, String)> = Vec::new();
 
-        for pid in place_ids {
-            params.push(("placeId", pid.clone()));
+        for place_id in place_ids {
+            params.push(("placeId", place_id.clone()));
         }
 
         if let Some(u) = units {
             params.push(("units", u.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: GoogleSpeedLimitsResponse = self.client.request_json(builder).await?;
@@ -54,7 +60,11 @@ impl GoogleAttributeProvider {
 
     /// Get speed limits along a path (snapped to roads).
     /// GET /v1/speedLimits?path=...&units=...
-    pub async fn get_speed_limits_along_path(&self, path: &str, units: Option<&str>) -> EveryMapResult<GoogleSpeedLimitsResponse> {
+    pub async fn get_speed_limits_along_path(
+        &self,
+        path: &str,
+        units: Option<&str>,
+    ) -> EveryMapResult<GoogleSpeedLimitsResponse> {
         let url = format!("{}/speedLimits", self.base_url);
         let mut params: Vec<(&str, String)> = vec![("path", path.to_string())];
 
@@ -62,7 +72,9 @@ impl GoogleAttributeProvider {
             params.push(("units", u.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: GoogleSpeedLimitsResponse = self.client.request_json(builder).await?;
@@ -71,13 +83,16 @@ impl GoogleAttributeProvider {
 }
 
 /// Convert core `AttributeOptions` to Google-specific parameters.
-fn attribute_options_from_core(opts: &AttributeOptions) -> EveryMapResult<GoogleAttributeOptions> {
+fn attribute_options_from_core(
+    options: &AttributeOptions,
+) -> EveryMapResult<GoogleAttributeOptions> {
     let mut google_opts = GoogleAttributeOptions::default();
 
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("place_ids").and_then(|v| v.as_array()) {
-                let ids: Vec<String> = v.iter()
+                let ids: Vec<String> = v
+                    .iter()
                     .filter_map(|v| v.as_str().map(|s| s.to_string()))
                     .collect();
                 google_opts.place_ids = Some(ids);
@@ -106,13 +121,18 @@ fn attribute_options_from_core(opts: &AttributeOptions) -> EveryMapResult<Google
 
 #[async_trait]
 impl AttributeProvider for GoogleAttributeProvider {
-    async fn get_attributes(&self, options: &AttributeOptions) -> EveryMapResult<AttributeResponse> {
+    async fn get_attributes(
+        &self,
+        options: &AttributeOptions,
+    ) -> EveryMapResult<AttributeResponse> {
         let google_opts = attribute_options_from_core(options)?;
 
         let result = if let Some(place_ids) = &google_opts.place_ids {
-            self.get_speed_limits_by_ids(place_ids, google_opts.units.as_deref()).await?
+            self.get_speed_limits_by_ids(place_ids, google_opts.units.as_deref())
+                .await?
         } else if let Some(path) = &google_opts.path {
-            self.get_speed_limits_along_path(path, google_opts.units.as_deref()).await?
+            self.get_speed_limits_along_path(path, google_opts.units.as_deref())
+                .await?
         } else {
             return Err(EveryMapError::provider(
                 "google",
@@ -121,8 +141,7 @@ impl AttributeProvider for GoogleAttributeProvider {
             ));
         };
 
-        let data = serde_json::to_value(result)
-            .unwrap_or(serde_json::json!({}));
+        let data = serde_json::to_value(result).unwrap_or(serde_json::json!({}));
 
         Ok(AttributeResponse { data })
     }

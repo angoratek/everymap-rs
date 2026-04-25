@@ -1,9 +1,12 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::positioning::{NetworkPositioner as NetworkPositionerTrait, PositioningOptions, PositioningResponse as CorePositioningResponse};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::positioning::{
+    NetworkPositioner as NetworkPositionerTrait, PositioningOptions,
+    PositioningResponse as CorePositioningResponse,
+};
+use everymap_core::error::EveryMapResult;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -55,10 +58,15 @@ impl HerePositioner {
 
     /// Get position estimate with rich response type.
     /// POST /v2/position
-    pub async fn locate(&self, options: HerePositioningOptions) -> EveryMapResult<PositioningResponse> {
+    pub async fn locate(
+        &self,
+        options: HerePositioningOptions,
+    ) -> EveryMapResult<PositioningResponse> {
         let url = format!("{}/position", self.base_url);
         let body = PositionRequestBody::from(options);
-        let builder = self.client.build_request(reqwest::Method::POST, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::POST, &url)
             .json(&body);
 
         let result: PositioningResponse = self.client.request_json(builder).await?;
@@ -81,16 +89,15 @@ fn positioning_options_from_core(opts: &PositioningOptions) -> HerePositioningOp
 }
 
 impl From<PositioningResponse> for CorePositioningResponse {
-    fn from(res: PositioningResponse) -> Self {
-        let coordinate = everymap_core::types::Coordinate::new(
-            res.location.lat,
-            res.location.lng,
-        ).unwrap_or(everymap_core::types::Coordinate::ORIGIN);
+    fn from(response: PositioningResponse) -> Self {
+        let coordinate =
+            everymap_core::types::Coordinate::new(response.location.lat, response.location.lng)
+                .unwrap_or(everymap_core::types::Coordinate::ORIGIN);
         Self {
             coordinate,
-            accuracy: res.location.accuracy,
-            altitude: res.altitude.as_ref().and_then(|a| a.value),
-            altitude_accuracy: res.altitude.as_ref().and_then(|a| a.accuracy),
+            accuracy: response.location.accuracy,
+            altitude: response.altitude.as_ref().and_then(|a| a.value),
+            altitude_accuracy: response.altitude.as_ref().and_then(|a| a.accuracy),
             raw: None,
         }
     }
@@ -98,7 +105,10 @@ impl From<PositioningResponse> for CorePositioningResponse {
 
 #[async_trait]
 impl NetworkPositionerTrait for HerePositioner {
-    async fn get_position(&self, options: &PositioningOptions) -> EveryMapResult<CorePositioningResponse> {
+    async fn get_position(
+        &self,
+        options: &PositioningOptions,
+    ) -> EveryMapResult<CorePositioningResponse> {
         let here_opts = positioning_options_from_core(options);
         let result = self.locate(here_opts).await?;
         Ok(result.into())

@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions};
-use everymap_core::error::EveryMapError;
-use everymap_providers_mapbox::MapBoxGeocoder;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder};
+use everymap_core::error::EveryMapError;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_unauthorized() {
@@ -18,7 +18,10 @@ async fn test_geocode_unauthorized() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("invalid-token".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "invalid-token".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -42,7 +45,10 @@ async fn test_geocode_forbidden() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-token".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-token".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -64,12 +70,15 @@ async fn test_geocode_rate_limited() {
                 .insert_header("Retry-After", "60")
                 .set_body_json(serde_json::json!({
                     "message": "Too Many Requests"
-                }))
+                })),
         )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-token".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-token".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -93,7 +102,10 @@ async fn test_geocode_server_error() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-token".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-token".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 

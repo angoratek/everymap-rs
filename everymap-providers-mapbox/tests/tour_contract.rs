@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, query_param};
-use everymap_core::domains::tour::{TourPlanner, TourOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_mapbox::MapBoxTourPlanner;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
+use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxTourPlanner;
 use std::sync::Arc;
+use wiremock::matchers::{method, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_tour_optimization_contract() {
@@ -49,7 +49,10 @@ async fn test_tour_optimization_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let tour = MapBoxTourPlanner::with_base_url(client, server.uri());
 

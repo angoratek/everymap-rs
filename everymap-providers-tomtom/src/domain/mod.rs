@@ -1,12 +1,12 @@
 pub mod geo;
-pub mod search;
-pub mod routing;
-pub mod traffic;
+pub mod imaging;
 pub mod isoline;
 pub mod matching;
-pub mod tour;
+pub mod routing;
+pub mod search;
 pub mod tiling;
-pub mod imaging;
+pub mod tour;
+pub mod traffic;
 pub mod unsupported;
 
-pub use geo::{TomTomLatLng, TomTomBounds};
+pub use geo::{TomTomBounds, TomTomLatLng};

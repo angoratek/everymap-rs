@@ -1,9 +1,9 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::imaging::{ImageOptions, ImageResponse, MapImageProvider};
+use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
 pub use types::*;
@@ -98,7 +98,13 @@ fn image_options_from_core(opts: &ImageOptions) -> HereImageOptions {
 
 #[async_trait]
 impl MapImageProvider for HereMapImageProvider {
-    async fn get_image(&self, center: &everymap_core::types::Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
+    async fn get_image(
+        &self,
+        center: &everymap_core::types::Coordinate,
+        zoom: u32,
+        size: (u32, u32),
+        options: &ImageOptions,
+    ) -> EveryMapResult<ImageResponse> {
         let here_opts = image_options_from_core(options);
 
         let format_ext = match &here_opts.format {
@@ -113,13 +119,7 @@ impl MapImageProvider for HereMapImageProvider {
 
         let url = format!(
             "{}/base/mc/center:{},{};zoom={}/{}x{}/{}",
-            self.base_url,
-            center.lat,
-            center.lng,
-            zoom,
-            size.0,
-            size.1,
-            format_ext
+            self.base_url, center.lat, center.lng, zoom, size.0, size.1, format_ext
         );
 
         let mut params: Vec<(String, String)> = vec![];
@@ -130,8 +130,8 @@ impl MapImageProvider for HereMapImageProvider {
         if let Some(lang) = &here_opts.lang {
             params.push(("lang".to_string(), lang.clone()));
         }
-        if let Some(pv) = &here_opts.political_view {
-            params.push(("politicalView".to_string(), pv.clone()));
+        if let Some(political_view) = &here_opts.political_view {
+            params.push(("politicalView".to_string(), political_view.clone()));
         }
         if let Some(poi) = &here_opts.poi {
             params.push(("poi".to_string(), poi.clone()));
@@ -143,21 +143,21 @@ impl MapImageProvider for HereMapImageProvider {
             params.push(("overlay".to_string(), overlay.clone()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());
 
         let data = response.bytes().await?.to_vec();
 
-        Ok(ImageResponse {
-            data,
-            content_type,
-        })
+        Ok(ImageResponse { data, content_type })
     }
 }

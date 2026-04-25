@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
-use everymap_providers_here::domain::routing::HereRouter;
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::routing::HereRouter;
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_routing_contract() {
@@ -31,7 +31,10 @@ async fn test_routing_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 

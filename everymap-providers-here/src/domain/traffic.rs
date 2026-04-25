@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::HereClient;
 use async_trait::async_trait;
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions, TrafficResponse, TrafficFlow};
+use everymap_core::domains::traffic::{
+    TrafficFlow, TrafficOptions, TrafficProvider, TrafficResponse,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::HereClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -43,17 +45,25 @@ impl HereTraffic {
         if let Some(in_filter) = &options.in_filter {
             params.push(("in", in_filter.clone()));
         } else {
-            params.push(("in", format!("bbox:{},{},{},{}",
-                location.lng - 0.01, location.lat - 0.01,
-                location.lng + 0.01, location.lat + 0.01)));
+            params.push((
+                "in",
+                format!(
+                    "bbox:{},{},{},{}",
+                    location.lng - 0.01,
+                    location.lat - 0.01,
+                    location.lng + 0.01,
+                    location.lat + 0.01
+                ),
+            ));
         }
 
-        if let Some(lr) = &options.location_referencing {
-            let val = lr.iter()
+        if let Some(location_referencing) = &options.location_referencing {
+            let value = location_referencing
+                .iter()
                 .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
-            params.push(("locationReferencing", val));
+            params.push(("locationReferencing", value));
         } else {
             params.push(("locationReferencing", "shape".to_string()));
         }
@@ -64,26 +74,36 @@ impl HereTraffic {
         if let Some(max_jf) = options.max_jam_factor {
             params.push(("maxJamFactor", max_jf.to_string()));
         }
-        if let Some(fc) = &options.functional_classes {
-            let val = fc.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(",");
-            params.push(("functionalClasses", val));
+        if let Some(functional_classes) = &options.functional_classes {
+            let value = functional_classes
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            params.push(("functionalClasses", value));
         }
-        if let Some(af) = &options.advanced_features {
-            let val = af.iter()
+        if let Some(advanced_features) = &options.advanced_features {
+            let value = advanced_features
+                .iter()
                 .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
-            params.push(("advancedFeatures", val));
+            params.push(("advancedFeatures", value));
         }
-        if let Some(urr) = options.use_ref_replacements {
-            params.push(("useRefReplacements", urr.to_string()));
+        if let Some(use_ref_replacements) = options.use_ref_replacements {
+            params.push(("useRefReplacements", use_ref_replacements.to_string()));
         }
-        if let Some(esrm) = options.exact_segment_ref_matching {
-            params.push(("exactSegmentRefMatching", esrm.to_string()));
+        if let Some(exact_segment_ref_matching) = options.exact_segment_ref_matching {
+            params.push((
+                "exactSegmentRefMatching",
+                exact_segment_ref_matching.to_string(),
+            ));
         }
 
         let url = format!("{}/flow", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereFlowResponse = self.client.request_json(builder).await?;
@@ -102,33 +122,40 @@ impl HereTraffic {
             params.push(("in", in_filter.clone()));
         }
 
-        if let Some(lr) = &options.location_referencing {
-            let val = lr.iter()
+        if let Some(location_referencing) = &options.location_referencing {
+            let value = location_referencing
+                .iter()
                 .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
-            params.push(("locationReferencing", val));
+            params.push(("locationReferencing", value));
         } else {
             params.push(("locationReferencing", "shape".to_string()));
         }
 
-        if let Some(fc) = &options.functional_classes {
-            let val = fc.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(",");
-            params.push(("functionalClasses", val));
+        if let Some(functional_classes) = &options.functional_classes {
+            let value = functional_classes
+                .iter()
+                .map(|c| c.to_string())
+                .collect::<Vec<_>>()
+                .join(",");
+            params.push(("functionalClasses", value));
         }
-        if let Some(crit) = &options.criticality {
-            let val = crit.iter()
+        if let Some(criticality) = &options.criticality {
+            let value = criticality
+                .iter()
                 .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
-            params.push(("criticality", val));
+            params.push(("criticality", value));
         }
-        if let Some(it) = &options.incident_types {
-            let val = it.iter()
+        if let Some(incident_types) = &options.incident_types {
+            let value = incident_types
+                .iter()
                 .map(crate::util::enum_as_str)
                 .collect::<Vec<_>>()
                 .join(",");
-            params.push(("type", val));
+            params.push(("type", value));
         }
         if let Some(est) = &options.earliest_start_time {
             params.push(("earliestStartTime", est.clone()));
@@ -142,15 +169,20 @@ impl HereTraffic {
         if let Some(units) = &options.units {
             params.push(("units", crate::util::enum_as_str(units)));
         }
-        if let Some(urr) = options.use_ref_replacements {
-            params.push(("useRefReplacements", urr.to_string()));
+        if let Some(use_ref_replacements) = options.use_ref_replacements {
+            params.push(("useRefReplacements", use_ref_replacements.to_string()));
         }
-        if let Some(esrm) = options.exact_segment_ref_matching {
-            params.push(("exactSegmentRefMatching", esrm.to_string()));
+        if let Some(exact_segment_ref_matching) = options.exact_segment_ref_matching {
+            params.push((
+                "exactSegmentRefMatching",
+                exact_segment_ref_matching.to_string(),
+            ));
         }
 
         let url = format!("{}/incidents", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereIncidentsResponse = self.client.request_json(builder).await?;
@@ -173,7 +205,11 @@ fn flow_options_from_core(opts: &TrafficOptions) -> HereFlowOptions {
                 here_opts.in_filter = Some(v.to_string());
             }
             if let Some(v) = obj.get("location_referencing").and_then(|v| v.as_array()) {
-                here_opts.location_referencing = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+                here_opts.location_referencing = Some(
+                    v.iter()
+                        .filter_map(|i| serde_json::from_value(i.clone()).ok())
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("min_jam_factor").and_then(|v| v.as_f64()) {
                 here_opts.min_jam_factor = Some(v);
@@ -182,15 +218,26 @@ fn flow_options_from_core(opts: &TrafficOptions) -> HereFlowOptions {
                 here_opts.max_jam_factor = Some(v);
             }
             if let Some(v) = obj.get("functional_classes").and_then(|v| v.as_array()) {
-                here_opts.functional_classes = Some(v.iter().filter_map(|i| i.as_u64().map(|n| n as u32)).collect());
+                here_opts.functional_classes = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_u64().map(|n| n as u32))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("advanced_features").and_then(|v| v.as_array()) {
-                here_opts.advanced_features = Some(v.iter().filter_map(|i| serde_json::from_value(i.clone()).ok()).collect());
+                here_opts.advanced_features = Some(
+                    v.iter()
+                        .filter_map(|i| serde_json::from_value(i.clone()).ok())
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("use_ref_replacements").and_then(|v| v.as_bool()) {
                 here_opts.use_ref_replacements = Some(v);
             }
-            if let Some(v) = obj.get("exact_segment_ref_matching").and_then(|v| v.as_bool()) {
+            if let Some(v) = obj
+                .get("exact_segment_ref_matching")
+                .and_then(|v| v.as_bool())
+            {
                 here_opts.exact_segment_ref_matching = Some(v);
             }
         }
@@ -201,7 +248,11 @@ fn flow_options_from_core(opts: &TrafficOptions) -> HereFlowOptions {
 
 #[async_trait]
 impl TrafficProvider for HereTraffic {
-    async fn get_traffic(&self, location: &Coordinate, options: &TrafficOptions) -> EveryMapResult<TrafficResponse> {
+    async fn get_traffic(
+        &self,
+        location: &Coordinate,
+        options: &TrafficOptions,
+    ) -> EveryMapResult<TrafficResponse> {
         // Convert core options to HERE-specific options
         let here_opts = flow_options_from_core(options);
 

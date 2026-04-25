@@ -1,12 +1,13 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
 use everymap_core::domains::geofencing::{
-    GeofenceProvider, GeofenceOptions, GeofenceCreateOptions, GeofenceResponse, GeofenceResult, GeofenceType,
+    GeofenceCreateOptions, GeofenceOptions, GeofenceProvider, GeofenceResponse, GeofenceResult,
+    GeofenceType,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
-use crate::client::RadarClient;
 pub use types::*;
 
 const GEOFENCE_SEARCH_URL: &str = "https://api.radar.io/v1/search/geofences";
@@ -28,20 +29,29 @@ impl RadarGeofenceProvider {
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<RadarClient>, search_url: String, list_url: String) -> Self {
-        Self { client, search_url, list_url }
+    pub fn with_base_url(
+        client: std::sync::Arc<RadarClient>,
+        search_url: String,
+        list_url: String,
+    ) -> Self {
+        Self {
+            client,
+            search_url,
+            list_url,
+        }
     }
 }
 
 impl From<RadarGeofence> for GeofenceResult {
-    fn from(gf: RadarGeofence) -> Self {
-        let raw = serde_json::to_value(&gf).unwrap_or_default();
+    fn from(geofence: RadarGeofence) -> Self {
+        let raw = serde_json::to_value(&geofence).unwrap_or_default();
 
-        let geometry_center = gf.geometry_center.as_ref().map(|c| {
-            Coordinate::new(c.latitude, c.longitude).unwrap_or(Coordinate::ORIGIN)
-        });
+        let geometry_center = geofence
+            .geometry_center
+            .as_ref()
+            .map(|c| Coordinate::new(c.latitude, c.longitude).unwrap_or(Coordinate::ORIGIN));
 
-        let geofence_type = gf.gf_type.as_deref().map(|t| match t {
+        let geofence_type = geofence.gf_type.as_deref().map(|t| match t {
             "circle" => GeofenceType::Circle,
             "polygon" => GeofenceType::Polygon,
             "isochrone" => GeofenceType::Isochrone,
@@ -49,14 +59,14 @@ impl From<RadarGeofence> for GeofenceResult {
         });
 
         Self {
-            id: gf.id,
-            tag: gf.tag,
-            external_id: gf.external_id,
-            description: gf.description,
+            id: geofence.id,
+            tag: geofence.tag,
+            external_id: geofence.external_id,
+            description: geofence.description,
             geofence_type,
             geometry_center,
-            metadata: gf.metadata,
-            enabled: gf.enabled,
+            metadata: geofence.metadata,
+            enabled: geofence.enabled,
             raw: Some(raw),
         }
     }
@@ -64,7 +74,10 @@ impl From<RadarGeofence> for GeofenceResult {
 
 #[async_trait]
 impl GeofenceProvider for RadarGeofenceProvider {
-    async fn search_geofences(&self, options: &GeofenceOptions) -> EveryMapResult<GeofenceResponse> {
+    async fn search_geofences(
+        &self,
+        options: &GeofenceOptions,
+    ) -> EveryMapResult<GeofenceResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
 
         if let Some(near) = &options.near {
@@ -79,11 +92,12 @@ impl GeofenceProvider for RadarGeofenceProvider {
         if let Some(limit) = options.limit {
             params.push(("limit", limit.to_string()));
         }
-        if let Some(ig) = options.include_geometry {
-            params.push(("includeGeometry", ig.to_string()));
+        if let Some(include_geometry) = options.include_geometry {
+            params.push(("includeGeometry", include_geometry.to_string()));
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::GET, &self.search_url)
             .query(&params);
 
@@ -97,56 +111,82 @@ impl GeofenceProvider for RadarGeofenceProvider {
             ));
         }
 
-        let geofences: Vec<GeofenceResult> = radar_res.geofences.into_iter()
+        let geofences: Vec<GeofenceResult> = radar_res
+            .geofences
+            .into_iter()
             .map(GeofenceResult::from)
             .collect();
 
         Ok(GeofenceResponse { geofences })
     }
 
-    async fn create_geofence(&self, options: &GeofenceCreateOptions) -> EveryMapResult<GeofenceResult> {
+    async fn create_geofence(
+        &self,
+        options: &GeofenceCreateOptions,
+    ) -> EveryMapResult<GeofenceResult> {
         let mut body = serde_json::Map::new();
 
         if let Some(tag) = &options.tag {
             body.insert("tag".to_string(), serde_json::Value::String(tag.clone()));
         }
-        if let Some(eid) = &options.external_id {
-            body.insert("externalId".to_string(), serde_json::Value::String(eid.clone()));
+        if let Some(external_id) = &options.external_id {
+            body.insert(
+                "externalId".to_string(),
+                serde_json::Value::String(external_id.clone()),
+            );
         }
         if let Some(desc) = &options.description {
-            body.insert("description".to_string(), serde_json::Value::String(desc.clone()));
+            body.insert(
+                "description".to_string(),
+                serde_json::Value::String(desc.clone()),
+            );
         }
-        if let Some(gt) = &options.geofence_type {
-            let type_str = match gt {
+        if let Some(geofence_type) = &options.geofence_type {
+            let type_str = match geofence_type {
                 GeofenceType::Circle => "circle",
                 GeofenceType::Polygon => "polygon",
                 GeofenceType::Isochrone => "isochrone",
             };
-            body.insert("type".to_string(), serde_json::Value::String(type_str.to_string()));
+            body.insert(
+                "type".to_string(),
+                serde_json::Value::String(type_str.to_string()),
+            );
         }
         if let Some(center) = &options.center {
-            body.insert("coordinates".to_string(), serde_json::json!([center.lng, center.lat]));
+            body.insert(
+                "coordinates".to_string(),
+                serde_json::json!([center.lng, center.lat]),
+            );
         }
         if let Some(radius) = options.radius {
-            body.insert("radius".to_string(), serde_json::Value::Number(serde_json::Number::from_f64(radius).unwrap_or(serde_json::Number::from(0))));
+            body.insert(
+                "radius".to_string(),
+                serde_json::Value::Number(
+                    serde_json::Number::from_f64(radius).unwrap_or(serde_json::Number::from(0)),
+                ),
+            );
         }
         if let Some(enabled) = options.enabled {
             body.insert("enabled".to_string(), serde_json::Value::Bool(enabled));
         }
         if let Some(metadata) = &options.metadata {
-            body.insert("metadata".to_string(), serde_json::to_value(metadata).unwrap_or_default());
+            body.insert(
+                "metadata".to_string(),
+                serde_json::to_value(metadata).unwrap_or_default(),
+            );
         }
         if let Some(geometry) = &options.geometry {
             body.insert("geometry".to_string(), geometry.clone());
         }
 
-        let url = if let (Some(tag), Some(eid)) = (&options.tag, &options.external_id) {
-            format!("{}/{}/{}", self.list_url, tag, eid)
+        let url = if let (Some(tag), Some(external_id)) = (&options.tag, &options.external_id) {
+            format!("{}/{}/{}", self.list_url, tag, external_id)
         } else {
             self.list_url.clone()
         };
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::PUT, &url)
             .json(&serde_json::Value::Object(body));
 
@@ -255,7 +295,10 @@ mod tests {
         gf.gf_type = Some("isochrone".to_string());
         let result: GeofenceResult = gf.into();
 
-        assert!(matches!(result.geofence_type, Some(GeofenceType::Isochrone)));
+        assert!(matches!(
+            result.geofence_type,
+            Some(GeofenceType::Isochrone)
+        ));
     }
 
     #[test]

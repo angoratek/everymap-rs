@@ -1,13 +1,12 @@
 pub mod types;
 
+use crate::client::HereClient;
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    Geocoder, GeocodeOptions, ReverseGeocodeOptions,
-    SearchResponse, SearchResult,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult,
 };
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::HereClient;
 use std::sync::Arc;
 
 // Re-export all public types from the types module
@@ -86,16 +85,15 @@ impl HereGeocoder {
     }
 
     /// Discover places/POIs matching a query.
-    pub async fn discover(
-        &self,
-        req: DiscoverRequest,
-    ) -> EveryMapResult<HereDiscoverResponse> {
+    pub async fn discover(&self, req: DiscoverRequest) -> EveryMapResult<HereDiscoverResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
         params.push(("q", req.query));
         apply_discover_options(&req.options, &mut params);
 
         let url = format!("{}/discover", self.discover_base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereDiscoverResponse = self.client.request_json(builder).await?;
@@ -113,7 +111,9 @@ impl HereGeocoder {
         apply_autosuggest_options(&req.options, &mut params);
 
         let url = format!("{}/autosuggest", self.autosuggest_base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereAutosuggestResponse = self.client.request_json(builder).await?;
@@ -143,8 +143,7 @@ fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
         // Use bounding box as `in` filter
         here_opts.in_filter = Some(format!(
             "bbox:{},{},{},{}",
-            bb.south_west.lng, bb.south_west.lat,
-            bb.north_east.lng, bb.north_east.lat
+            bb.south_west.lng, bb.south_west.lat, bb.north_east.lng, bb.north_east.lat
         ));
     }
 
@@ -230,7 +229,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("types").and_then(|v| v.as_array()) {
-        let parsed: Vec<SearchType> = v.iter()
+        let parsed: Vec<SearchType> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -238,7 +238,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("with").and_then(|v| v.as_array()) {
-        let parsed: Vec<WithFeature> = v.iter()
+        let parsed: Vec<WithFeature> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -246,7 +247,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("show").and_then(|v| v.as_array()) {
-        let parsed: Vec<ShowFeature> = v.iter()
+        let parsed: Vec<ShowFeature> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -254,7 +256,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("show_map_references").and_then(|v| v.as_array()) {
-        let parsed: Vec<ShowMapReference> = v.iter()
+        let parsed: Vec<ShowMapReference> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -262,7 +265,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("show_nav_attributes").and_then(|v| v.as_array()) {
-        let parsed: Vec<ShowNavAttribute> = v.iter()
+        let parsed: Vec<ShowNavAttribute> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -270,7 +274,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("show_related").and_then(|v| v.as_array()) {
-        let parsed: Vec<ShowRelated> = v.iter()
+        let parsed: Vec<ShowRelated> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -278,7 +283,8 @@ fn extract_here_geocode_extra(
         }
     }
     if let Some(v) = obj.get("show_translations").and_then(|v| v.as_array()) {
-        let parsed: Vec<ShowTranslation> = v.iter()
+        let parsed: Vec<ShowTranslation> = v
+            .iter()
             .filter_map(|item| serde_json::from_value(item.clone()).ok())
             .collect();
         if !parsed.is_empty() {
@@ -304,68 +310,75 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
     if let Some(limit) = opts.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(pv) = &opts.political_view {
-        params.push(("politicalView", pv.clone()));
+    if let Some(political_view) = &opts.political_view {
+        params.push(("politicalView", political_view.clone()));
     }
-    if let Some(anm) = &opts.address_names_mode {
-        let val = crate::util::enum_as_str(anm);
-        params.push(("addressNamesMode", val));
+    if let Some(address_names_mode) = &opts.address_names_mode {
+        let value = crate::util::enum_as_str(address_names_mode);
+        params.push(("addressNamesMode", value));
     }
-    if let Some(anv) = &opts.address_names_variant {
-        params.push(("addressNamesVariant", anv.clone()));
+    if let Some(address_names_variant) = &opts.address_names_variant {
+        params.push(("addressNamesVariant", address_names_variant.clone()));
     }
-    if let Some(pcm) = &opts.postal_code_mode {
-        let val = crate::util::enum_as_str(pcm);
-        params.push(("postalCodeMode", val));
+    if let Some(postal_code_mode) = &opts.postal_code_mode {
+        let value = crate::util::enum_as_str(postal_code_mode);
+        params.push(("postalCodeMode", value));
     }
     if let Some(types) = &opts.types {
-        let val = types.iter()
+        let value = types
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("types", val));
+        params.push(("types", value));
     }
     if let Some(with) = &opts.with {
-        let val = with.iter()
+        let value = with
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("with", val));
+        params.push(("with", value));
     }
     if let Some(show) = &opts.show {
-        let val = show.iter()
+        let value = show
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("show", val));
+        params.push(("show", value));
     }
-    if let Some(smr) = &opts.show_map_references {
-        let val = smr.iter()
+    if let Some(show_map_references) = &opts.show_map_references {
+        let value = show_map_references
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("showMapReferences", val));
+        params.push(("showMapReferences", value));
     }
-    if let Some(sna) = &opts.show_nav_attributes {
-        let val = sna.iter()
+    if let Some(show_nav_attributes) = &opts.show_nav_attributes {
+        let value = show_nav_attributes
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("showNavAttributes", val));
+        params.push(("showNavAttributes", value));
     }
-    if let Some(sr) = &opts.show_related {
-        let val = sr.iter()
+    if let Some(show_related) = &opts.show_related {
+        let value = show_related
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("showRelated", val));
+        params.push(("showRelated", value));
     }
-    if let Some(st) = &opts.show_translations {
-        let val = st.iter()
+    if let Some(show_translations) = &opts.show_translations {
+        let value = show_translations
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("showTranslations", val));
+        params.push(("showTranslations", value));
     }
     if let Some(rid) = &opts.request_id {
         params.push(("X-Request-ID", rid.clone()));
@@ -386,37 +399,40 @@ fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, St
     if let Some(limit) = opts.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(pv) = &opts.political_view {
-        params.push(("politicalView", pv.clone()));
+    if let Some(political_view) = &opts.political_view {
+        params.push(("politicalView", political_view.clone()));
     }
     if let Some(types) = &opts.types {
-        let val = types.iter()
+        let value = types
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("types", val));
+        params.push(("types", value));
     }
     if let Some(with) = &opts.with {
-        let val = with.iter()
+        let value = with
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("with", val));
+        params.push(("with", value));
     }
     if let Some(show) = &opts.show {
-        let val = show.iter()
+        let value = show
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("show", val));
+        params.push(("show", value));
     }
     if let Some(mobility) = &opts.mobility_mode {
-        let val = crate::util::enum_as_str(mobility);
-        params.push(("mobilityMode", val));
+        let value = crate::util::enum_as_str(mobility);
+        params.push(("mobilityMode", value));
     }
     if let Some(ranking) = &opts.ranking {
-        let val = crate::util::enum_as_str(ranking);
-        params.push(("ranking", val));
+        let value = crate::util::enum_as_str(ranking);
+        params.push(("ranking", value));
     }
     if let Some(offset) = opts.offset {
         params.push(("offset", offset.to_string()));
@@ -437,44 +453,48 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
     if let Some(limit) = opts.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(pv) = &opts.political_view {
-        params.push(("politicalView", pv.clone()));
+    if let Some(political_view) = &opts.political_view {
+        params.push(("politicalView", political_view.clone()));
     }
     if let Some(types) = &opts.types {
-        let val = types.iter()
+        let value = types
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("types", val));
+        params.push(("types", value));
     }
     if let Some(with) = &opts.with {
-        let val = with.iter()
+        let value = with
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("with", val));
+        params.push(("with", value));
     }
     if let Some(show) = &opts.show {
-        let val = show.iter()
+        let value = show
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("show", val));
+        params.push(("show", value));
     }
-    if let Some(smr) = &opts.show_map_references {
-        let val = smr.iter()
+    if let Some(show_map_references) = &opts.show_map_references {
+        let value = show_map_references
+            .iter()
             .map(crate::util::enum_as_str)
             .collect::<Vec<_>>()
             .join(",");
-        params.push(("showMapReferences", val));
+        params.push(("showMapReferences", value));
     }
     if let Some(mobility) = &opts.mobility_mode {
-        let val = crate::util::enum_as_str(mobility);
-        params.push(("mobilityMode", val));
+        let value = crate::util::enum_as_str(mobility);
+        params.push(("mobilityMode", value));
     }
     if let Some(ranking) = &opts.ranking {
-        let val = crate::util::enum_as_str(ranking);
-        params.push(("ranking", val));
+        let value = crate::util::enum_as_str(ranking);
+        params.push(("ranking", value));
     }
     if let Some(terms_limit) = opts.terms_limit {
         params.push(("termsLimit", terms_limit.to_string()));
@@ -486,7 +506,11 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
 
 #[async_trait]
 impl Geocoder for HereGeocoder {
-    async fn geocode(&self, query: &str, options: &GeocodeOptions) -> EveryMapResult<SearchResponse> {
+    async fn geocode(
+        &self,
+        query: &str,
+        options: &GeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
         let mut params: Vec<(&str, String)> = Vec::new();
 
         if !query.is_empty() {
@@ -497,7 +521,9 @@ impl Geocoder for HereGeocoder {
         apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/geocode", self.geocode_base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereSearchResponse = self.client.request_json(builder).await?;
@@ -507,16 +533,21 @@ impl Geocoder for HereGeocoder {
         Ok(SearchResponse { items })
     }
 
-    async fn reverse_geocode(&self, coordinate: &Coordinate, options: &ReverseGeocodeOptions) -> EveryMapResult<SearchResponse> {
-        let mut params: Vec<(&str, String)> = vec![
-            ("at", format!("{},{}", coordinate.lat, coordinate.lng)),
-        ];
+    async fn reverse_geocode(
+        &self,
+        coordinate: &Coordinate,
+        options: &ReverseGeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
+        let mut params: Vec<(&str, String)> =
+            vec![("at", format!("{},{}", coordinate.lat, coordinate.lng))];
 
         let here_opts = reverse_geocode_options_from_core(options);
         apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/revgeocode", self.reverse_geocode_base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereSearchResponse = self.client.request_json(builder).await?;

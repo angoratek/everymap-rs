@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::domain::geo::HereLatLng;
+use serde::{Deserialize, Serialize};
 
 /// Full response from the HERE Routing API v8.
 #[derive(Debug, Clone, Serialize, Deserialize)]

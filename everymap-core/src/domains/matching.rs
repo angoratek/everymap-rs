@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::domains::routing::TransportMode;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for GPS trace matching to the road network.
@@ -47,7 +47,11 @@ pub struct TraceResponse {
 
 #[async_trait]
 pub trait RouteMatcher: Send + Sync {
-    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse>;
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse>;
 }
 
 #[cfg(test)]
@@ -151,7 +155,10 @@ mod tests {
         };
         let json = serde_json::to_string(&opts).unwrap();
         let back: MatchingOptions = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.transport_mode, Some(crate::domains::routing::TransportMode::Bicycle));
+        assert_eq!(
+            back.transport_mode,
+            Some(crate::domains::routing::TransportMode::Bicycle)
+        );
         assert_eq!(back.heading, Some(270.0));
         assert_eq!(back.avoid.len(), 1);
         assert!(back.provider_extra.is_some());

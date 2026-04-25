@@ -151,11 +151,11 @@ cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary rev
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary route --origin "52.52,13.40" --destination "48.85,2.35"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary traffic --lat 52.52 --lng 13.40
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary isoline --lat 52.52 --lng 13.40 --range 1000
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary match-route --trace "52.5,13.3;52.6,13.4"
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary match-route --trace "52.5164,13.3777;52.5170,13.3900;52.5175,13.3950" --transport car
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tour --stops "52.5163,13.3777" "52.5165,13.3810" "52.5200,13.4050"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary position
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --z 14 --x 4494 --y 2832
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary attributes --bbox "52.0,13.0;52.5,13.5" --layer roads
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --z 14 --x 4494 --y 2832 --layer base
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 
 # --- TomTom (8 domains) ---
@@ -164,7 +164,7 @@ cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary r
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary route --origin "52.52,13.40" --destination "48.85,2.35" --transport car
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary traffic --lat 52.52 --lng 13.40
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary isoline --lat 52.52 --lng 13.40 --range 1000
-cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405"
+cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405" --transport car
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary tour --stops "52.5163,13.3777" "52.5165,13.3810" "52.5200,13.4050"
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary tile --z 14 --x 8800 --y 5374
 cargo run -p everymap-cli -- --provider tomtom --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
@@ -174,7 +174,7 @@ cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary g
 cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary reverse-geocode --lat 52.52 --lng 13.40
 cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary route --origin "52.52,13.40" --destination "48.85,2.35" --transport car
 cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary isoline --lat 52.52 --lng 13.40 --range 30
-cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405"
+cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405" --transport car
 cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary tile --z 14 --x 8800 --y 5374
 cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 
@@ -182,7 +182,7 @@ cargo run -p everymap-cli -- --provider mapbox --api-key $KEY --output summary m
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary geocode "Berlin"
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary reverse-geocode --lat 52.52 --lng 13.40
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary route --origin "52.52,13.40" --destination "48.85,2.35" --transport car
-cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405"
+cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary match-route --trace "52.520,13.395;52.521,13.397;52.522,13.400;52.525,13.405" --transport car
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary position
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 
@@ -190,7 +190,7 @@ cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary m
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary geocode "New York"
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary reverse-geocode --lat 40.71 --lng=-74.01
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary route --origin "40.71,-74.01" --destination "42.36,-71.06" --transport car
-cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary match-route --trace "40.71,-74.01;40.72,-74.00;40.73,-73.99"
+cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary match-route --trace "40.71,-74.01;40.72,-74.00;40.73,-73.99" --transport car
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary tour --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary geofence-search --lat 40.71 --lng=-74.01
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary fraud-check --device-id dev_1 --lat 40.71 --lng=-74.01

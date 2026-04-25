@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use super::coordinate::Coordinate;
+use serde::{Deserialize, Serialize};
 
 /// Represents a geospatial bounding box defined by two coordinates.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

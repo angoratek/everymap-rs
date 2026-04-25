@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_mapbox::MapBoxMapImageProvider;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::imaging::{ImageOptions, MapImageProvider};
+use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxMapImageProvider;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_imaging_contract() {
@@ -15,15 +15,17 @@ async fn test_imaging_contract() {
     let image_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
     Mock::given(method("GET"))
-        .and(path("/styles/v1/mapbox/streets-v12/static/13.405,52.52,10/512x512@2x"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .set_body_raw(image_data.clone(), "image/png"),
-        )
+        .and(path(
+            "/styles/v1/mapbox/streets-v12/static/13.405,52.52,10/512x512@2x",
+        ))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(image_data.clone(), "image/png"))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let imaging = MapBoxMapImageProvider::with_base_url(client, server.uri());
 
@@ -34,7 +36,10 @@ async fn test_imaging_contract() {
         provider_extra: None,
     };
 
-    let res = imaging.get_image(&center, 10, (512, 512), &opts).await.unwrap();
+    let res = imaging
+        .get_image(&center, 10, (512, 512), &opts)
+        .await
+        .unwrap();
 
     assert_eq!(res.data.len(), 8);
     assert_eq!(res.content_type, Some("image/png".to_string()));

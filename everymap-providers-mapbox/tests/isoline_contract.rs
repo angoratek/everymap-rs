@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, RangeType};
-use everymap_core::types::Coordinate;
-use everymap_providers_mapbox::MapBoxIsoline;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::isoline::{IsolineOptions, IsolineProvider, RangeType};
+use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxIsoline;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_isoline_contract() {
@@ -34,7 +34,10 @@ async fn test_isoline_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let isoline = MapBoxIsoline::with_base_url(client, server.uri());
 

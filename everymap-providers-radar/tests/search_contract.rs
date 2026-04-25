@@ -1,13 +1,14 @@
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
-use everymap_providers_radar::{RadarGeocoder, RadarClient};
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_providers_radar::{RadarClient, RadarGeocoder};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_geocoder_mock() -> (MockServer, RadarGeocoder) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> =
+        Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
     let client = Arc::new(RadarClient::new(auth));
     let geocoder = RadarGeocoder::with_base_url(
         client,
@@ -46,7 +47,10 @@ async fn test_geocode_contract() {
         .mount(&server)
         .await;
 
-    let result = geocoder.geocode("Brandenburg Gate", &GeocodeOptions::default()).await.unwrap();
+    let result = geocoder
+        .geocode("Brandenburg Gate", &GeocodeOptions::default())
+        .await
+        .unwrap();
     assert_eq!(result.items.len(), 1);
     let item = &result.items[0];
     assert!((item.coordinate.lat - 52.5163).abs() < 0.001);
@@ -80,7 +84,10 @@ async fn test_reverse_geocode_contract() {
         .await;
 
     let coord = everymap_core::types::Coordinate::new(52.5163, 13.3777).unwrap();
-    let result = geocoder.reverse_geocode(&coord, &ReverseGeocodeOptions::default()).await.unwrap();
+    let result = geocoder
+        .reverse_geocode(&coord, &ReverseGeocodeOptions::default())
+        .await
+        .unwrap();
     assert_eq!(result.items.len(), 1);
     assert!(result.items[0].distance.is_some());
 }

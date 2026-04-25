@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::{Coordinate, BoundingBox, Address};
 use crate::error::EveryMapResult;
+use crate::types::{Address, BoundingBox, Coordinate};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for forward geocoding (address → coordinate).
@@ -90,8 +90,16 @@ pub struct SearchResponse {
 /// are available through extension traits in provider crates.
 #[async_trait]
 pub trait Geocoder: Send + Sync {
-    async fn geocode(&self, query: &str, options: &GeocodeOptions) -> EveryMapResult<SearchResponse>;
-    async fn reverse_geocode(&self, coordinate: &Coordinate, options: &ReverseGeocodeOptions) -> EveryMapResult<SearchResponse>;
+    async fn geocode(
+        &self,
+        query: &str,
+        options: &GeocodeOptions,
+    ) -> EveryMapResult<SearchResponse>;
+    async fn reverse_geocode(
+        &self,
+        coordinate: &Coordinate,
+        options: &ReverseGeocodeOptions,
+    ) -> EveryMapResult<SearchResponse>;
 }
 
 #[cfg(test)]

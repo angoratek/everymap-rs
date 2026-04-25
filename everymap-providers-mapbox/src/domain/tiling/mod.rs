@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use everymap_core::domains::tiling::{TileProvider, TileOptions, TileResponse};
-use everymap_core::error::EveryMapResult;
 use crate::client::MapBoxClient;
+use async_trait::async_trait;
+use everymap_core::domains::tiling::{TileOptions, TileProvider, TileResponse};
+use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
 const MAP_BASE_URL: &str = "https://api.mapbox.com";
@@ -27,18 +27,32 @@ impl MapBoxTileProvider {
 
 #[async_trait]
 impl TileProvider for MapBoxTileProvider {
-    async fn get_tile(&self, z: u32, x: u32, y: u32, options: &TileOptions) -> EveryMapResult<TileResponse> {
-        let tileset_id = options.provider_extra.as_ref()
-            .and_then(|e| e.get("tileset_id")).and_then(|v| v.as_str()).unwrap_or("mapbox.mapbox-streets-v8");
+    async fn get_tile(
+        &self,
+        z: u32,
+        x: u32,
+        y: u32,
+        options: &TileOptions,
+    ) -> EveryMapResult<TileResponse> {
+        let tileset_id = options
+            .provider_extra
+            .as_ref()
+            .and_then(|e| e.get("tileset_id"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("mapbox.mapbox-streets-v8");
         let format = options.format.as_deref().unwrap_or("mvt");
 
-        let url = format!("{}/v4/{}/{}/{}/{}.{}", self.base_url, tileset_id, z, x, y, format);
+        let url = format!(
+            "{}/v4/{}/{}/{}/{}.{}",
+            self.base_url, tileset_id, z, x, y, format
+        );
 
         let builder = self.client.build_request(reqwest::Method::GET, &url);
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());

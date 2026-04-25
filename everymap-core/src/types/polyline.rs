@@ -20,24 +20,18 @@ impl FlexiblePolyline {
             .map_err(|e| format!("Failed to decode flexible polyline: {:?}", e))?;
 
         match decoded {
-            flexpolyline::Polyline::Data2d { coordinates, .. } => {
-                coordinates
-                    .into_iter()
-                    .map(|(lat, lng)| {
-                        Coordinate::new(lat, lng)
-                            .map_err(|e| format!("Invalid coordinate: {}", e))
-                    })
-                    .collect()
-            }
-            flexpolyline::Polyline::Data3d { coordinates, .. } => {
-                coordinates
-                    .into_iter()
-                    .map(|(lat, lng, _)| {
-                        Coordinate::new(lat, lng)
-                            .map_err(|e| format!("Invalid coordinate: {}", e))
-                    })
-                    .collect()
-            }
+            flexpolyline::Polyline::Data2d { coordinates, .. } => coordinates
+                .into_iter()
+                .map(|(lat, lng)| {
+                    Coordinate::new(lat, lng).map_err(|e| format!("Invalid coordinate: {}", e))
+                })
+                .collect(),
+            flexpolyline::Polyline::Data3d { coordinates, .. } => coordinates
+                .into_iter()
+                .map(|(lat, lng, _)| {
+                    Coordinate::new(lat, lng).map_err(|e| format!("Invalid coordinate: {}", e))
+                })
+                .collect(),
         }
     }
 
@@ -48,37 +42,36 @@ impl FlexiblePolyline {
             return Ok(String::new());
         }
 
-        let coords: Vec<(f64, f64)> = coordinates
-            .iter()
-            .map(|c| (c.lat, c.lng))
-            .collect();
+        let coords: Vec<(f64, f64)> = coordinates.iter().map(|c| (c.lat, c.lng)).collect();
 
         let polyline = flexpolyline::Polyline::Data2d {
             coordinates: coords,
             precision2d: flexpolyline::Precision::Digits5,
         };
 
-        polyline.encode()
+        polyline
+            .encode()
             .map_err(|e| format!("Failed to encode flexible polyline: {:?}", e))
     }
 
     /// Encodes with a custom precision level.
-    pub fn encode_with_precision(coordinates: &[Coordinate], precision: flexpolyline::Precision) -> Result<String, String> {
+    pub fn encode_with_precision(
+        coordinates: &[Coordinate],
+        precision: flexpolyline::Precision,
+    ) -> Result<String, String> {
         if coordinates.is_empty() {
             return Ok(String::new());
         }
 
-        let coords: Vec<(f64, f64)> = coordinates
-            .iter()
-            .map(|c| (c.lat, c.lng))
-            .collect();
+        let coords: Vec<(f64, f64)> = coordinates.iter().map(|c| (c.lat, c.lng)).collect();
 
         let polyline = flexpolyline::Polyline::Data2d {
             coordinates: coords,
             precision2d: precision,
         };
 
-        polyline.encode()
+        polyline
+            .encode()
             .map_err(|e| format!("Failed to encode flexible polyline: {:?}", e))
     }
 }
@@ -138,9 +131,7 @@ mod tests {
 
     #[test]
     fn test_encode_decode_single_coordinate() {
-        let coords = vec![
-            Coordinate::new(50.10228, 8.69821).unwrap(),
-        ];
+        let coords = vec![Coordinate::new(50.10228, 8.69821).unwrap()];
         let encoded = FlexiblePolyline::encode(&coords).unwrap();
         assert!(!encoded.is_empty());
         let decoded = FlexiblePolyline::decode(&encoded).unwrap();
@@ -170,10 +161,9 @@ mod tests {
             Coordinate::new(50.10228, 8.69821).unwrap(),
             Coordinate::new(50.10201, 8.69567).unwrap(),
         ];
-        let encoded = FlexiblePolyline::encode_with_precision(
-            &coords,
-            flexpolyline::Precision::Digits7,
-        ).unwrap();
+        let encoded =
+            FlexiblePolyline::encode_with_precision(&coords, flexpolyline::Precision::Digits7)
+                .unwrap();
         assert!(!encoded.is_empty());
 
         // Decode should recover approximately the same coordinates
@@ -184,13 +174,10 @@ mod tests {
 
     #[test]
     fn test_encode_with_precision_digits6() {
-        let coords = vec![
-            Coordinate::new(47.5, 8.5).unwrap(),
-        ];
-        let encoded = FlexiblePolyline::encode_with_precision(
-            &coords,
-            flexpolyline::Precision::Digits6,
-        ).unwrap();
+        let coords = vec![Coordinate::new(47.5, 8.5).unwrap()];
+        let encoded =
+            FlexiblePolyline::encode_with_precision(&coords, flexpolyline::Precision::Digits6)
+                .unwrap();
         assert!(!encoded.is_empty());
         let decoded = FlexiblePolyline::decode(&encoded).unwrap();
         assert_eq!(decoded.len(), 1);
@@ -228,9 +215,7 @@ mod tests {
 
     #[test]
     fn test_encode_decode_zero_coordinates() {
-        let coords = vec![
-            Coordinate::new(0.0, 0.0).unwrap(),
-        ];
+        let coords = vec![Coordinate::new(0.0, 0.0).unwrap()];
         let encoded = FlexiblePolyline::encode(&coords).unwrap();
         assert!(!encoded.is_empty());
         let decoded = FlexiblePolyline::decode(&encoded).unwrap();
@@ -261,10 +246,8 @@ mod tests {
 
     #[test]
     fn test_encode_with_precision_empty_returns_empty() {
-        let encoded = FlexiblePolyline::encode_with_precision(
-            &[],
-            flexpolyline::Precision::Digits7,
-        ).unwrap();
+        let encoded =
+            FlexiblePolyline::encode_with_precision(&[], flexpolyline::Precision::Digits7).unwrap();
         assert!(encoded.is_empty());
     }
 }

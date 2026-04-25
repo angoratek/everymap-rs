@@ -85,7 +85,12 @@ mod tests {
 
     #[test]
     fn test_radar_travel_mode_serde() {
-        let modes = [RadarTravelMode::Car, RadarTravelMode::Truck, RadarTravelMode::Foot, RadarTravelMode::Bike];
+        let modes = [
+            RadarTravelMode::Car,
+            RadarTravelMode::Truck,
+            RadarTravelMode::Foot,
+            RadarTravelMode::Bike,
+        ];
         for mode in &modes {
             let json = serde_json::to_string(mode).unwrap();
             let back: RadarTravelMode = serde_json::from_str(&json).unwrap();
@@ -95,7 +100,12 @@ mod tests {
 
     #[test]
     fn test_radar_avoid_serde() {
-        let avoids = [RadarAvoid::Tolls, RadarAvoid::Highways, RadarAvoid::Ferries, RadarAvoid::BorderCrossings];
+        let avoids = [
+            RadarAvoid::Tolls,
+            RadarAvoid::Highways,
+            RadarAvoid::Ferries,
+            RadarAvoid::BorderCrossings,
+        ];
         for avoid in &avoids {
             let json = serde_json::to_string(avoid).unwrap();
             let back: RadarAvoid = serde_json::from_str(&json).unwrap();

@@ -1,7 +1,7 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::domains::routing::TransportMode;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Type of range for isoline calculation.
@@ -49,7 +49,12 @@ pub struct IsolineResponse {
 
 #[async_trait]
 pub trait IsolineProvider: Send + Sync {
-    async fn get_isoline(&self, center: &Coordinate, range: f64, options: &IsolineOptions) -> EveryMapResult<IsolineResponse>;
+    async fn get_isoline(
+        &self,
+        center: &Coordinate,
+        range: f64,
+        options: &IsolineOptions,
+    ) -> EveryMapResult<IsolineResponse>;
 }
 
 #[cfg(test)]
@@ -129,7 +134,10 @@ mod tests {
     fn test_isoline_response_serde_roundtrip() {
         let response = IsolineResponse {
             isolines: vec![IsolineResult {
-                polygon: vec![Coordinate::new(52.5, 13.4).unwrap(), Coordinate::new(52.6, 13.5).unwrap()],
+                polygon: vec![
+                    Coordinate::new(52.5, 13.4).unwrap(),
+                    Coordinate::new(52.6, 13.5).unwrap(),
+                ],
                 range: Some(5000.0),
             }],
             raw: Some(serde_json::json!({"center": "52.5,13.4"})),
@@ -162,7 +170,10 @@ mod tests {
             range_type: Some(RangeType::Consumption),
             transport_mode: Some(crate::domains::routing::TransportMode::Truck),
             departure_time: Some("2024-01-01T08:00:00".to_string()),
-            avoid: vec![crate::domains::routing::AvoidType::Tolls, crate::domains::routing::AvoidType::Highways],
+            avoid: vec![
+                crate::domains::routing::AvoidType::Tolls,
+                crate::domains::routing::AvoidType::Highways,
+            ],
             provider_extra: Some(serde_json::json!({"optimize_for": "quality"})),
         };
         let json = serde_json::to_string(&opts).unwrap();

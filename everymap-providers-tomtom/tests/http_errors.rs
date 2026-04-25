@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions};
-use everymap_core::error::EveryMapError;
-use everymap_providers_tomtom::TomTomGeocoder;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder};
+use everymap_core::error::EveryMapError;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_unauthorized() {
@@ -19,7 +19,10 @@ async fn test_geocode_unauthorized() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("invalid-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "invalid-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
@@ -43,7 +46,10 @@ async fn test_geocode_forbidden() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
@@ -65,12 +71,15 @@ async fn test_geocode_rate_limited() {
                 .insert_header("Retry-After", "60")
                 .set_body_json(serde_json::json!({
                     "error": "Too Many Requests"
-                }))
+                })),
         )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
@@ -94,7 +103,10 @@ async fn test_geocode_server_error() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 

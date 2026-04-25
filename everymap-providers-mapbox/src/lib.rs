@@ -8,37 +8,33 @@ pub use client::MapBoxClient;
 pub use ext::{MapBoxGeocoderExt, MapBoxRouterExt};
 
 // Shared types
-pub use domain::geo::{MapBoxLatLng, MapBoxBounds};
+pub use domain::geo::{MapBoxBounds, MapBoxLatLng};
 
 // Search (Geocoding API)
 pub use domain::search::{
-    MapBoxGeocoder,
-    MapBoxSearchResponse, MapBoxFeature, MapBoxProperties, MapBoxCoordinates,
-    MapBoxContext, MapBoxContextEntry, MapBoxGeometry,
+    MapBoxContext, MapBoxContextEntry, MapBoxCoordinates, MapBoxFeature, MapBoxGeocoder,
+    MapBoxGeometry, MapBoxProperties, MapBoxSearchResponse,
 };
 
 // Routing (Directions API)
 pub use domain::routing::{
-    MapBoxRouter,
-    MapBoxRouteResponse, MapBoxRoute, MapBoxRouteLeg, MapBoxRouteStep, MapBoxManeuver, MapBoxWaypoint,
+    MapBoxManeuver, MapBoxRoute, MapBoxRouteLeg, MapBoxRouteResponse, MapBoxRouteStep,
+    MapBoxRouter, MapBoxWaypoint,
 };
 
 // Isoline (Isochrone API)
 pub use domain::isoline::{
-    MapBoxIsoline,
-    MapBoxIsochroneResponse, MapBoxIsochroneFeature, MapBoxIsochroneProperties,
+    MapBoxIsochroneFeature, MapBoxIsochroneProperties, MapBoxIsochroneResponse, MapBoxIsoline,
 };
 
 // Matching (Map Matching API)
 pub use domain::matching::{
-    MapBoxRouteMatcher,
-    MapBoxMatchResponse, MapBoxMatching, MapBoxTracepoint,
+    MapBoxMatchResponse, MapBoxMatching, MapBoxRouteMatcher, MapBoxTracepoint,
 };
 
 // Tour (Optimization API)
 pub use domain::tour::{
-    MapBoxTourPlanner,
-    MapBoxOptimizationResponse, MapBoxTrip, MapBoxOptWaypoint,
+    MapBoxOptWaypoint, MapBoxOptimizationResponse, MapBoxTourPlanner, MapBoxTrip,
 };
 
 // Tiling (Vector/Raster Tiles API)
@@ -48,4 +44,4 @@ pub use domain::tiling::MapBoxTileProvider;
 pub use domain::imaging::MapBoxMapImageProvider;
 
 // Unsupported domains
-pub use domain::unsupported::{MapBoxTraffic, MapBoxPositioner, MapBoxAttributeProvider};
+pub use domain::unsupported::{MapBoxAttributeProvider, MapBoxPositioner, MapBoxTraffic};

@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::MapBoxClient;
 use async_trait::async_trait;
-use everymap_core::domains::routing::{Router, RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode};
+use everymap_core::domains::routing::{
+    RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::{Coordinate, Polyline};
-use crate::client::MapBoxClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -47,14 +49,15 @@ fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
 impl From<MapBoxRoute> for RouteResult {
     fn from(route: MapBoxRoute) -> Self {
         // Decode polyline geometry if present; otherwise extract from legs
-        let points: Vec<Coordinate> = route.geometry
+        let points: Vec<Coordinate> = route
+            .geometry
             .as_ref()
-            .and_then(|encoded| {
-                everymap_core::types::FlexiblePolyline::decode(encoded).ok()
-            })
+            .and_then(|encoded| everymap_core::types::FlexiblePolyline::decode(encoded).ok())
             .unwrap_or_default();
 
-        let steps: Vec<RouteStep> = route.legs.iter()
+        let steps: Vec<RouteStep> = route
+            .legs
+            .iter()
             .flat_map(|leg| leg.steps.iter())
             .map(|step| RouteStep {
                 instruction: step.instruction.clone().or(step.name.clone()),
@@ -87,10 +90,22 @@ impl From<MapBoxRoute> for RouteResult {
 
 #[async_trait]
 impl Router for MapBoxRouter {
-    async fn calculate_route(&self, start: &Coordinate, end: &Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse> {
-        let profile = options.transport_mode.as_ref().map(|m| transport_mode_to_profile(m)).unwrap_or("driving");
+    async fn calculate_route(
+        &self,
+        start: &Coordinate,
+        end: &Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse> {
+        let profile = options
+            .transport_mode
+            .as_ref()
+            .map(|m| transport_mode_to_profile(m))
+            .unwrap_or("driving");
         let coords = format!("{},{};{},{}", start.lng, start.lat, end.lng, end.lat);
-        let url = format!("{}/directions/v5/mapbox/{}/{}", self.base_url, profile, coords);
+        let url = format!(
+            "{}/directions/v5/mapbox/{}/{}",
+            self.base_url, profile, coords
+        );
 
         let mut params: Vec<(&str, String)> = vec![
             ("overview", "full".to_string()),
@@ -118,7 +133,9 @@ impl Router for MapBoxRouter {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxRouteResponse = self.client.request_json(builder).await?;

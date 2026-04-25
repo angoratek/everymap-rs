@@ -23,7 +23,15 @@ fn test_output_format_summary() {
 #[test]
 fn test_output_format_summary_route() {
     cli_with_key()
-        .args(["--output", "summary", "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--output",
+            "summary",
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -31,7 +39,15 @@ fn test_output_format_summary_route() {
 #[test]
 fn test_output_format_summary_reverse_geocode() {
     cli_with_key()
-        .args(["--output", "summary", "reverse-geocode", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--output",
+            "summary",
+            "reverse-geocode",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -39,7 +55,17 @@ fn test_output_format_summary_reverse_geocode() {
 #[test]
 fn test_output_format_summary_traffic() {
     cli_with_key()
-        .args(["--output", "summary", "--provider", PROVIDER_HERE, "traffic", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--output",
+            "summary",
+            "--provider",
+            PROVIDER_HERE,
+            "traffic",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -47,7 +73,9 @@ fn test_output_format_summary_traffic() {
 #[test]
 fn test_output_format_summary_isoline() {
     cli_with_key()
-        .args(["--output", "summary", "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--output", "summary", "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -55,7 +83,14 @@ fn test_output_format_summary_isoline() {
 #[test]
 fn test_output_format_summary_tour() {
     cli_with_key()
-        .args(["--output", "summary", "tour", "--stops", BERLIN_COORDS, PARIS_COORDS])
+        .args([
+            "--output",
+            "summary",
+            "tour",
+            "--stops",
+            BERLIN_COORDS,
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -63,7 +98,13 @@ fn test_output_format_summary_tour() {
 #[test]
 fn test_output_format_summary_match_route() {
     cli_with_key()
-        .args(["--output", "summary", "match-route", "--trace", TRACE_BERLIN])
+        .args([
+            "--output",
+            "summary",
+            "match-route",
+            "--trace",
+            TRACE_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -103,7 +144,14 @@ fn test_verbose_short_flag() {
 #[test]
 fn test_verbose_short_flag_route() {
     cli_with_key()
-        .args(["-v", "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "-v",
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -131,7 +179,14 @@ fn test_api_key_param_override() {
 #[test]
 fn test_api_key_param_with_google() {
     cli_with_key()
-        .args(["--provider", PROVIDER_GOOGLE, "--api-key-param", "my_custom_param", "geocode", QUERY_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_GOOGLE,
+            "--api-key-param",
+            "my_custom_param",
+            "geocode",
+            QUERY_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -139,7 +194,14 @@ fn test_api_key_param_with_google() {
 #[test]
 fn test_api_key_param_with_mapbox() {
     cli_with_key()
-        .args(["--provider", PROVIDER_MAPBOX, "--api-key-param", "token", "geocode", QUERY_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_MAPBOX,
+            "--api-key-param",
+            "token",
+            "geocode",
+            QUERY_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
@@ -359,7 +421,14 @@ fn test_fraud_check_help() {
 #[test]
 fn test_output_json_tomtom() {
     cli_with_key()
-        .args(["--provider", PROVIDER_TOMTOM, "--output", "json", "geocode", QUERY_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_TOMTOM,
+            "--output",
+            "json",
+            "geocode",
+            QUERY_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -367,7 +436,14 @@ fn test_output_json_tomtom() {
 #[test]
 fn test_output_pretty_mapbox() {
     cli_with_key()
-        .args(["--provider", PROVIDER_MAPBOX, "--output", "pretty", "geocode", QUERY_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_MAPBOX,
+            "--output",
+            "pretty",
+            "geocode",
+            QUERY_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }
@@ -375,7 +451,14 @@ fn test_output_pretty_mapbox() {
 #[test]
 fn test_output_summary_radar() {
     cli_with_key()
-        .args(["--provider", PROVIDER_RADAR, "--output", "summary", "geocode", QUERY_BERLIN])
+        .args([
+            "--provider",
+            PROVIDER_RADAR,
+            "--output",
+            "summary",
+            "geocode",
+            QUERY_BERLIN,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_UNSUPPORTED_PROVIDER).not());
 }

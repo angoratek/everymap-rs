@@ -1,5 +1,5 @@
+use crate::domain::types::{RadarGeometry, RadarLocation, RadarMeta, RadarMetric};
 use serde::{Deserialize, Serialize};
-use crate::domain::types::{RadarMeta, RadarMetric, RadarLocation, RadarGeometry};
 
 /// Response from Radar Directions API.
 #[derive(Debug, Clone, Serialize, Deserialize)]

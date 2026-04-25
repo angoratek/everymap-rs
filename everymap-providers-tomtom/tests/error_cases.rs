@@ -1,6 +1,6 @@
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider};
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_providers_tomtom::{TomTomPositioner, TomTomAttributeProvider};
+use everymap_providers_tomtom::{TomTomAttributeProvider, TomTomPositioner};
 
 #[tokio::test]
 async fn test_unsupported_positioning() {

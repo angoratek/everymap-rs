@@ -1,5 +1,5 @@
+use crate::domain::types::{RadarLocation, RadarMeta};
 use serde::{Deserialize, Serialize};
-use crate::domain::types::{RadarMeta, RadarLocation};
 
 /// Response from Radar trip creation/update.
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
-use everymap_providers_here::domain::traffic::{HereTraffic, HereFlowOptions};
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::traffic::{HereFlowOptions, HereTraffic};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_traffic_contract() {
@@ -37,7 +37,10 @@ async fn test_traffic_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
@@ -81,14 +84,20 @@ async fn test_traffic_flow_with_rich_types() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
-    let res = traffic_provider.get_flow(
-        Coordinate::new(52.52, 13.405).unwrap(),
-        &HereFlowOptions::default(),
-    ).await.unwrap();
+    let res = traffic_provider
+        .get_flow(
+            Coordinate::new(52.52, 13.405).unwrap(),
+            &HereFlowOptions::default(),
+        )
+        .await
+        .unwrap();
 
     assert_eq!(res.results.len(), 1);
     let item = &res.results[0];
@@ -133,15 +142,21 @@ async fn test_traffic_incidents() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
     use everymap_providers_here::domain::traffic::HereIncidentsOptions;
-    let res = traffic_provider.get_incidents(&HereIncidentsOptions {
-        in_filter: Some("bbox:13.0,52.0,14.0,53.0".to_string()),
-        ..Default::default()
-    }).await.unwrap();
+    let res = traffic_provider
+        .get_incidents(&HereIncidentsOptions {
+            in_filter: Some("bbox:13.0,52.0,14.0,53.0".to_string()),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
 
     assert_eq!(res.results.len(), 1);
     let incident = &res.results[0].incident;

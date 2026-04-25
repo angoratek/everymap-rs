@@ -1,8 +1,8 @@
+use crate::client::TomTomClient;
 use async_trait::async_trait;
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
+use everymap_core::domains::imaging::{ImageOptions, ImageResponse, MapImageProvider};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::TomTomClient;
 use std::sync::Arc;
 
 const MAP_BASE_URL: &str = "https://api.tomtom.com";
@@ -28,7 +28,13 @@ impl TomTomMapImageProvider {
 
 #[async_trait]
 impl MapImageProvider for TomTomMapImageProvider {
-    async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
+    async fn get_image(
+        &self,
+        center: &Coordinate,
+        zoom: u32,
+        size: (u32, u32),
+        options: &ImageOptions,
+    ) -> EveryMapResult<ImageResponse> {
         let url = format!("{}/map/1/staticimage", self.base_url);
 
         let mut params: Vec<(&str, String)> = vec![
@@ -63,12 +69,15 @@ impl MapImageProvider for TomTomMapImageProvider {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());

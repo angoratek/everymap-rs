@@ -1,13 +1,13 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
 use everymap_core::auth::ApiKeyProvider;
 use everymap_providers_google::client::GoogleClient;
-use everymap_providers_google::ext::{GooglePositionerExt, GoogleAttributeExt};
-use everymap_providers_google::GooglePositioner;
+use everymap_providers_google::ext::{GoogleAttributeExt, GooglePositionerExt};
 use everymap_providers_google::GoogleAttributeProvider;
+use everymap_providers_google::GooglePositioner;
 use everymap_providers_google::GooglePositioningOptions;
 use everymap_providers_google::GoogleWifiAccessPoint;
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // --- GooglePositionerExt tests ---
 
@@ -29,7 +29,10 @@ async fn test_positioner_ext_locate() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 
@@ -46,7 +49,9 @@ async fn test_positioner_ext_locate() {
         cell_towers: None,
     };
 
-    let result = GooglePositionerExt::locate(&positioner, google_opts).await.unwrap();
+    let result = GooglePositionerExt::locate(&positioner, google_opts)
+        .await
+        .unwrap();
 
     assert_eq!(result.location.lat, 37.4220);
     assert_eq!(result.location.lng, -122.0841);
@@ -82,13 +87,18 @@ async fn test_attribute_ext_get_speed_limits_by_ids() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
     let place_ids = vec!["ChIJext_1".to_string(), "ChIJext_2".to_string()];
-    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, None).await.unwrap();
+    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, None)
+        .await
+        .unwrap();
 
     assert_eq!(res.speed_limits.len(), 2);
     assert_eq!(res.speed_limits[0].place_id.as_deref(), Some("ChIJext_1"));
@@ -119,13 +129,18 @@ async fn test_attribute_ext_get_speed_limits_by_ids_with_units() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait with units
     let place_ids = vec!["ChIJmph_1".to_string()];
-    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, Some("MPH")).await.unwrap();
+    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, Some("MPH"))
+        .await
+        .unwrap();
 
     assert_eq!(res.speed_limits.len(), 1);
     assert_eq!(res.speed_limits[0].units.as_deref(), Some("MPH"));
@@ -165,14 +180,21 @@ async fn test_attribute_ext_get_speed_limits_along_path() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
     let res = GoogleAttributeExt::get_speed_limits_along_path(
-        &provider, "52.52,13.405|52.53,13.41", None,
-    ).await.unwrap();
+        &provider,
+        "52.52,13.405|52.53,13.41",
+        None,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(res.speed_limits.len(), 1);
     assert_eq!(res.speed_limits[0].speed_limit, Some(100.0));

@@ -1,10 +1,12 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType};
-use everymap_core::error::EveryMapResult;
-use everymap_core::types::{Coordinate, Address, BoundingBox};
 use crate::client::MapBoxClient;
+use async_trait::async_trait;
+use everymap_core::domains::search::{
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+};
+use everymap_core::error::EveryMapResult;
+use everymap_core::types::{Address, BoundingBox, Coordinate};
 use std::sync::Arc;
 
 pub use types::*;
@@ -34,7 +36,9 @@ impl MapBoxGeocoder {
 fn classify_feature_type(feature_type: &str) -> SearchResultType {
     match feature_type {
         "address" | "poi" => SearchResultType::ExactMatch,
-        "place" | "locality" | "neighborhood" | "region" | "district" | "country" => SearchResultType::Approximate,
+        "place" | "locality" | "neighborhood" | "region" | "district" | "country" => {
+            SearchResultType::Approximate
+        }
         _ => SearchResultType::Unknown,
     }
 }
@@ -53,10 +57,13 @@ impl From<MapBoxFeature> for SearchResult {
                     g.coordinates.as_ref().and_then(|coords| {
                         coords.as_array().and_then(|arr| {
                             if arr.len() >= 2 {
-                                Some(Coordinate::new(
-                                    arr[1].as_f64().unwrap_or(0.0),
-                                    arr[0].as_f64().unwrap_or(0.0),
-                                ).unwrap_or(Coordinate::ORIGIN))
+                                Some(
+                                    Coordinate::new(
+                                        arr[1].as_f64().unwrap_or(0.0),
+                                        arr[0].as_f64().unwrap_or(0.0),
+                                    )
+                                    .unwrap_or(Coordinate::ORIGIN),
+                                )
                             } else {
                                 None
                             }
@@ -67,8 +74,7 @@ impl From<MapBoxFeature> for SearchResult {
             .unwrap_or(Coordinate::ORIGIN);
 
         // Use properties.full_address as title, fallback to name
-        let title = props
-            .and_then(|p| p.full_address.clone().or(p.name.clone()));
+        let title = props.and_then(|p| p.full_address.clone().or(p.name.clone()));
 
         // Build address from context
         let mut address = Address::empty();
@@ -102,18 +108,16 @@ impl From<MapBoxFeature> for SearchResult {
         }
 
         // Use properties.bbox (v6)
-        let bounding_box = props
-            .and_then(|p| p.bbox.as_ref())
-            .and_then(|b| {
-                if b.len() >= 4 {
-                    Some(BoundingBox::new(
-                        Coordinate::new(b[3], b[2]).ok()?,  // north_east
-                        Coordinate::new(b[1], b[0]).ok()?,  // south_west
-                    ))
-                } else {
-                    None
-                }
-            });
+        let bounding_box = props.and_then(|p| p.bbox.as_ref()).and_then(|b| {
+            if b.len() >= 4 {
+                Some(BoundingBox::new(
+                    Coordinate::new(b[3], b[2]).ok()?, // north_east
+                    Coordinate::new(b[1], b[0]).ok()?, // south_west
+                ))
+            } else {
+                None
+            }
+        });
 
         let feature_type_str = props.and_then(|p| p.feature_type.as_deref().map(String::from));
         let result_type = feature_type_str
@@ -130,7 +134,11 @@ impl From<MapBoxFeature> for SearchResult {
                 if let Some(additional) = &p.additional_feature_types {
                     cats.extend(additional.iter().cloned());
                 }
-                if cats.is_empty() { None } else { Some(cats) }
+                if cats.is_empty() {
+                    None
+                } else {
+                    Some(cats)
+                }
             })
             .unwrap_or_default();
 
@@ -150,20 +158,22 @@ impl From<MapBoxFeature> for SearchResult {
 }
 
 impl From<MapBoxSearchResponse> for SearchResponse {
-    fn from(res: MapBoxSearchResponse) -> Self {
+    fn from(response: MapBoxSearchResponse) -> Self {
         SearchResponse {
-            items: res.features.into_iter().map(|f| f.into()).collect(),
+            items: response.features.into_iter().map(|f| f.into()).collect(),
         }
     }
 }
 
 #[async_trait]
 impl Geocoder for MapBoxGeocoder {
-    async fn geocode(&self, query: &str, options: &GeocodeOptions) -> EveryMapResult<SearchResponse> {
+    async fn geocode(
+        &self,
+        query: &str,
+        options: &GeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
         let url = format!("{}/search/geocode/v6/forward", self.base_url);
-        let mut params: Vec<(&str, String)> = vec![
-            ("q", query.to_string()),
-        ];
+        let mut params: Vec<(&str, String)> = vec![("q", query.to_string())];
 
         if let Some(limit) = options.limit {
             params.push(("limit", limit.to_string()));
@@ -176,9 +186,16 @@ impl Geocoder for MapBoxGeocoder {
             params.push(("country", codes));
         }
         if let Some(bbox) = &options.bounding_box {
-            params.push(("bbox", format!("{},{},{},{}",
-                bbox.south_west.lng, bbox.south_west.lat,
-                bbox.north_east.lng, bbox.north_east.lat)));
+            params.push((
+                "bbox",
+                format!(
+                    "{},{},{},{}",
+                    bbox.south_west.lng,
+                    bbox.south_west.lat,
+                    bbox.north_east.lng,
+                    bbox.north_east.lat
+                ),
+            ));
         }
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
@@ -194,14 +211,20 @@ impl Geocoder for MapBoxGeocoder {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxSearchResponse = self.client.request_json(builder).await?;
         Ok(result.into())
     }
 
-    async fn reverse_geocode(&self, coordinate: &Coordinate, options: &ReverseGeocodeOptions) -> EveryMapResult<SearchResponse> {
+    async fn reverse_geocode(
+        &self,
+        coordinate: &Coordinate,
+        options: &ReverseGeocodeOptions,
+    ) -> EveryMapResult<SearchResponse> {
         let url = format!("{}/search/geocode/v6/reverse", self.base_url);
         let mut params: Vec<(&str, String)> = vec![
             ("longitude", coordinate.lng.to_string()),
@@ -229,7 +252,9 @@ impl Geocoder for MapBoxGeocoder {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxSearchResponse = self.client.request_json(builder).await?;

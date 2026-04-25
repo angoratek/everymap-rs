@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::search::{Geocoder, GeocodeOptions};
-use everymap_core::error::EveryMapError;
-use everymap_providers_here::domain::search::HereGeocoder;
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder};
+use everymap_core::error::EveryMapError;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::search::HereGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_unauthorized() {
@@ -20,7 +20,10 @@ async fn test_geocode_unauthorized() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("invalid-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "invalid-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -45,7 +48,10 @@ async fn test_geocode_forbidden() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -68,12 +74,15 @@ async fn test_geocode_rate_limited() {
                 .insert_header("Retry-After", "60")
                 .set_body_json(serde_json::json!({
                     "error": "Too Many Requests"
-                }))
+                })),
         )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -99,7 +108,10 @@ async fn test_geocode_server_error() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -121,11 +133,16 @@ async fn test_geocode_not_found() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let result = geocoder.geocode("NonexistentPlace", &GeocodeOptions::default()).await;
+    let result = geocoder
+        .geocode("NonexistentPlace", &GeocodeOptions::default())
+        .await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::HttpError { status, .. } => assert_eq!(status, 404),

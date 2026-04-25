@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 

@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::method;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions};
-use everymap_core::error::EveryMapError;
-use everymap_providers_google::GoogleGeocoder;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder};
+use everymap_core::error::EveryMapError;
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GoogleGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::method;
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_unauthorized() {
@@ -21,7 +21,10 @@ async fn test_geocode_unauthorized() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("invalid-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "invalid-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
@@ -48,7 +51,10 @@ async fn test_geocode_forbidden() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
@@ -73,12 +79,15 @@ async fn test_geocode_rate_limited() {
                         "code": 429,
                         "message": "Too Many Requests"
                     }
-                }))
+                })),
         )
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
@@ -105,7 +114,10 @@ async fn test_geocode_server_error() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 

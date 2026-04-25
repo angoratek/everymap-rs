@@ -1,14 +1,13 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_providers_here::domain::attributes::{
-    HereAttributeProvider,
-    HereRoadAttributesResponse, HereSegmentAttributesResponse,
-    HereAdminAreasResponse, HereBuildingsResponse, HereLandmarksResponse,
-};
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider};
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::attributes::{
+    HereAdminAreasResponse, HereAttributeProvider, HereBuildingsResponse, HereLandmarksResponse,
+    HereRoadAttributesResponse, HereSegmentAttributesResponse,
+};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // --- Roads layer tests ---
 
@@ -51,7 +50,10 @@ async fn test_attributes_roads_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
@@ -127,11 +129,17 @@ async fn test_attributes_roads_typed() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
+    let res: HereRoadAttributesResponse = provider
+        .get_road_attributes("52.5,13.4,52.6,13.5", None)
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 2);
 
@@ -185,7 +193,10 @@ async fn test_attributes_roads_with_ids() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
@@ -235,11 +246,17 @@ async fn test_attributes_segments_typed() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereSegmentAttributesResponse = provider.get_segment_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
+    let res: HereSegmentAttributesResponse = provider
+        .get_segment_attributes("52.5,13.4,52.6,13.5", None)
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 1);
     let seg = &res.features[0].properties;
@@ -284,11 +301,17 @@ async fn test_attributes_admin_areas_typed() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereAdminAreasResponse = provider.get_admin_areas("52.4,13.3,52.6,13.5").await.unwrap();
+    let res: HereAdminAreasResponse = provider
+        .get_admin_areas("52.4,13.3,52.6,13.5")
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 1);
     let admin = &res.features[0].properties;
@@ -330,7 +353,10 @@ async fn test_attributes_buildings_typed() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
@@ -376,7 +402,10 @@ async fn test_attributes_landmarks_typed() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
@@ -423,11 +452,17 @@ async fn test_attributes_speed_limits() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_speed_limits("52.5,13.4,52.6,13.5").await.unwrap();
+    let res: HereRoadAttributesResponse = provider
+        .get_speed_limits("52.5,13.4,52.6,13.5")
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 1);
     let road = &res.features[0].properties;
@@ -473,7 +508,10 @@ async fn test_attributes_roads_by_ids() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
@@ -511,11 +549,17 @@ async fn test_attributes_roads_minimal_fields() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let res: HereRoadAttributesResponse = provider.get_road_attributes("52.5,13.4,52.6,13.5", None).await.unwrap();
+    let res: HereRoadAttributesResponse = provider
+        .get_road_attributes("52.5,13.4,52.6,13.5", None)
+        .await
+        .unwrap();
 
     assert_eq!(res.features.len(), 1);
     let road = &res.features[0].properties;

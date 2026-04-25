@@ -1,9 +1,11 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineResponse, IsolineResult};
-use everymap_core::error::EveryMapResult;
 use crate::client::HereClient;
+use async_trait::async_trait;
+use everymap_core::domains::isoline::{
+    IsolineOptions, IsolineProvider, IsolineResponse, IsolineResult,
+};
+use everymap_core::error::EveryMapResult;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -150,24 +152,22 @@ struct HereIsolinePolyline {
 impl From<HereIsolineLegacy> for IsolineResult {
     fn from(iso: HereIsolineLegacy) -> Self {
         // Try "polygons[].outer" first (v8 format), fall back to "polyline.outer"
-        let encoded = iso.polygons.iter()
+        let encoded = iso
+            .polygons
+            .iter()
             .filter_map(|p| p.outer.as_ref())
             .next()
             .or_else(|| iso.polyline.as_ref().and_then(|p| p.outer.as_ref()));
 
         let polygon = encoded
             .map(|enc| {
-                everymap_core::types::FlexiblePolyline::decode(enc)
-                    .unwrap_or_else(|_| vec![])
+                everymap_core::types::FlexiblePolyline::decode(enc).unwrap_or_else(|_| vec![])
             })
             .unwrap_or_default();
 
         let range = iso.range.and_then(|r| r.value);
 
-        Self {
-            range,
-            polygon,
-        }
+        Self { range, polygon }
     }
 }
 
@@ -181,12 +181,20 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
     };
 
     let transport_mode = match opts.transport_mode {
-        Some(everymap_core::domains::routing::TransportMode::Car) | None => IsolineTransportMode::Car,
+        Some(everymap_core::domains::routing::TransportMode::Car) | None => {
+            IsolineTransportMode::Car
+        }
         Some(everymap_core::domains::routing::TransportMode::Truck) => IsolineTransportMode::Truck,
-        Some(everymap_core::domains::routing::TransportMode::Pedestrian) => IsolineTransportMode::Pedestrian,
-        Some(everymap_core::domains::routing::TransportMode::Bicycle) => IsolineTransportMode::Bicycle,
+        Some(everymap_core::domains::routing::TransportMode::Pedestrian) => {
+            IsolineTransportMode::Pedestrian
+        }
+        Some(everymap_core::domains::routing::TransportMode::Bicycle) => {
+            IsolineTransportMode::Bicycle
+        }
         Some(everymap_core::domains::routing::TransportMode::Bus) => IsolineTransportMode::Bus,
-        Some(everymap_core::domains::routing::TransportMode::Scooter) => IsolineTransportMode::Scooter,
+        Some(everymap_core::domains::routing::TransportMode::Scooter) => {
+            IsolineTransportMode::Scooter
+        }
         Some(everymap_core::domains::routing::TransportMode::Taxi) => IsolineTransportMode::Taxi,
         Some(everymap_core::domains::routing::TransportMode::Unknown) => IsolineTransportMode::Car,
     };
@@ -200,13 +208,20 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
 
     // Convert avoid types
     if !opts.avoid.is_empty() {
-        here_opts.avoid = Some(opts.avoid.iter().map(|a| match a {
-            everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
-            everymap_core::domains::routing::AvoidType::Ferries => "ferries".to_string(),
-            everymap_core::domains::routing::AvoidType::Tunnels => "tunnels".to_string(),
-            everymap_core::domains::routing::AvoidType::Highways => "highways".to_string(),
-            everymap_core::domains::routing::AvoidType::DirtRoads => "dirtRoads".to_string(),
-        }).collect());
+        here_opts.avoid = Some(
+            opts.avoid
+                .iter()
+                .map(|a| match a {
+                    everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
+                    everymap_core::domains::routing::AvoidType::Ferries => "ferries".to_string(),
+                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels".to_string(),
+                    everymap_core::domains::routing::AvoidType::Highways => "highways".to_string(),
+                    everymap_core::domains::routing::AvoidType::DirtRoads => {
+                        "dirtRoads".to_string()
+                    }
+                })
+                .collect(),
+        );
     }
 
     // Extract HERE-specific options from provider_extra
@@ -225,31 +240,56 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
                 here_opts.arrival_time = Some(v.to_string());
             }
             if let Some(v) = obj.get("exclude").and_then(|v| v.as_array()) {
-                here_opts.exclude = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.exclude = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("shape").and_then(|v| v.as_str()) {
                 here_opts.shape = Some(v.to_string());
             }
             if let Some(v) = obj.get("vehicle").and_then(|v| v.as_array()) {
-                here_opts.vehicle = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.vehicle = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("consumption_model") {
                 here_opts.consumption_model = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("ev").and_then(|v| v.as_array()) {
-                here_opts.ev = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.ev = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("fuel").and_then(|v| v.as_array()) {
-                here_opts.fuel = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.fuel = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("max_speed_on_segment").and_then(|v| v.as_array()) {
-                here_opts.max_speed_on_segment = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.max_speed_on_segment = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("taxi").and_then(|v| v.as_array()) {
-                here_opts.taxi = Some(v.iter().filter_map(|i| i.as_str().map(String::from)).collect());
+                here_opts.taxi = Some(
+                    v.iter()
+                        .filter_map(|i| i.as_str().map(String::from))
+                        .collect(),
+                );
             }
             if let Some(v) = obj.get("traffic").and_then(|v| v.as_str()) {
-                here_opts.traffic = serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
+                here_opts.traffic =
+                    serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("billing_tag").and_then(|v| v.as_str()) {
                 here_opts.billing_tag = Some(v.to_string());
@@ -262,7 +302,12 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
 
 #[async_trait]
 impl IsolineProvider for HereIsoline {
-    async fn get_isoline(&self, center: &everymap_core::types::Coordinate, range: f64, options: &IsolineOptions) -> EveryMapResult<IsolineResponse> {
+    async fn get_isoline(
+        &self,
+        center: &everymap_core::types::Coordinate,
+        range: f64,
+        options: &IsolineOptions,
+    ) -> EveryMapResult<IsolineResponse> {
         let here_opts = isoline_options_from_core(options);
 
         let range_type = match here_opts.range_type {
@@ -297,11 +342,11 @@ impl IsolineProvider for HereIsoline {
         ];
 
         if let Some(opt) = &here_opts.optimize_for {
-            let val = crate::util::enum_as_str(opt);
-            params.push(("optimizeFor", val));
+            let value = crate::util::enum_as_str(opt);
+            params.push(("optimizeFor", value));
         }
-        if let Some(dt) = &here_opts.departure_time {
-            params.push(("departureTime", dt.clone()));
+        if let Some(departure_time) = &here_opts.departure_time {
+            params.push(("departureTime", departure_time.clone()));
         }
         if let Some(at) = &here_opts.arrival_time {
             params.push(("arrivalTime", at.clone()));
@@ -315,17 +360,21 @@ impl IsolineProvider for HereIsoline {
         if let Some(traffic) = &here_opts.traffic {
             params.push(("traffic", crate::util::enum_as_str(traffic)));
         }
-        if let Some(bt) = &here_opts.billing_tag {
-            params.push(("billingTag", bt.clone()));
+        if let Some(billing_tag) = &here_opts.billing_tag {
+            params.push(("billingTag", billing_tag.clone()));
         }
 
         let url = format!("{}/isolines", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let here_res: HereIsolineLegacyResponse = self.client.request_json(builder).await?;
 
-        let isolines: Vec<IsolineResult> = here_res.isolines.into_iter()
+        let isolines: Vec<IsolineResult> = here_res
+            .isolines
+            .into_iter()
             .map(IsolineResult::from)
             .collect();
 

@@ -1,16 +1,14 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::tour::{TourPlanner, TourOptions};
-use everymap_providers_here::domain::tour::{
-    HereTourPlanner,
-    TourProblem, Fleet, FleetTraffic, Profile, VehicleType, VehicleCosts,
-    VehicleShift, ShiftStart, Plan, Job, JobTasks, JobTask, JobPlace,
-    TourLocation, Objective,
-};
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::tour::{
+    Fleet, FleetTraffic, HereTourPlanner, Job, JobPlace, JobTask, JobTasks, Objective, Plan,
+    Profile, ShiftStart, TourLocation, TourProblem, VehicleCosts, VehicleShift, VehicleType,
+};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_tour_contract() {
@@ -75,7 +73,10 @@ async fn test_tour_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
@@ -150,7 +151,10 @@ async fn test_tour_solve_rich() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
@@ -159,12 +163,20 @@ async fn test_tour_solve_rich() {
             types: vec![VehicleType {
                 id: "truck_1".to_string(),
                 profile: "truck_profile".to_string(),
-                costs: VehicleCosts { fixed: Some(50.0), distance: Some(0.01), time: None, job: None },
+                costs: VehicleCosts {
+                    fixed: Some(50.0),
+                    distance: Some(0.01),
+                    time: None,
+                    job: None,
+                },
                 shifts: vec![VehicleShift {
                     start: ShiftStart {
                         time: Some("2024-01-01T08:00:00Z".to_string()),
                         earliest: None,
-                        location: Some(TourLocation { lat: 52.52, lng: 13.405 }),
+                        location: Some(TourLocation {
+                            lat: 52.52,
+                            lng: 13.405,
+                        }),
                     },
                     ..Default::default()
                 }],
@@ -185,7 +197,10 @@ async fn test_tour_solve_rich() {
                 tasks: JobTasks {
                     deliveries: Some(vec![JobTask {
                         places: vec![JobPlace {
-                            location: TourLocation { lat: 52.53, lng: 13.41 },
+                            location: TourLocation {
+                                lat: 52.53,
+                                lng: 13.41,
+                            },
                             duration: 60,
                             ..Default::default()
                         }],
@@ -230,7 +245,10 @@ async fn test_tour_async_submit() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
@@ -251,7 +269,10 @@ async fn test_tour_version() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 

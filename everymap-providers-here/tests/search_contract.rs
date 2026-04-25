@@ -1,14 +1,13 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
-use everymap_providers_here::domain::search::{
-    HereGeocoder, HereDiscoverOptions, HereAutosuggestOptions,
-    DiscoverRequest, AutosuggestRequest,
-};
-use everymap_providers_here::client::HereClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_here::client::HereClient;
+use everymap_providers_here::domain::search::{
+    AutosuggestRequest, DiscoverRequest, HereAutosuggestOptions, HereDiscoverOptions, HereGeocoder,
+};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_contract() {
@@ -33,7 +32,10 @@ async fn test_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -41,8 +43,14 @@ async fn test_geocode_contract() {
     let res = geocoder.geocode("Berlin", &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
-    assert_eq!(res.items[0].address.label.as_deref(), Some("Berlin, Germany"));
+    assert_eq!(
+        res.items[0].coordinate,
+        Coordinate::new(52.5200, 13.4050).unwrap()
+    );
+    assert_eq!(
+        res.items[0].address.label.as_deref(),
+        Some("Berlin, Germany")
+    );
     assert_eq!(res.items[0].title.as_ref().unwrap(), "Berlin");
 }
 
@@ -71,7 +79,10 @@ async fn test_geocode_with_options() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -106,7 +117,10 @@ async fn test_reverse_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -115,8 +129,14 @@ async fn test_reverse_geocode_contract() {
     let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].coordinate, Coordinate::new(52.5200, 13.4050).unwrap());
-    assert_eq!(res.items[0].address.label.as_deref(), Some("Berlin, Germany"));
+    assert_eq!(
+        res.items[0].coordinate,
+        Coordinate::new(52.5200, 13.4050).unwrap()
+    );
+    assert_eq!(
+        res.items[0].address.label.as_deref(),
+        Some("Berlin, Germany")
+    );
 }
 
 #[tokio::test]
@@ -153,7 +173,10 @@ async fn test_discover_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -176,7 +199,10 @@ async fn test_discover_contract() {
     assert_eq!(item.categories[0].id.as_ref().unwrap(), "200-2000-0000");
     assert!(item.address.is_some());
     let addr = item.address.as_ref().unwrap();
-    assert_eq!(addr.label.as_ref().unwrap(), "Brandenburger Tor, Pariser Platz, 10117 Berlin, Germany");
+    assert_eq!(
+        addr.label.as_ref().unwrap(),
+        "Brandenburger Tor, Pariser Platz, 10117 Berlin, Germany"
+    );
 }
 
 #[tokio::test]
@@ -212,7 +238,10 @@ async fn test_autosuggest_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 

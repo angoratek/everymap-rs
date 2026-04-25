@@ -1,23 +1,22 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::types::Coordinate;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
-use everymap_providers_here::ext::{
-    HereGeocoderExt, HereTrafficExt, HerePositionerExt, HereTourPlannerExt, HereAttributeExt,
-};
-use everymap_providers_here::domain::search::{HereGeocoder, DiscoverRequest, HereDiscoverOptions};
-use everymap_providers_here::domain::traffic::HereTraffic;
-use everymap_providers_here::domain::positioning::HerePositioner;
-use everymap_providers_here::domain::tour::HereTourPlanner;
 use everymap_providers_here::domain::attributes::HereAttributeProvider;
-use everymap_providers_here::{
-    HerePositioningOptions, WlanAccessPoint,
-    HereRoadAttributesResponse, HereSegmentAttributesResponse,
-    HereAdminAreasResponse, HereBuildingsResponse, HereLandmarksResponse,
-};
+use everymap_providers_here::domain::positioning::HerePositioner;
+use everymap_providers_here::domain::search::{DiscoverRequest, HereDiscoverOptions, HereGeocoder};
+use everymap_providers_here::domain::tour::HereTourPlanner;
+use everymap_providers_here::domain::traffic::HereTraffic;
 use everymap_providers_here::domain::traffic::{HereFlowOptions, HereIncidentsOptions};
+use everymap_providers_here::ext::{
+    HereAttributeExt, HereGeocoderExt, HerePositionerExt, HereTourPlannerExt, HereTrafficExt,
+};
+use everymap_providers_here::{
+    HereAdminAreasResponse, HereBuildingsResponse, HereLandmarksResponse, HerePositioningOptions,
+    HereRoadAttributesResponse, HereSegmentAttributesResponse, WlanAccessPoint,
+};
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 // --- HereGeocoderExt tests ---
 
@@ -49,7 +48,10 @@ async fn test_geocoder_ext_discover() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -104,7 +106,10 @@ async fn test_traffic_ext_get_flow() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let traffic = HereTraffic::with_base_url(client, server.uri());
 
@@ -113,7 +118,9 @@ async fn test_traffic_ext_get_flow() {
         &traffic,
         Coordinate::new(52.52, 13.405).unwrap(),
         &HereFlowOptions::default(),
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     assert_eq!(res.results.len(), 1);
     assert_eq!(res.results[0].current_flow.speed.unwrap(), 55.0);
@@ -149,7 +156,10 @@ async fn test_traffic_ext_get_incidents() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let traffic = HereTraffic::with_base_url(client, server.uri());
 
@@ -160,7 +170,9 @@ async fn test_traffic_ext_get_incidents() {
             in_filter: Some("bbox:13.0,52.0,14.0,53.0".to_string()),
             ..Default::default()
         },
-    ).await.unwrap();
+    )
+    .await
+    .unwrap();
 
     assert_eq!(res.results.len(), 1);
     assert_eq!(res.results[0].incident.id.as_deref(), Some("INC_EXT_1"));
@@ -190,7 +202,10 @@ async fn test_positioner_ext_locate() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
@@ -260,13 +275,18 @@ async fn test_tour_ext_solve() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
     use everymap_providers_here::TourProblem;
-    let res = HereTourPlannerExt::solve(&planner, TourProblem::default()).await.unwrap();
+    let res = HereTourPlannerExt::solve(&planner, TourProblem::default())
+        .await
+        .unwrap();
 
     assert_eq!(res.statistic.cost, 75.0);
     assert_eq!(res.tours.len(), 1);
@@ -290,12 +310,17 @@ async fn test_tour_ext_get_async_status() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::get_async_status(&planner, "status-abc-123").await.unwrap();
+    let res = HereTourPlannerExt::get_async_status(&planner, "status-abc-123")
+        .await
+        .unwrap();
 
     assert!(res.status.is_some());
     assert!(res.resource.is_some());
@@ -327,12 +352,17 @@ async fn test_tour_ext_get_solution() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::get_solution(&planner, "prob-456").await.unwrap();
+    let res = HereTourPlannerExt::get_solution(&planner, "prob-456")
+        .await
+        .unwrap();
 
     assert_eq!(res.statistic.cost, 200.0);
     assert_eq!(res.statistic.distance, 10000.0);
@@ -355,12 +385,17 @@ async fn test_tour_ext_cancel() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::cancel(&planner, "prob-789").await.unwrap();
+    let res = HereTourPlannerExt::cancel(&planner, "prob-789")
+        .await
+        .unwrap();
 
     assert_eq!(res.id.as_deref(), Some("prob-789"));
     assert_eq!(res.status.as_deref(), Some("canceled"));
@@ -378,7 +413,10 @@ async fn test_tour_ext_health() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
@@ -400,7 +438,10 @@ async fn test_tour_ext_version() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
@@ -441,17 +482,24 @@ async fn test_attribute_ext_get_road_attributes() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereRoadAttributesResponse = HereAttributeExt::get_road_attributes(
-        &provider, "52.5,13.4,52.6,13.5", None,
-    ).await.unwrap();
+    let res: HereRoadAttributesResponse =
+        HereAttributeExt::get_road_attributes(&provider, "52.5,13.4,52.6,13.5", None)
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.link_id.as_deref(), Some("ext_road_1"));
+    assert_eq!(
+        res.features[0].properties.link_id.as_deref(),
+        Some("ext_road_1")
+    );
     assert_eq!(res.features[0].properties.speed_limit, Some(80.0));
 }
 
@@ -483,18 +531,28 @@ async fn test_attribute_ext_get_segment_attributes() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereSegmentAttributesResponse = HereAttributeExt::get_segment_attributes(
-        &provider, "52.5,13.4;52.6,13.5", None,
-    ).await.unwrap();
+    let res: HereSegmentAttributesResponse =
+        HereAttributeExt::get_segment_attributes(&provider, "52.5,13.4;52.6,13.5", None)
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.link_id.as_deref(), Some("ext_seg_1"));
-    assert_eq!(res.features[0].properties.ref_node.as_deref(), Some("node_x"));
+    assert_eq!(
+        res.features[0].properties.link_id.as_deref(),
+        Some("ext_seg_1")
+    );
+    assert_eq!(
+        res.features[0].properties.ref_node.as_deref(),
+        Some("node_x")
+    );
 }
 
 #[tokio::test]
@@ -522,17 +580,24 @@ async fn test_attribute_ext_get_admin_areas() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereAdminAreasResponse = HereAttributeExt::get_admin_areas(
-        &provider, "52.4,13.3;52.6,13.5",
-    ).await.unwrap();
+    let res: HereAdminAreasResponse =
+        HereAttributeExt::get_admin_areas(&provider, "52.4,13.3;52.6,13.5")
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.admin_place_id.as_deref(), Some("ext_admin_1"));
+    assert_eq!(
+        res.features[0].properties.admin_place_id.as_deref(),
+        Some("ext_admin_1")
+    );
 }
 
 #[tokio::test]
@@ -560,17 +625,24 @@ async fn test_attribute_ext_get_buildings() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereBuildingsResponse = HereAttributeExt::get_buildings(
-        &provider, "52.5,13.4;52.6,13.5",
-    ).await.unwrap();
+    let res: HereBuildingsResponse =
+        HereAttributeExt::get_buildings(&provider, "52.5,13.4;52.6,13.5")
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.building_id.as_deref(), Some("ext_bldg_1"));
+    assert_eq!(
+        res.features[0].properties.building_id.as_deref(),
+        Some("ext_bldg_1")
+    );
     assert_eq!(res.features[0].properties.building_height, Some(30.0));
 }
 
@@ -599,17 +671,24 @@ async fn test_attribute_ext_get_landmarks() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereLandmarksResponse = HereAttributeExt::get_landmarks(
-        &provider, "52.5,13.3;52.6,13.5",
-    ).await.unwrap();
+    let res: HereLandmarksResponse =
+        HereAttributeExt::get_landmarks(&provider, "52.5,13.3;52.6,13.5")
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.landmark_id.as_deref(), Some("ext_lm_1"));
+    assert_eq!(
+        res.features[0].properties.landmark_id.as_deref(),
+        Some("ext_lm_1")
+    );
 }
 
 #[tokio::test]
@@ -637,15 +716,19 @@ async fn test_attribute_ext_get_road_attributes_by_ids() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
     let ids = vec!["ext_id_1".to_string()];
-    let res: HereRoadAttributesResponse = HereAttributeExt::get_road_attributes_by_ids(
-        &provider, &ids,
-    ).await.unwrap();
+    let res: HereRoadAttributesResponse =
+        HereAttributeExt::get_road_attributes_by_ids(&provider, &ids)
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
     assert_eq!(res.features[0].properties.speed_limit, Some(100.0));
@@ -681,14 +764,18 @@ async fn test_attribute_ext_get_speed_limits() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereRoadAttributesResponse = HereAttributeExt::get_speed_limits(
-        &provider, "52.5,13.4;52.6,13.5",
-    ).await.unwrap();
+    let res: HereRoadAttributesResponse =
+        HereAttributeExt::get_speed_limits(&provider, "52.5,13.4;52.6,13.5")
+            .await
+            .unwrap();
 
     assert_eq!(res.features.len(), 1);
     let road = &res.features[0].properties;

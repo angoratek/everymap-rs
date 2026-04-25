@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::TomTomClient;
 use async_trait::async_trait;
-use everymap_core::domains::routing::{Router, RouteOptions, RouteResponse, RouteResult, TransportMode};
+use everymap_core::domains::routing::{
+    RouteOptions, RouteResponse, RouteResult, Router, TransportMode,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::{Coordinate, Polyline};
-use crate::client::TomTomClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -47,7 +49,9 @@ fn transport_mode_to_tomtom(mode: &TransportMode) -> &'static str {
 impl From<TomTomRoute> for RouteResult {
     fn from(route: TomTomRoute) -> Self {
         let summary = route.summary.unwrap_or_default();
-        let points: Vec<Coordinate> = route.legs.iter()
+        let points: Vec<Coordinate> = route
+            .legs
+            .iter()
             .flat_map(|leg| leg.points.iter())
             .map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN))
             .collect();
@@ -66,9 +70,21 @@ impl From<TomTomRoute> for RouteResult {
 
 #[async_trait]
 impl Router for TomTomRouter {
-    async fn calculate_route(&self, start: &Coordinate, end: &Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse> {
-        let mode = options.transport_mode.as_ref().map(|m| transport_mode_to_tomtom(m)).unwrap_or("car");
-        let url = format!("{}/routing/1/calculateRoute/{},{}:{},{}/json", self.base_url, start.lat, start.lng, end.lat, end.lng);
+    async fn calculate_route(
+        &self,
+        start: &Coordinate,
+        end: &Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse> {
+        let mode = options
+            .transport_mode
+            .as_ref()
+            .map(|m| transport_mode_to_tomtom(m))
+            .unwrap_or("car");
+        let url = format!(
+            "{}/routing/1/calculateRoute/{},{}:{},{}/json",
+            self.base_url, start.lat, start.lng, end.lat, end.lng
+        );
 
         let mut params: Vec<(&str, String)> = vec![("travelMode", mode.to_string())];
 
@@ -101,7 +117,9 @@ impl Router for TomTomRouter {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: TomTomRouteResponse = self.client.request_json(builder).await?;

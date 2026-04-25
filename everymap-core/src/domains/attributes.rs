@@ -1,5 +1,5 @@
-use async_trait::async_trait;
 use crate::error::EveryMapResult;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for map attribute queries.
@@ -23,7 +23,8 @@ pub struct AttributeResponse {
 
 #[async_trait]
 pub trait AttributeProvider: Send + Sync {
-    async fn get_attributes(&self, options: &AttributeOptions) -> EveryMapResult<AttributeResponse>;
+    async fn get_attributes(&self, options: &AttributeOptions)
+        -> EveryMapResult<AttributeResponse>;
 }
 
 #[cfg(test)]

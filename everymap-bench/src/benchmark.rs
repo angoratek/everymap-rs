@@ -2,21 +2,21 @@ use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
 use everymap_core::auth::AuthProvider;
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, RangeType};
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions};
-use everymap_core::domains::tour::{TourPlanner, TourOptions};
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
-use everymap_core::domains::tiling::{TileProvider, TileOptions};
+use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider};
+use everymap_core::domains::fraud::{FraudCheckOptions, FraudDetector};
+use everymap_core::domains::geofencing::{GeofenceOptions, GeofenceProvider};
+use everymap_core::domains::imaging::{ImageOptions, MapImageProvider};
+use everymap_core::domains::isoline::{IsolineOptions, IsolineProvider, RangeType};
+use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
-use everymap_core::domains::attributes::{AttributeProvider, AttributeOptions};
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions};
-use everymap_core::domains::geofencing::{GeofenceProvider, GeofenceOptions};
-use everymap_core::domains::tracking::{TripTracker, TripCreateOptions};
-use everymap_core::domains::fraud::{FraudDetector, FraudCheckOptions};
-use everymap_core::types::Coordinate;
+use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
+use everymap_core::domains::tracking::{TripCreateOptions, TripTracker};
+use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::error::{EveryMapError, EveryMapResult};
+use everymap_core::types::Coordinate;
 use std::sync::Arc;
 
 /// Result of a single benchmark run against one provider.
@@ -96,16 +96,44 @@ impl BenchProviders {
                 let client = Arc::new(everymap_providers_here::client::HereClient::new(auth));
                 Ok(Self {
                     provider_name: provider.to_string(),
-                    geocoder: Some(Box::new(everymap_providers_here::domain::search::HereGeocoder::new(client.clone()))),
-                    router: Some(Box::new(everymap_providers_here::domain::routing::HereRouter::new(client.clone()))),
-                    isoline: Some(Box::new(everymap_providers_here::domain::isoline::HereIsoline::new(client.clone()))),
-                    route_matcher: Some(Box::new(everymap_providers_here::domain::matching::HereRouteMatcher::new(client.clone()))),
-                    tour_planner: Some(Box::new(everymap_providers_here::domain::tour::HereTourPlanner::new(client.clone()))),
-                    traffic: Some(Box::new(everymap_providers_here::domain::traffic::HereTraffic::new(client.clone()))),
-                    tile: Some(Box::new(everymap_providers_here::domain::tiling::HereTileProvider::new(client.clone()))),
-                    positioner: Some(Box::new(everymap_providers_here::domain::positioning::HerePositioner::new(client.clone()))),
-                    attributes: Some(Box::new(everymap_providers_here::domain::attributes::HereAttributeProvider::new(client.clone()))),
-                    image: Some(Box::new(everymap_providers_here::domain::imaging::HereMapImageProvider::new(client))),
+                    geocoder: Some(Box::new(
+                        everymap_providers_here::domain::search::HereGeocoder::new(client.clone()),
+                    )),
+                    router: Some(Box::new(
+                        everymap_providers_here::domain::routing::HereRouter::new(client.clone()),
+                    )),
+                    isoline: Some(Box::new(
+                        everymap_providers_here::domain::isoline::HereIsoline::new(client.clone()),
+                    )),
+                    route_matcher: Some(Box::new(
+                        everymap_providers_here::domain::matching::HereRouteMatcher::new(
+                            client.clone(),
+                        ),
+                    )),
+                    tour_planner: Some(Box::new(
+                        everymap_providers_here::domain::tour::HereTourPlanner::new(client.clone()),
+                    )),
+                    traffic: Some(Box::new(
+                        everymap_providers_here::domain::traffic::HereTraffic::new(client.clone()),
+                    )),
+                    tile: Some(Box::new(
+                        everymap_providers_here::domain::tiling::HereTileProvider::new(
+                            client.clone(),
+                        ),
+                    )),
+                    positioner: Some(Box::new(
+                        everymap_providers_here::domain::positioning::HerePositioner::new(
+                            client.clone(),
+                        ),
+                    )),
+                    attributes: Some(Box::new(
+                        everymap_providers_here::domain::attributes::HereAttributeProvider::new(
+                            client.clone(),
+                        ),
+                    )),
+                    image: Some(Box::new(
+                        everymap_providers_here::domain::imaging::HereMapImageProvider::new(client),
+                    )),
                     geofence: None,
                     trip_tracker: None,
                     fraud_detector: None,
@@ -115,16 +143,28 @@ impl BenchProviders {
                 let client = Arc::new(everymap_providers_google::client::GoogleClient::new(auth));
                 Ok(Self {
                     provider_name: provider.to_string(),
-                    geocoder: Some(Box::new(everymap_providers_google::GoogleGeocoder::new(client.clone()))),
-                    router: Some(Box::new(everymap_providers_google::GoogleRouter::new(client.clone()))),
+                    geocoder: Some(Box::new(everymap_providers_google::GoogleGeocoder::new(
+                        client.clone(),
+                    ))),
+                    router: Some(Box::new(everymap_providers_google::GoogleRouter::new(
+                        client.clone(),
+                    ))),
                     isoline: None,
-                    route_matcher: Some(Box::new(everymap_providers_google::GoogleRouteMatcher::new(client.clone()))),
+                    route_matcher: Some(Box::new(
+                        everymap_providers_google::GoogleRouteMatcher::new(client.clone()),
+                    )),
                     tour_planner: None,
                     traffic: None,
                     tile: None,
-                    positioner: Some(Box::new(everymap_providers_google::GooglePositioner::new(client.clone()))),
-                    attributes: Some(Box::new(everymap_providers_google::GoogleAttributeProvider::new(client.clone()))),
-                    image: Some(Box::new(everymap_providers_google::GoogleMapImageProvider::new(client))),
+                    positioner: Some(Box::new(everymap_providers_google::GooglePositioner::new(
+                        client.clone(),
+                    ))),
+                    attributes: Some(Box::new(
+                        everymap_providers_google::GoogleAttributeProvider::new(client.clone()),
+                    )),
+                    image: Some(Box::new(
+                        everymap_providers_google::GoogleMapImageProvider::new(client),
+                    )),
                     geofence: None,
                     trip_tracker: None,
                     fraud_detector: None,
@@ -134,16 +174,32 @@ impl BenchProviders {
                 let client = Arc::new(everymap_providers_tomtom::client::TomTomClient::new(auth));
                 Ok(Self {
                     provider_name: provider.to_string(),
-                    geocoder: Some(Box::new(everymap_providers_tomtom::TomTomGeocoder::new(client.clone()))),
-                    router: Some(Box::new(everymap_providers_tomtom::TomTomRouter::new(client.clone()))),
-                    isoline: Some(Box::new(everymap_providers_tomtom::TomTomIsoline::new(client.clone()))),
-                    route_matcher: Some(Box::new(everymap_providers_tomtom::TomTomRouteMatcher::new(client.clone()))),
-                    tour_planner: Some(Box::new(everymap_providers_tomtom::TomTomTourPlanner::new(client.clone()))),
-                    traffic: Some(Box::new(everymap_providers_tomtom::TomTomTraffic::new(client.clone()))),
-                    tile: Some(Box::new(everymap_providers_tomtom::TomTomTileProvider::new(client.clone()))),
+                    geocoder: Some(Box::new(everymap_providers_tomtom::TomTomGeocoder::new(
+                        client.clone(),
+                    ))),
+                    router: Some(Box::new(everymap_providers_tomtom::TomTomRouter::new(
+                        client.clone(),
+                    ))),
+                    isoline: Some(Box::new(everymap_providers_tomtom::TomTomIsoline::new(
+                        client.clone(),
+                    ))),
+                    route_matcher: Some(Box::new(
+                        everymap_providers_tomtom::TomTomRouteMatcher::new(client.clone()),
+                    )),
+                    tour_planner: Some(Box::new(
+                        everymap_providers_tomtom::TomTomTourPlanner::new(client.clone()),
+                    )),
+                    traffic: Some(Box::new(everymap_providers_tomtom::TomTomTraffic::new(
+                        client.clone(),
+                    ))),
+                    tile: Some(Box::new(
+                        everymap_providers_tomtom::TomTomTileProvider::new(client.clone()),
+                    )),
                     positioner: None,
                     attributes: None,
-                    image: Some(Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(client))),
+                    image: Some(Box::new(
+                        everymap_providers_tomtom::TomTomMapImageProvider::new(client),
+                    )),
                     geofence: None,
                     trip_tracker: None,
                     fraud_detector: None,
@@ -153,16 +209,30 @@ impl BenchProviders {
                 let client = Arc::new(everymap_providers_mapbox::client::MapBoxClient::new(auth));
                 Ok(Self {
                     provider_name: provider.to_string(),
-                    geocoder: Some(Box::new(everymap_providers_mapbox::MapBoxGeocoder::new(client.clone()))),
-                    router: Some(Box::new(everymap_providers_mapbox::MapBoxRouter::new(client.clone()))),
-                    isoline: Some(Box::new(everymap_providers_mapbox::MapBoxIsoline::new(client.clone()))),
-                    route_matcher: Some(Box::new(everymap_providers_mapbox::MapBoxRouteMatcher::new(client.clone()))),
-                    tour_planner: Some(Box::new(everymap_providers_mapbox::MapBoxTourPlanner::new(client.clone()))),
+                    geocoder: Some(Box::new(everymap_providers_mapbox::MapBoxGeocoder::new(
+                        client.clone(),
+                    ))),
+                    router: Some(Box::new(everymap_providers_mapbox::MapBoxRouter::new(
+                        client.clone(),
+                    ))),
+                    isoline: Some(Box::new(everymap_providers_mapbox::MapBoxIsoline::new(
+                        client.clone(),
+                    ))),
+                    route_matcher: Some(Box::new(
+                        everymap_providers_mapbox::MapBoxRouteMatcher::new(client.clone()),
+                    )),
+                    tour_planner: Some(Box::new(
+                        everymap_providers_mapbox::MapBoxTourPlanner::new(client.clone()),
+                    )),
                     traffic: None,
-                    tile: Some(Box::new(everymap_providers_mapbox::MapBoxTileProvider::new(client.clone()))),
+                    tile: Some(Box::new(
+                        everymap_providers_mapbox::MapBoxTileProvider::new(client.clone()),
+                    )),
                     positioner: None,
                     attributes: None,
-                    image: Some(Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(client))),
+                    image: Some(Box::new(
+                        everymap_providers_mapbox::MapBoxMapImageProvider::new(client),
+                    )),
                     geofence: None,
                     trip_tracker: None,
                     fraud_detector: None,
@@ -172,22 +242,40 @@ impl BenchProviders {
                 let client = Arc::new(everymap_providers_radar::client::RadarClient::new(auth));
                 Ok(Self {
                     provider_name: provider.to_string(),
-                    geocoder: Some(Box::new(everymap_providers_radar::RadarGeocoder::new(client.clone()))),
-                    router: Some(Box::new(everymap_providers_radar::RadarRouter::new(client.clone()))),
+                    geocoder: Some(Box::new(everymap_providers_radar::RadarGeocoder::new(
+                        client.clone(),
+                    ))),
+                    router: Some(Box::new(everymap_providers_radar::RadarRouter::new(
+                        client.clone(),
+                    ))),
                     isoline: None,
-                    route_matcher: Some(Box::new(everymap_providers_radar::RadarRouteMatcher::new(client.clone()))),
-                    tour_planner: Some(Box::new(everymap_providers_radar::RadarTourPlanner::new(client.clone()))),
+                    route_matcher: Some(Box::new(
+                        everymap_providers_radar::RadarRouteMatcher::new(client.clone()),
+                    )),
+                    tour_planner: Some(Box::new(everymap_providers_radar::RadarTourPlanner::new(
+                        client.clone(),
+                    ))),
                     traffic: None,
                     tile: None,
                     positioner: None,
                     attributes: None,
                     image: None,
-                    geofence: Some(Box::new(everymap_providers_radar::RadarGeofenceProvider::new(client.clone()))),
-                    trip_tracker: Some(Box::new(everymap_providers_radar::RadarTripTracker::new(client.clone()))),
-                    fraud_detector: Some(Box::new(everymap_providers_radar::RadarFraudDetector::new(client))),
+                    geofence: Some(Box::new(
+                        everymap_providers_radar::RadarGeofenceProvider::new(client.clone()),
+                    )),
+                    trip_tracker: Some(Box::new(everymap_providers_radar::RadarTripTracker::new(
+                        client.clone(),
+                    ))),
+                    fraud_detector: Some(Box::new(
+                        everymap_providers_radar::RadarFraudDetector::new(client),
+                    )),
                 })
             }
-            _ => Err(EveryMapError::provider("bench", "UNKNOWN_PROVIDER", format!("Unknown provider: {}", provider))),
+            _ => Err(EveryMapError::provider(
+                "bench",
+                "UNKNOWN_PROVIDER",
+                format!("Unknown provider: {}", provider),
+            )),
         }
     }
 }
@@ -197,89 +285,190 @@ impl BenchProviders {
 pub async fn bench_geocode(providers: &BenchProviders, query: &str) -> BenchmarkResult {
     let geocoder = match providers.geocoder.as_ref() {
         Some(g) => g,
-        None => return unsupported_result(&providers.provider_name, "geocoder", &format!("Geocode: {}", query)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "geocoder",
+                &format!("Geocode: {}", query),
+            )
+        }
     };
-    let start = Instant::now();
+    let start_time = Instant::now();
     let result = geocoder.geocode(query, &GeocodeOptions::default()).await;
-    let elapsed = start.elapsed().as_millis() as u64;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geocoder".to_string(),
-            scenario: format!("Geocode: {}", query), duration_ms: elapsed,
-            success: true, error: None, result_count: res.items.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "geocoder".to_string(),
+            scenario: format!("Geocode: {}", query),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.items.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geocoder".to_string(),
-            scenario: format!("Geocode: {}", query), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "geocoder".to_string(),
+            scenario: format!("Geocode: {}", query),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_reverse_geocode(providers: &BenchProviders, coord: &Coordinate) -> BenchmarkResult {
+pub async fn bench_reverse_geocode(
+    providers: &BenchProviders,
+    coordinate: &Coordinate,
+) -> BenchmarkResult {
     let geocoder = match providers.geocoder.as_ref() {
         Some(g) => g,
-        None => return unsupported_result(&providers.provider_name, "geocoder", &format!("Reverse geocode: ({},{})", coord.lat, coord.lng)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "geocoder",
+                &format!("Reverse geocode: ({},{})", coordinate.lat, coordinate.lng),
+            )
+        }
     };
-    let start = Instant::now();
-    let result = geocoder.reverse_geocode(coord, &ReverseGeocodeOptions::default()).await;
-    let elapsed = start.elapsed().as_millis() as u64;
+    let start_time = Instant::now();
+    let result = geocoder
+        .reverse_geocode(coordinate, &ReverseGeocodeOptions::default())
+        .await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geocoder".to_string(),
-            scenario: format!("Reverse geocode: ({},{})", coord.lat, coord.lng), duration_ms: elapsed,
-            success: true, error: None, result_count: res.items.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "geocoder".to_string(),
+            scenario: format!("Reverse geocode: ({},{})", coordinate.lat, coordinate.lng),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.items.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geocoder".to_string(),
-            scenario: format!("Reverse geocode: ({},{})", coord.lat, coord.lng), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "geocoder".to_string(),
+            scenario: format!("Reverse geocode: ({},{})", coordinate.lat, coordinate.lng),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_route(providers: &BenchProviders, start: &Coordinate, end: &Coordinate) -> BenchmarkResult {
+pub async fn bench_route(
+    providers: &BenchProviders,
+    start: &Coordinate,
+    end: &Coordinate,
+) -> BenchmarkResult {
     let router = match providers.router.as_ref() {
         Some(r) => r,
-        None => return unsupported_result(&providers.provider_name, "routing", &format!("Route: ({},{}) -> ({},{})", start.lat, start.lng, end.lat, end.lng)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "routing",
+                &format!(
+                    "Route: ({},{}) -> ({},{})",
+                    start.lat, start.lng, end.lat, end.lng
+                ),
+            )
+        }
     };
-    let opts = RouteOptions { transport_mode: Some(TransportMode::Car), ..Default::default() };
-    let t = Instant::now();
-    let result = router.calculate_route(start, end, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = router.calculate_route(start, end, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "routing".to_string(),
-            scenario: format!("Route: ({},{}) -> ({},{})", start.lat, start.lng, end.lat, end.lng), duration_ms: elapsed,
-            success: true, error: None, result_count: res.routes.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "routing".to_string(),
+            scenario: format!(
+                "Route: ({},{}) -> ({},{})",
+                start.lat, start.lng, end.lat, end.lng
+            ),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.routes.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "routing".to_string(),
-            scenario: format!("Route: ({},{}) -> ({},{})", start.lat, start.lng, end.lat, end.lng), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "routing".to_string(),
+            scenario: format!(
+                "Route: ({},{}) -> ({},{})",
+                start.lat, start.lng, end.lat, end.lng
+            ),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_isoline(providers: &BenchProviders, center: &Coordinate, range: f64) -> BenchmarkResult {
+pub async fn bench_isoline(
+    providers: &BenchProviders,
+    center: &Coordinate,
+    range: f64,
+) -> BenchmarkResult {
     let isoline = match providers.isoline.as_ref() {
         Some(i) => i,
-        None => return unsupported_result(&providers.provider_name, "isoline", &format!("Isoline: {}m from ({},{})", range as i64, center.lat, center.lng)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "isoline",
+                &format!(
+                    "Isoline: {}m from ({},{})",
+                    range as i64, center.lat, center.lng
+                ),
+            )
+        }
     };
-    let opts = IsolineOptions { range_type: Some(RangeType::Time), ..Default::default() };
-    let t = Instant::now();
-    let result = isoline.get_isoline(center, range, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = IsolineOptions {
+        range_type: Some(RangeType::Time),
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = isoline.get_isoline(center, range, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "isoline".to_string(),
-            scenario: format!("Isoline: {}m from ({},{})", range as i64, center.lat, center.lng), duration_ms: elapsed,
-            success: true, error: None, result_count: res.isolines.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "isoline".to_string(),
+            scenario: format!(
+                "Isoline: {}m from ({},{})",
+                range as i64, center.lat, center.lng
+            ),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.isolines.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "isoline".to_string(),
-            scenario: format!("Isoline: {}m from ({},{})", range as i64, center.lat, center.lng), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "isoline".to_string(),
+            scenario: format!(
+                "Isoline: {}m from ({},{})",
+                range as i64, center.lat, center.lng
+            ),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -287,22 +476,38 @@ pub async fn bench_isoline(providers: &BenchProviders, center: &Coordinate, rang
 pub async fn bench_matching(providers: &BenchProviders, points: &[Coordinate]) -> BenchmarkResult {
     let matcher = match providers.route_matcher.as_ref() {
         Some(m) => m,
-        None => return unsupported_result(&providers.provider_name, "matching", &format!("Match: {} points", points.len())),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "matching",
+                &format!("Match: {} points", points.len()),
+            )
+        }
     };
-    let opts = MatchingOptions::default();
-    let t = Instant::now();
-    let result = matcher.match_route(points, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = MatchingOptions::default();
+    let start_time = Instant::now();
+    let result = matcher.match_route(points, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "matching".to_string(),
-            scenario: format!("Match: {} points", points.len()), duration_ms: elapsed,
-            success: true, error: None, result_count: res.matched_points.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "matching".to_string(),
+            scenario: format!("Match: {} points", points.len()),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.matched_points.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "matching".to_string(),
-            scenario: format!("Match: {} points", points.len()), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "matching".to_string(),
+            scenario: format!("Match: {} points", points.len()),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -310,22 +515,38 @@ pub async fn bench_matching(providers: &BenchProviders, points: &[Coordinate]) -
 pub async fn bench_tour(providers: &BenchProviders, stops: &[Coordinate]) -> BenchmarkResult {
     let planner = match providers.tour_planner.as_ref() {
         Some(p) => p,
-        None => return unsupported_result(&providers.provider_name, "tour", &format!("Tour: {} stops", stops.len())),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "tour",
+                &format!("Tour: {} stops", stops.len()),
+            )
+        }
     };
-    let opts = TourOptions::default();
-    let t = Instant::now();
-    let result = planner.optimize_tour(stops, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = TourOptions::default();
+    let start_time = Instant::now();
+    let result = planner.optimize_tour(stops, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tour".to_string(),
-            scenario: format!("Tour: {} stops", stops.len()), duration_ms: elapsed,
-            success: true, error: None, result_count: res.stops.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "tour".to_string(),
+            scenario: format!("Tour: {} stops", stops.len()),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.stops.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tour".to_string(),
-            scenario: format!("Tour: {} stops", stops.len()), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "tour".to_string(),
+            scenario: format!("Tour: {} stops", stops.len()),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -333,22 +554,38 @@ pub async fn bench_tour(providers: &BenchProviders, stops: &[Coordinate]) -> Ben
 pub async fn bench_traffic(providers: &BenchProviders, location: &Coordinate) -> BenchmarkResult {
     let traffic = match providers.traffic.as_ref() {
         Some(t) => t,
-        None => return unsupported_result(&providers.provider_name, "traffic", &format!("Traffic: ({},{})", location.lat, location.lng)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "traffic",
+                &format!("Traffic: ({},{})", location.lat, location.lng),
+            )
+        }
     };
-    let opts = TrafficOptions::default();
-    let t = Instant::now();
-    let result = traffic.get_traffic(location, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = TrafficOptions::default();
+    let start_time = Instant::now();
+    let result = traffic.get_traffic(location, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "traffic".to_string(),
-            scenario: format!("Traffic: ({},{})", location.lat, location.lng), duration_ms: elapsed,
-            success: true, error: None, result_count: res.flows.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "traffic".to_string(),
+            scenario: format!("Traffic: ({},{})", location.lat, location.lng),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.flows.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "traffic".to_string(),
-            scenario: format!("Traffic: ({},{})", location.lat, location.lng), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "traffic".to_string(),
+            scenario: format!("Traffic: ({},{})", location.lat, location.lng),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -356,47 +593,82 @@ pub async fn bench_traffic(providers: &BenchProviders, location: &Coordinate) ->
 pub async fn bench_tile(providers: &BenchProviders, z: u32, x: u32, y: u32) -> BenchmarkResult {
     let tile = match providers.tile.as_ref() {
         Some(t) => t,
-        None => return unsupported_result(&providers.provider_name, "tiling", &format!("Tile: z={} x={} y={}", z, x, y)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "tiling",
+                &format!("Tile: z={} x={} y={}", z, x, y),
+            )
+        }
     };
-    let opts = TileOptions::default();
-    let t = Instant::now();
-    let result = tile.get_tile(z, x, y, &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = TileOptions::default();
+    let start_time = Instant::now();
+    let result = tile.get_tile(z, x, y, &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tiling".to_string(),
-            scenario: format!("Tile: z={} x={} y={}", z, x, y), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: Some(res.data.len()),
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "tiling".to_string(),
+            scenario: format!("Tile: z={} x={} y={}", z, x, y),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: Some(response.data.len()),
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tiling".to_string(),
-            scenario: format!("Tile: z={} x={} y={}", z, x, y), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "tiling".to_string(),
+            scenario: format!("Tile: z={} x={} y={}", z, x, y),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_positioning(providers: &BenchProviders, provider_extra: &Option<serde_json::Value>) -> BenchmarkResult {
+pub async fn bench_positioning(
+    providers: &BenchProviders,
+    provider_extra: &Option<serde_json::Value>,
+) -> BenchmarkResult {
     let positioner = match providers.positioner.as_ref() {
         Some(p) => p,
-        None => return unsupported_result(&providers.provider_name, "positioning", "Positioning: default"),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "positioning",
+                "Positioning: default",
+            )
+        }
     };
-    let opts = PositioningOptions {
+    let options = PositioningOptions {
         provider_extra: provider_extra.clone(),
     };
-    let t = Instant::now();
-    let result = positioner.get_position(&opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let start_time = Instant::now();
+    let result = positioner.get_position(&options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
         Ok(_) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "positioning".to_string(),
-            scenario: "Positioning: default".to_string(), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "positioning".to_string(),
+            scenario: "Positioning: default".to_string(),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "positioning".to_string(),
-            scenario: "Positioning: default".to_string(), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "positioning".to_string(),
+            scenario: "Positioning: default".to_string(),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -404,91 +676,182 @@ pub async fn bench_positioning(providers: &BenchProviders, provider_extra: &Opti
 pub async fn bench_attributes(providers: &BenchProviders, bbox: &str) -> BenchmarkResult {
     let attrs = match providers.attributes.as_ref() {
         Some(a) => a,
-        None => return unsupported_result(&providers.provider_name, "attributes", &format!("Attributes: bbox={}", bbox)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "attributes",
+                &format!("Attributes: bbox={}", bbox),
+            )
+        }
     };
-    let opts = AttributeOptions { bbox: Some(bbox.to_string()), ..Default::default() };
-    let t = Instant::now();
-    let result = attrs.get_attributes(&opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = AttributeOptions {
+        bbox: Some(bbox.to_string()),
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = attrs.get_attributes(&options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
         Ok(_) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "attributes".to_string(),
-            scenario: format!("Attributes: bbox={}", bbox), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "attributes".to_string(),
+            scenario: format!("Attributes: bbox={}", bbox),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "attributes".to_string(),
-            scenario: format!("Attributes: bbox={}", bbox), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "attributes".to_string(),
+            scenario: format!("Attributes: bbox={}", bbox),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_image(providers: &BenchProviders, center: &Coordinate, zoom: u32) -> BenchmarkResult {
+pub async fn bench_image(
+    providers: &BenchProviders,
+    center: &Coordinate,
+    zoom: u32,
+) -> BenchmarkResult {
     let img = match providers.image.as_ref() {
         Some(i) => i,
-        None => return unsupported_result(&providers.provider_name, "imaging", &format!("Image: ({},{}) z={}", center.lat, center.lng, zoom)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "imaging",
+                &format!("Image: ({},{}) z={}", center.lat, center.lng, zoom),
+            )
+        }
     };
-    let opts = ImageOptions::default();
-    let t = Instant::now();
-    let result = img.get_image(center, zoom, (800, 600), &opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = ImageOptions::default();
+    let start_time = Instant::now();
+    let result = img.get_image(center, zoom, (800, 600), &options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "imaging".to_string(),
-            scenario: format!("Image: ({},{}) z={}", center.lat, center.lng, zoom), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: Some(res.data.len()),
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "imaging".to_string(),
+            scenario: format!("Image: ({},{}) z={}", center.lat, center.lng, zoom),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: Some(response.data.len()),
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "imaging".to_string(),
-            scenario: format!("Image: ({},{}) z={}", center.lat, center.lng, zoom), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "imaging".to_string(),
+            scenario: format!("Image: ({},{}) z={}", center.lat, center.lng, zoom),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_geofence_search(providers: &BenchProviders, near: &Coordinate, radius: f64) -> BenchmarkResult {
+pub async fn bench_geofence_search(
+    providers: &BenchProviders,
+    near: &Coordinate,
+    radius: f64,
+) -> BenchmarkResult {
     let gf = match providers.geofence.as_ref() {
         Some(g) => g,
-        None => return unsupported_result(&providers.provider_name, "geofencing", &format!("Geofence search: ({},{}) r={}m", near.lat, near.lng, radius as i64)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "geofencing",
+                &format!(
+                    "Geofence search: ({},{}) r={}m",
+                    near.lat, near.lng, radius as i64
+                ),
+            )
+        }
     };
-    let opts = GeofenceOptions { near: Some(*near), radius: Some(radius), ..Default::default() };
-    let t = Instant::now();
-    let result = gf.search_geofences(&opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = GeofenceOptions {
+        near: Some(*near),
+        radius: Some(radius),
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = gf.search_geofences(&options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
-        Ok(res) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geofencing".to_string(),
-            scenario: format!("Geofence search: ({},{}) r={}m", near.lat, near.lng, radius as i64), duration_ms: elapsed,
-            success: true, error: None, result_count: res.geofences.len(), raw_response_size: None,
+        Ok(response) => BenchmarkResult {
+            provider: providers.provider_name.clone(),
+            domain: "geofencing".to_string(),
+            scenario: format!(
+                "Geofence search: ({},{}) r={}m",
+                near.lat, near.lng, radius as i64
+            ),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: response.geofences.len(),
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "geofencing".to_string(),
-            scenario: format!("Geofence search: ({},{}) r={}m", near.lat, near.lng, radius as i64), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "geofencing".to_string(),
+            scenario: format!(
+                "Geofence search: ({},{}) r={}m",
+                near.lat, near.lng, radius as i64
+            ),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
-pub async fn bench_trip_create(providers: &BenchProviders, origin: &Coordinate, dest: &Coordinate) -> BenchmarkResult {
+pub async fn bench_trip_create(
+    providers: &BenchProviders,
+    origin: &Coordinate,
+    destination: &Coordinate,
+) -> BenchmarkResult {
     let tracker = match providers.trip_tracker.as_ref() {
         Some(t) => t,
         None => return unsupported_result(&providers.provider_name, "tracking", "Trip create"),
     };
-    let opts = TripCreateOptions { origin: Some(*origin), destination: Some(*dest), mode: Some("car".to_string()), ..Default::default() };
-    let t = Instant::now();
-    let result = tracker.create_trip(&opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = TripCreateOptions {
+        origin: Some(*origin),
+        destination: Some(*destination),
+        mode: Some("car".to_string()),
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = tracker.create_trip(&options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
         Ok(_) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tracking".to_string(),
-            scenario: "Trip create".to_string(), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "tracking".to_string(),
+            scenario: "Trip create".to_string(),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "tracking".to_string(),
-            scenario: "Trip create".to_string(), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "tracking".to_string(),
+            scenario: "Trip create".to_string(),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
@@ -496,56 +859,91 @@ pub async fn bench_trip_create(providers: &BenchProviders, origin: &Coordinate, 
 pub async fn bench_fraud_check(providers: &BenchProviders, lat: f64, lng: f64) -> BenchmarkResult {
     let detector = match providers.fraud_detector.as_ref() {
         Some(d) => d,
-        None => return unsupported_result(&providers.provider_name, "fraud", &format!("Fraud check: ({},{})", lat, lng)),
+        None => {
+            return unsupported_result(
+                &providers.provider_name,
+                "fraud",
+                &format!("Fraud check: ({},{})", lat, lng),
+            )
+        }
     };
-    let opts = FraudCheckOptions { device_id: "bench_device".to_string(), latitude: lat, longitude: lng, accuracy: 10.0, ..Default::default() };
-    let t = Instant::now();
-    let result = detector.check_fraud(&opts).await;
-    let elapsed = t.elapsed().as_millis() as u64;
+    let options = FraudCheckOptions {
+        device_id: "bench_device".to_string(),
+        latitude: lat,
+        longitude: lng,
+        accuracy: 10.0,
+        ..Default::default()
+    };
+    let start_time = Instant::now();
+    let result = detector.check_fraud(&options).await;
+    let elapsed = start_time.elapsed().as_millis() as u64;
     match result {
         Ok(_) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "fraud".to_string(),
-            scenario: format!("Fraud check: ({},{})", lat, lng), duration_ms: elapsed,
-            success: true, error: None, result_count: 1, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "fraud".to_string(),
+            scenario: format!("Fraud check: ({},{})", lat, lng),
+            duration_ms: elapsed,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: None,
         },
         Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(), domain: "fraud".to_string(),
-            scenario: format!("Fraud check: ({},{})", lat, lng), duration_ms: elapsed,
-            success: false, error: Some(e.to_string()), result_count: 0, raw_response_size: None,
+            provider: providers.provider_name.clone(),
+            domain: "fraud".to_string(),
+            scenario: format!("Fraud check: ({},{})", lat, lng),
+            duration_ms: elapsed,
+            success: false,
+            error: Some(e.to_string()),
+            result_count: 0,
+            raw_response_size: None,
         },
     }
 }
 
 fn percentile(sorted: &[u64], p: f64) -> u64 {
-    if sorted.is_empty() { return 0; }
+    if sorted.is_empty() {
+        return 0;
+    }
     let idx = ((p / 100.0) * (sorted.len() - 1) as f64).round() as usize;
     sorted[idx.min(sorted.len() - 1)]
 }
 
 /// Build a benchmark report from a set of results.
-pub fn build_report(domain: &str, scenario: &str, results: Vec<BenchmarkResult>) -> BenchmarkReport {
-    let fastest = results.iter()
+pub fn build_report(
+    domain: &str,
+    scenario: &str,
+    results: Vec<BenchmarkResult>,
+) -> BenchmarkReport {
+    let fastest = results
+        .iter()
         .filter(|r| r.success)
         .min_by_key(|r| r.duration_ms)
         .map(|r| r.provider.clone());
 
-    let most_results = results.iter()
+    let most_results = results
+        .iter()
         .filter(|r| r.success)
         .max_by_key(|r| r.result_count)
         .map(|r| r.provider.clone());
 
     // Compute percentiles when we have multiple iterations per provider
-    let mut provider_durations: std::collections::HashMap<String, Vec<u64>> = std::collections::HashMap::new();
-    let mut provider_success: std::collections::HashMap<String, (u32, u32)> = std::collections::HashMap::new();
+    let mut provider_durations: std::collections::HashMap<String, Vec<u64>> =
+        std::collections::HashMap::new();
+    let mut provider_success: std::collections::HashMap<String, (u32, u32)> =
+        std::collections::HashMap::new();
     for r in &results {
         provider_durations.entry(r.provider.clone()).or_default();
         provider_success.entry(r.provider.clone()).or_insert((0, 0));
-        let (ok, err) = provider_success.get_mut(&r.provider).unwrap();
+        let (success_count, error_count) = provider_success.get_mut(&r.provider).unwrap();
         if r.success {
-            provider_durations.get_mut(&r.provider).unwrap().push(r.duration_ms);
-            *ok += 1;
+            provider_durations
+                .get_mut(&r.provider)
+                .unwrap()
+                .push(r.duration_ms);
+            *success_count += 1;
         } else {
-            *err += 1;
+            *error_count += 1;
         }
     }
 
@@ -556,7 +954,7 @@ pub fn build_report(domain: &str, scenario: &str, results: Vec<BenchmarkResult>)
         for provider in &providers {
             let mut durations = provider_durations[provider].clone();
             durations.sort();
-            let (ok, err) = provider_success[provider];
+            let (success_count, error_count) = provider_success[provider];
             pcts.push(ProviderPercentiles {
                 provider: provider.clone(),
                 p50_ms: percentile(&durations, 50.0),
@@ -564,8 +962,8 @@ pub fn build_report(domain: &str, scenario: &str, results: Vec<BenchmarkResult>)
                 p99_ms: percentile(&durations, 99.0),
                 min_ms: durations.first().copied().unwrap_or(0),
                 max_ms: durations.last().copied().unwrap_or(0),
-                success_count: ok,
-                error_count: err,
+                success_count,
+                error_count,
             });
         }
         Some(pcts)

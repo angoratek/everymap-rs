@@ -1,9 +1,9 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::fraud::{FraudDetector, FraudCheckOptions, FraudResult};
-use everymap_core::error::{EveryMapError, EveryMapResult};
 use crate::client::RadarClient;
+use async_trait::async_trait;
+use everymap_core::domains::fraud::{FraudCheckOptions, FraudDetector, FraudResult};
+use everymap_core::error::{EveryMapError, EveryMapResult};
 pub use types::*;
 
 const TRACK_URL: &str = "https://api.radar.io/v1/track";
@@ -53,28 +53,47 @@ impl FraudDetector for RadarFraudDetector {
     async fn check_fraud(&self, options: &FraudCheckOptions) -> EveryMapResult<FraudResult> {
         let mut body = serde_json::Map::new();
 
-        body.insert("deviceId".to_string(), serde_json::Value::String(options.device_id.clone()));
+        body.insert(
+            "deviceId".to_string(),
+            serde_json::Value::String(options.device_id.clone()),
+        );
         body.insert("latitude".to_string(), serde_json::json!(options.latitude));
-        body.insert("longitude".to_string(), serde_json::json!(options.longitude));
+        body.insert(
+            "longitude".to_string(),
+            serde_json::json!(options.longitude),
+        );
         body.insert("accuracy".to_string(), serde_json::json!(options.accuracy));
 
-        if let Some(uid) = &options.user_id {
-            body.insert("userId".to_string(), serde_json::Value::String(uid.clone()));
+        if let Some(user_id) = &options.user_id {
+            body.insert(
+                "userId".to_string(),
+                serde_json::Value::String(user_id.clone()),
+            );
         }
-        if let Some(fg) = options.foreground {
-            body.insert("foreground".to_string(), serde_json::Value::Bool(fg));
+        if let Some(foreground) = options.foreground {
+            body.insert(
+                "foreground".to_string(),
+                serde_json::Value::Bool(foreground),
+            );
         }
         if let Some(stopped) = options.stopped {
             body.insert("stopped".to_string(), serde_json::Value::Bool(stopped));
         }
-        if let Some(dt) = &options.device_type {
-            body.insert("deviceType".to_string(), serde_json::Value::String(dt.clone()));
+        if let Some(device_type) = &options.device_type {
+            body.insert(
+                "deviceType".to_string(),
+                serde_json::Value::String(device_type.clone()),
+            );
         }
         if let Some(metadata) = &options.metadata {
-            body.insert("metadata".to_string(), serde_json::to_value(metadata).unwrap_or_default());
+            body.insert(
+                "metadata".to_string(),
+                serde_json::to_value(metadata).unwrap_or_default(),
+            );
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::POST, &self.base_url)
             .json(&serde_json::Value::Object(body));
 
@@ -84,7 +103,10 @@ impl FraudDetector for RadarFraudDetector {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Track/fraud check failed with status {}", radar_res.meta.code),
+                format!(
+                    "Track/fraud check failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 

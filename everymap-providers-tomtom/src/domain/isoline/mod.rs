@@ -1,11 +1,13 @@
 pub mod types;
 
+use crate::client::TomTomClient;
 use async_trait::async_trait;
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, IsolineResponse, IsolineResult, RangeType};
+use everymap_core::domains::isoline::{
+    IsolineOptions, IsolineProvider, IsolineResponse, IsolineResult, RangeType,
+};
 use everymap_core::domains::routing::TransportMode;
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::TomTomClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -33,8 +35,16 @@ impl TomTomIsoline {
 
 #[async_trait]
 impl IsolineProvider for TomTomIsoline {
-    async fn get_isoline(&self, center: &Coordinate, range: f64, options: &IsolineOptions) -> EveryMapResult<IsolineResponse> {
-        let url = format!("{}/routing/1/calculateReachableRange/{},{}/json", self.base_url, center.lat, center.lng);
+    async fn get_isoline(
+        &self,
+        center: &Coordinate,
+        range: f64,
+        options: &IsolineOptions,
+    ) -> EveryMapResult<IsolineResponse> {
+        let url = format!(
+            "{}/routing/1/calculateReachableRange/{},{}/json",
+            self.base_url, center.lat, center.lng
+        );
 
         let range_type_str = match options.range_type.as_ref() {
             Some(RangeType::Time) => "timeBudgetInSec",
@@ -42,9 +52,7 @@ impl IsolineProvider for TomTomIsoline {
             _ => "distanceBudgetInMeters",
         };
 
-        let mut params: Vec<(&str, String)> = vec![
-            (range_type_str, range.to_string()),
-        ];
+        let mut params: Vec<(&str, String)> = vec![(range_type_str, range.to_string())];
 
         if let Some(mode) = &options.transport_mode {
             let mode_str = match mode {
@@ -72,21 +80,31 @@ impl IsolineProvider for TomTomIsoline {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: TomTomReachableRangeResponse = self.client.request_json(builder).await?;
 
-        let isolines: Vec<IsolineResult> = result.reachable_range.map(|rr| {
-            let polygon: Vec<Coordinate> = rr.boundary.into_iter()
-                .map(|b| Coordinate::new(b.lat, b.lng).unwrap_or(Coordinate::ORIGIN))
-                .collect();
-            vec![IsolineResult {
-                range: Some(range),
-                polygon,
-            }]
-        }).unwrap_or_default();
+        let isolines: Vec<IsolineResult> = result
+            .reachable_range
+            .map(|rr| {
+                let polygon: Vec<Coordinate> = rr
+                    .boundary
+                    .into_iter()
+                    .map(|b| Coordinate::new(b.lat, b.lng).unwrap_or(Coordinate::ORIGIN))
+                    .collect();
+                vec![IsolineResult {
+                    range: Some(range),
+                    polygon,
+                }]
+            })
+            .unwrap_or_default();
 
-        Ok(IsolineResponse { isolines, raw: None })
+        Ok(IsolineResponse {
+            isolines,
+            raw: None,
+        })
     }
 }

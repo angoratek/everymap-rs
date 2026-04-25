@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::{Coordinate, Polyline, BoundingBox};
 use crate::error::EveryMapResult;
+use crate::types::{BoundingBox, Coordinate, Polyline};
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Avoid types for routing restrictions.
@@ -90,7 +90,12 @@ pub struct RouteResponse {
 
 #[async_trait]
 pub trait Router: Send + Sync {
-    async fn calculate_route(&self, start: &Coordinate, end: &Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse>;
+    async fn calculate_route(
+        &self,
+        start: &Coordinate,
+        end: &Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse>;
 }
 
 #[cfg(test)]
@@ -279,7 +284,9 @@ mod tests {
             departure_time: Some("2024-06-01T08:00:00".to_string()),
             arrival_time: None,
             language: Some("en".to_string()),
-            provider_extra: Some(serde_json::json!({"routing_mode": "fast", "truck": {"weight": 18}})),
+            provider_extra: Some(
+                serde_json::json!({"routing_mode": "fast", "truck": {"weight": 18}}),
+            ),
         };
         let json = serde_json::to_string(&opts).unwrap();
         let back: RouteOptions = serde_json::from_str(&json).unwrap();

@@ -1,8 +1,8 @@
+use crate::client::MapBoxClient;
 use async_trait::async_trait;
-use everymap_core::domains::imaging::{MapImageProvider, ImageOptions, ImageResponse};
+use everymap_core::domains::imaging::{ImageOptions, ImageResponse, MapImageProvider};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::MapBoxClient;
 use std::sync::Arc;
 
 const MAP_BASE_URL: &str = "https://api.mapbox.com";
@@ -28,9 +28,19 @@ impl MapBoxMapImageProvider {
 
 #[async_trait]
 impl MapImageProvider for MapBoxMapImageProvider {
-    async fn get_image(&self, center: &Coordinate, zoom: u32, size: (u32, u32), options: &ImageOptions) -> EveryMapResult<ImageResponse> {
-        let style = options.provider_extra.as_ref()
-            .and_then(|e| e.get("style")).and_then(|v| v.as_str()).unwrap_or("mapbox/streets-v12");
+    async fn get_image(
+        &self,
+        center: &Coordinate,
+        zoom: u32,
+        size: (u32, u32),
+        options: &ImageOptions,
+    ) -> EveryMapResult<ImageResponse> {
+        let style = options
+            .provider_extra
+            .as_ref()
+            .and_then(|e| e.get("style"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("mapbox/streets-v12");
 
         // Build the full style URL: /styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom}/{width}x{height}@2x
         let url = format!(
@@ -43,12 +53,15 @@ impl MapImageProvider for MapBoxMapImageProvider {
             params.push(("language", lang.clone()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response.headers()
+        let content_type = response
+            .headers()
             .get("content-type")
             .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());

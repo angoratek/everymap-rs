@@ -1,10 +1,10 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
-use everymap_providers_google::GooglePositioner;
-use everymap_providers_google::client::GoogleClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
+use everymap_providers_google::client::GoogleClient;
+use everymap_providers_google::GooglePositioner;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_positioning_contract() {
@@ -24,7 +24,10 @@ async fn test_positioning_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 
@@ -56,7 +59,10 @@ async fn test_positioning_with_wifi() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 
@@ -98,7 +104,10 @@ async fn test_positioning_locate_rich() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 

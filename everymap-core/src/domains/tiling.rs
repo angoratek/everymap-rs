@@ -1,5 +1,5 @@
-use async_trait::async_trait;
 use crate::error::EveryMapResult;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for map tile retrieval.
@@ -28,7 +28,13 @@ impl TileResponse {
 
 #[async_trait]
 pub trait TileProvider: Send + Sync {
-    async fn get_tile(&self, z: u32, x: u32, y: u32, options: &TileOptions) -> EveryMapResult<TileResponse>;
+    async fn get_tile(
+        &self,
+        z: u32,
+        x: u32,
+        y: u32,
+        options: &TileOptions,
+    ) -> EveryMapResult<TileResponse>;
 }
 
 #[cfg(test)]
@@ -55,7 +61,10 @@ mod tests {
     fn test_tile_response_construction() {
         let response = TileResponse::new(vec![1, 2, 3], Some("application/x-protobuf".to_string()));
         assert_eq!(response.data.len(), 3);
-        assert_eq!(response.content_type, Some("application/x-protobuf".to_string()));
+        assert_eq!(
+            response.content_type,
+            Some("application/x-protobuf".to_string())
+        );
     }
 
     // --- TileOptions serde roundtrip ---
@@ -90,7 +99,10 @@ mod tests {
 
     #[test]
     fn test_tile_response_json_content_type() {
-        let response = TileResponse::new(b"{\"tile\":1}".to_vec(), Some("application/json".to_string()));
+        let response = TileResponse::new(
+            b"{\"tile\":1}".to_vec(),
+            Some("application/json".to_string()),
+        );
         assert_eq!(response.content_type, Some("application/json".to_string()));
     }
 

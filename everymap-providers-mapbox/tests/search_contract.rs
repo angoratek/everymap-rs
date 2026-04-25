@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::search::{Geocoder, GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::types::Coordinate;
-use everymap_providers_mapbox::MapBoxGeocoder;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxGeocoder;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_geocode_contract() {
@@ -55,7 +55,10 @@ async fn test_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -66,7 +69,10 @@ async fn test_geocode_contract() {
     assert_eq!(res.items[0].coordinate.lat, 52.517389);
     assert_eq!(res.items[0].coordinate.lng, 13.395131);
     assert_eq!(res.items[0].title, Some("Berlin, Germany".to_string()));
-    assert_eq!(res.items[0].result_type, everymap_core::domains::search::SearchResultType::Approximate);
+    assert_eq!(
+        res.items[0].result_type,
+        everymap_core::domains::search::SearchResultType::Approximate
+    );
     assert_eq!(res.items[0].address.country.as_deref(), Some("Germany"));
     assert_eq!(res.items[0].address.country_code.as_deref(), Some("DE"));
 }
@@ -112,7 +118,10 @@ async fn test_reverse_geocode_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
@@ -121,6 +130,12 @@ async fn test_reverse_geocode_contract() {
     let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
 
     assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].title, Some("Bodestraße 1, 10178 Berlin, Germany".to_string()));
-    assert_eq!(res.items[0].result_type, everymap_core::domains::search::SearchResultType::ExactMatch);
+    assert_eq!(
+        res.items[0].title,
+        Some("Bodestraße 1, 10178 Berlin, Germany".to_string())
+    );
+    assert_eq!(
+        res.items[0].result_type,
+        everymap_core::domains::search::SearchResultType::ExactMatch
+    );
 }

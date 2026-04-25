@@ -1,10 +1,10 @@
-pub mod coordinate;
-pub mod bounds;
 pub mod address;
+pub mod bounds;
+pub mod coordinate;
 
-pub use coordinate::Coordinate;
-pub use bounds::BoundingBox;
 pub use address::Address;
+pub use bounds::BoundingBox;
+pub use coordinate::Coordinate;
 
 pub use bounds::Polyline;
 

@@ -25,7 +25,11 @@ impl MapBoxClient {
         auth_provider: Arc<dyn AuthProvider>,
     ) -> EveryMapResult<Self> {
         Ok(Self {
-            inner: everymap_core::client::ProviderClient::with_client_builder(builder, auth_provider, "mapbox")?,
+            inner: everymap_core::client::ProviderClient::with_client_builder(
+                builder,
+                auth_provider,
+                "mapbox",
+            )?,
         })
     }
 
@@ -45,12 +49,18 @@ impl MapBoxClient {
     }
 
     /// Sends a request, applying authentication first.
-    pub async fn request(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<reqwest::Response> {
+    pub async fn request(
+        &self,
+        builder: reqwest::RequestBuilder,
+    ) -> EveryMapResult<reqwest::Response> {
         self.inner.request(builder).await
     }
 
     /// Sends a request and deserializes the JSON response into `T`.
-    pub async fn request_json<T: serde::de::DeserializeOwned>(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<T> {
+    pub async fn request_json<T: serde::de::DeserializeOwned>(
+        &self,
+        builder: reqwest::RequestBuilder,
+    ) -> EveryMapResult<T> {
         self.inner.request_json(builder).await
     }
 }

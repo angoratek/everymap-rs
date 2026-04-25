@@ -1,10 +1,10 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
-use everymap_core::domains::matching::{MatchingOptions, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{MatchedPoint, MatchingOptions, TraceResponse};
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
-use crate::client::RadarClient;
 pub use types::*;
 
 const MATCH_BASE_URL: &str = "https://api.radar.io/v1/route/match";
@@ -32,7 +32,9 @@ impl From<RadarRouteMatchResponse> for TraceResponse {
     fn from(res: RadarRouteMatchResponse) -> Self {
         let raw = serde_json::to_value(&res).unwrap_or_default();
 
-        let matched_points: Vec<MatchedPoint> = res.matched_path.into_iter()
+        let matched_points: Vec<MatchedPoint> = res
+            .matched_path
+            .into_iter()
             .map(|p| MatchedPoint {
                 coordinate: Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN),
                 confidence: None,
@@ -53,15 +55,24 @@ impl From<RadarRouteMatchResponse> for TraceResponse {
 
 #[async_trait]
 impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
-    async fn match_route(&self, points: &[Coordinate], _options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        _options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse> {
         if points.is_empty() {
-            return Err(EveryMapError::ValidationError("At least one point is required for route matching".to_string()));
+            return Err(EveryMapError::ValidationError(
+                "At least one point is required for route matching".to_string(),
+            ));
         }
 
-        let path: Vec<serde_json::Value> = points.iter()
-            .map(|p| serde_json::json!({
-                "coordinates": format!("{},{}", p.lat, p.lng)
-            }))
+        let path: Vec<serde_json::Value> = points
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "coordinates": format!("{},{}", p.lat, p.lng)
+                })
+            })
             .collect();
 
         let body = serde_json::json!({
@@ -70,13 +81,17 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
             "geometry": "polyline6"
         });
 
-        let radar_res: RadarRouteMatchResponse = self.client.post_json(&self.base_url, &body).await?;
+        let radar_res: RadarRouteMatchResponse =
+            self.client.post_json(&self.base_url, &body).await?;
 
         if radar_res.meta.code != 200 {
             return Err(EveryMapError::provider(
                 "radar",
                 radar_res.meta.code.to_string(),
-                format!("Route match request failed with status {}", radar_res.meta.code),
+                format!(
+                    "Route match request failed with status {}",
+                    radar_res.meta.code
+                ),
             ));
         }
 
@@ -104,7 +119,10 @@ mod tests {
                     original_index: Some(1),
                 },
             ],
-            distance: Some(crate::domain::types::RadarMetric { value: 1200.0, text: "1.2 km".to_string() }),
+            distance: Some(crate::domain::types::RadarMetric {
+                value: 1200.0,
+                text: "1.2 km".to_string(),
+            }),
             geometry: None,
             road_attributes: None,
         };

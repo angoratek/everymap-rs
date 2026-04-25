@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions, IncidentSeverity};
-use everymap_core::types::Coordinate;
-use everymap_providers_tomtom::TomTomTraffic;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::traffic::{IncidentSeverity, TrafficOptions, TrafficProvider};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomTraffic;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_traffic_flow_contract() {
@@ -29,7 +29,10 @@ async fn test_traffic_flow_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
@@ -88,7 +91,10 @@ async fn test_traffic_incidents_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
@@ -105,5 +111,8 @@ async fn test_traffic_incidents_contract() {
     assert_eq!(res.incidents.len(), 1);
     assert_eq!(res.incidents[0].id, Some("inc123".to_string()));
     assert_eq!(res.incidents[0].severity, Some(IncidentSeverity::Major));
-    assert_eq!(res.incidents[0].description, Some("Multi-vehicle accident on A100".to_string()));
+    assert_eq!(
+        res.incidents[0].description,
+        Some("Multi-vehicle accident on A100".to_string())
+    );
 }

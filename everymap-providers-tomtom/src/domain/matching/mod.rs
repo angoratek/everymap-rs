@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::TomTomClient;
 use async_trait::async_trait;
-use everymap_core::domains::matching::{RouteMatcher, MatchingOptions, TraceResponse, MatchedPoint};
+use everymap_core::domains::matching::{
+    MatchedPoint, MatchingOptions, RouteMatcher, TraceResponse,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::TomTomClient;
 use std::sync::Arc;
 
 pub use types::*;
@@ -32,11 +34,16 @@ impl TomTomRouteMatcher {
 
 #[async_trait]
 impl RouteMatcher for TomTomRouteMatcher {
-    async fn match_route(&self, points: &[Coordinate], options: &MatchingOptions) -> EveryMapResult<TraceResponse> {
+    async fn match_route(
+        &self,
+        points: &[Coordinate],
+        options: &MatchingOptions,
+    ) -> EveryMapResult<TraceResponse> {
         let url = format!("{}/snapToRoads/1", self.base_url);
 
         // TomTom snapToRoads uses semicolon-separated "lon,lat" pairs (longitude first)
-        let points_str: String = points.iter()
+        let points_str: String = points
+            .iter()
             .map(|p| format!("{},{}", p.lng, p.lat))
             .collect::<Vec<_>>()
             .join(";");
@@ -54,18 +61,20 @@ impl RouteMatcher for TomTomRouteMatcher {
             }
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let result: TomTomSnapResponse = self.client.request_json(builder).await?;
 
-        let matched_points: Vec<MatchedPoint> = result.projected_points.into_iter()
+        let matched_points: Vec<MatchedPoint> = result
+            .projected_points
+            .into_iter()
             .map(MatchedPoint::from)
             .collect();
 
-        let distance = result.distances
-            .and_then(|d| d.total)
-            .unwrap_or(0.0);
+        let distance = result.distances.and_then(|d| d.total).unwrap_or(0.0);
 
         Ok(TraceResponse {
             matched_points,

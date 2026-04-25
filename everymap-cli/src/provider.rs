@@ -1,18 +1,18 @@
-use everymap_core::auth::{AuthProvider, ApiKeyProvider};
 use everymap_core::auth::header::HeaderAuthProvider;
-use everymap_core::domains::search::Geocoder;
-use everymap_core::domains::routing::Router;
-use everymap_core::domains::traffic::TrafficProvider;
-use everymap_core::domains::positioning::NetworkPositioner as NetworkPositionerTrait;
+use everymap_core::auth::{ApiKeyProvider, AuthProvider};
+use everymap_core::domains::attributes::AttributeProvider;
+use everymap_core::domains::fraud::FraudDetector;
+use everymap_core::domains::geofencing::GeofenceProvider;
+use everymap_core::domains::imaging::MapImageProvider;
 use everymap_core::domains::isoline::IsolineProvider;
 use everymap_core::domains::matching::RouteMatcher;
-use everymap_core::domains::tour::TourPlanner;
+use everymap_core::domains::positioning::NetworkPositioner as NetworkPositionerTrait;
+use everymap_core::domains::routing::Router;
+use everymap_core::domains::search::Geocoder;
 use everymap_core::domains::tiling::TileProvider;
-use everymap_core::domains::attributes::AttributeProvider;
-use everymap_core::domains::imaging::MapImageProvider;
-use everymap_core::domains::geofencing::GeofenceProvider;
+use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::tracking::TripTracker;
-use everymap_core::domains::fraud::FraudDetector;
+use everymap_core::domains::traffic::TrafficProvider;
 use std::sync::Arc;
 
 /// Registry that creates trait-object providers for the selected provider.
@@ -59,16 +59,38 @@ impl ProviderRegistry {
         let client = Arc::new(client);
 
         Self {
-            geocoder: Box::new(everymap_providers_here::domain::search::HereGeocoder::new(client.clone())),
-            router: Box::new(everymap_providers_here::domain::routing::HereRouter::new(client.clone())),
-            traffic: Box::new(everymap_providers_here::domain::traffic::HereTraffic::new(client.clone())),
-            positioner: Box::new(everymap_providers_here::domain::positioning::HerePositioner::new(client.clone())),
-            isoline: Box::new(everymap_providers_here::domain::isoline::HereIsoline::new(client.clone())),
-            route_matcher: Box::new(everymap_providers_here::domain::matching::HereRouteMatcher::new(client.clone())),
-            tour_planner: Box::new(everymap_providers_here::domain::tour::HereTourPlanner::new(client.clone())),
-            tile_provider: Box::new(everymap_providers_here::domain::tiling::HereTileProvider::new(client.clone())),
-            attribute_provider: Box::new(everymap_providers_here::domain::attributes::HereAttributeProvider::new(client.clone())),
-            image_provider: Box::new(everymap_providers_here::domain::imaging::HereMapImageProvider::new(client)),
+            geocoder: Box::new(everymap_providers_here::domain::search::HereGeocoder::new(
+                client.clone(),
+            )),
+            router: Box::new(everymap_providers_here::domain::routing::HereRouter::new(
+                client.clone(),
+            )),
+            traffic: Box::new(everymap_providers_here::domain::traffic::HereTraffic::new(
+                client.clone(),
+            )),
+            positioner: Box::new(
+                everymap_providers_here::domain::positioning::HerePositioner::new(client.clone()),
+            ),
+            isoline: Box::new(everymap_providers_here::domain::isoline::HereIsoline::new(
+                client.clone(),
+            )),
+            route_matcher: Box::new(
+                everymap_providers_here::domain::matching::HereRouteMatcher::new(client.clone()),
+            ),
+            tour_planner: Box::new(everymap_providers_here::domain::tour::HereTourPlanner::new(
+                client.clone(),
+            )),
+            tile_provider: Box::new(
+                everymap_providers_here::domain::tiling::HereTileProvider::new(client.clone()),
+            ),
+            attribute_provider: Box::new(
+                everymap_providers_here::domain::attributes::HereAttributeProvider::new(
+                    client.clone(),
+                ),
+            ),
+            image_provider: Box::new(
+                everymap_providers_here::domain::imaging::HereMapImageProvider::new(client),
+            ),
             geofence: None,
             trip_tracker: None,
             fraud_detector: None,
@@ -82,16 +104,26 @@ impl ProviderRegistry {
         let client = Arc::new(client);
 
         Self {
-            geocoder: Box::new(everymap_providers_google::GoogleGeocoder::new(client.clone())),
+            geocoder: Box::new(everymap_providers_google::GoogleGeocoder::new(
+                client.clone(),
+            )),
             router: Box::new(everymap_providers_google::GoogleRouter::new(client.clone())),
             traffic: Box::new(everymap_providers_google::GoogleTraffic),
-            positioner: Box::new(everymap_providers_google::GooglePositioner::new(client.clone())),
+            positioner: Box::new(everymap_providers_google::GooglePositioner::new(
+                client.clone(),
+            )),
             isoline: Box::new(everymap_providers_google::GoogleIsoline),
-            route_matcher: Box::new(everymap_providers_google::GoogleRouteMatcher::new(client.clone())),
+            route_matcher: Box::new(everymap_providers_google::GoogleRouteMatcher::new(
+                client.clone(),
+            )),
             tour_planner: Box::new(everymap_providers_google::GoogleTourPlanner),
             tile_provider: Box::new(everymap_providers_google::GoogleTileProvider),
-            attribute_provider: Box::new(everymap_providers_google::GoogleAttributeProvider::new(client.clone())),
-            image_provider: Box::new(everymap_providers_google::GoogleMapImageProvider::new(client)),
+            attribute_provider: Box::new(everymap_providers_google::GoogleAttributeProvider::new(
+                client.clone(),
+            )),
+            image_provider: Box::new(everymap_providers_google::GoogleMapImageProvider::new(
+                client,
+            )),
             geofence: None,
             trip_tracker: None,
             fraud_detector: None,
@@ -105,16 +137,30 @@ impl ProviderRegistry {
         let client = Arc::new(client);
 
         Self {
-            geocoder: Box::new(everymap_providers_tomtom::TomTomGeocoder::new(client.clone())),
+            geocoder: Box::new(everymap_providers_tomtom::TomTomGeocoder::new(
+                client.clone(),
+            )),
             router: Box::new(everymap_providers_tomtom::TomTomRouter::new(client.clone())),
-            traffic: Box::new(everymap_providers_tomtom::TomTomTraffic::new(client.clone())),
+            traffic: Box::new(everymap_providers_tomtom::TomTomTraffic::new(
+                client.clone(),
+            )),
             positioner: Box::new(everymap_providers_tomtom::TomTomPositioner),
-            isoline: Box::new(everymap_providers_tomtom::TomTomIsoline::new(client.clone())),
-            route_matcher: Box::new(everymap_providers_tomtom::TomTomRouteMatcher::new(client.clone())),
-            tour_planner: Box::new(everymap_providers_tomtom::TomTomTourPlanner::new(client.clone())),
-            tile_provider: Box::new(everymap_providers_tomtom::TomTomTileProvider::new(client.clone())),
+            isoline: Box::new(everymap_providers_tomtom::TomTomIsoline::new(
+                client.clone(),
+            )),
+            route_matcher: Box::new(everymap_providers_tomtom::TomTomRouteMatcher::new(
+                client.clone(),
+            )),
+            tour_planner: Box::new(everymap_providers_tomtom::TomTomTourPlanner::new(
+                client.clone(),
+            )),
+            tile_provider: Box::new(everymap_providers_tomtom::TomTomTileProvider::new(
+                client.clone(),
+            )),
             attribute_provider: Box::new(everymap_providers_tomtom::TomTomAttributeProvider),
-            image_provider: Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(client)),
+            image_provider: Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(
+                client,
+            )),
             geofence: None,
             trip_tracker: None,
             fraud_detector: None,
@@ -128,16 +174,28 @@ impl ProviderRegistry {
         let client = Arc::new(client);
 
         Self {
-            geocoder: Box::new(everymap_providers_mapbox::MapBoxGeocoder::new(client.clone())),
+            geocoder: Box::new(everymap_providers_mapbox::MapBoxGeocoder::new(
+                client.clone(),
+            )),
             router: Box::new(everymap_providers_mapbox::MapBoxRouter::new(client.clone())),
             traffic: Box::new(everymap_providers_mapbox::MapBoxTraffic),
             positioner: Box::new(everymap_providers_mapbox::MapBoxPositioner),
-            isoline: Box::new(everymap_providers_mapbox::MapBoxIsoline::new(client.clone())),
-            route_matcher: Box::new(everymap_providers_mapbox::MapBoxRouteMatcher::new(client.clone())),
-            tour_planner: Box::new(everymap_providers_mapbox::MapBoxTourPlanner::new(client.clone())),
-            tile_provider: Box::new(everymap_providers_mapbox::MapBoxTileProvider::new(client.clone())),
+            isoline: Box::new(everymap_providers_mapbox::MapBoxIsoline::new(
+                client.clone(),
+            )),
+            route_matcher: Box::new(everymap_providers_mapbox::MapBoxRouteMatcher::new(
+                client.clone(),
+            )),
+            tour_planner: Box::new(everymap_providers_mapbox::MapBoxTourPlanner::new(
+                client.clone(),
+            )),
+            tile_provider: Box::new(everymap_providers_mapbox::MapBoxTileProvider::new(
+                client.clone(),
+            )),
             attribute_provider: Box::new(everymap_providers_mapbox::MapBoxAttributeProvider),
-            image_provider: Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(client)),
+            image_provider: Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(
+                client,
+            )),
             geofence: None,
             trip_tracker: None,
             fraud_detector: None,
@@ -156,14 +214,24 @@ impl ProviderRegistry {
             traffic: Box::new(everymap_providers_radar::RadarTraffic),
             positioner: Box::new(everymap_providers_radar::RadarPositioner),
             isoline: Box::new(everymap_providers_radar::RadarIsoline),
-            route_matcher: Box::new(everymap_providers_radar::RadarRouteMatcher::new(client.clone())),
-            tour_planner: Box::new(everymap_providers_radar::RadarTourPlanner::new(client.clone())),
+            route_matcher: Box::new(everymap_providers_radar::RadarRouteMatcher::new(
+                client.clone(),
+            )),
+            tour_planner: Box::new(everymap_providers_radar::RadarTourPlanner::new(
+                client.clone(),
+            )),
             tile_provider: Box::new(everymap_providers_radar::RadarTileProvider),
             attribute_provider: Box::new(everymap_providers_radar::RadarAttributeProvider),
             image_provider: Box::new(everymap_providers_radar::RadarMapImageProvider),
-            geofence: Some(Box::new(everymap_providers_radar::RadarGeofenceProvider::new(client.clone()))),
-            trip_tracker: Some(Box::new(everymap_providers_radar::RadarTripTracker::new(client.clone()))),
-            fraud_detector: Some(Box::new(everymap_providers_radar::RadarFraudDetector::new(client))),
+            geofence: Some(Box::new(
+                everymap_providers_radar::RadarGeofenceProvider::new(client.clone()),
+            )),
+            trip_tracker: Some(Box::new(everymap_providers_radar::RadarTripTracker::new(
+                client.clone(),
+            ))),
+            fraud_detector: Some(Box::new(everymap_providers_radar::RadarFraudDetector::new(
+                client,
+            ))),
         }
     }
 

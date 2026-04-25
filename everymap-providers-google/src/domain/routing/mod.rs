@@ -1,10 +1,12 @@
 pub mod types;
 
-use async_trait::async_trait;
-use everymap_core::domains::routing::{Router, RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode};
-use everymap_core::error::{EveryMapError, EveryMapResult};
-use everymap_core::types::{Polyline, Coordinate, BoundingBox};
 use crate::client::GoogleClient;
+use async_trait::async_trait;
+use everymap_core::domains::routing::{
+    RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
+};
+use everymap_core::error::{EveryMapError, EveryMapResult};
+use everymap_core::types::{BoundingBox, Coordinate, Polyline};
 pub use types::*;
 
 const DIRECTIONS_BASE_URL: &str = "https://maps.googleapis.com/maps/api/directions/json";
@@ -30,38 +32,50 @@ impl GoogleRouter {
 
 impl From<GoogleRoute> for RouteResult {
     fn from(route: GoogleRoute) -> Self {
-        let (distance, duration) = route.legs.first()
+        let (distance, duration) = route
+            .legs
+            .first()
             .map(|leg| {
-                let d = leg.distance.as_ref().map(|d| d.value as f64).unwrap_or(0.0);
-                let t = leg.duration.as_ref().map(|d| d.value as f64).unwrap_or(0.0);
-                (d, t)
+                let distance = leg.distance.as_ref().map(|d| d.value as f64).unwrap_or(0.0);
+                let duration = leg.duration.as_ref().map(|d| d.value as f64).unwrap_or(0.0);
+                (distance, duration)
             })
             .unwrap_or((0.0, 0.0));
 
-        let geometry = route.overview_polyline
+        let geometry = route
+            .overview_polyline
             .as_ref()
             .map(|p| decode_google_polyline(&p.points))
             .unwrap_or_else(|| Polyline::new(vec![]));
 
-        let steps: Vec<RouteStep> = route.legs.first()
-            .map(|leg| leg.steps.iter().map(|s| {
-                RouteStep {
-                    instruction: s.html_instructions.clone(),
-                    distance: s.distance.as_ref().map(|d| d.value as f64),
-                    duration: s.duration.as_ref().map(|d| d.value as f64),
-                    start_coordinate: s.start_location.as_ref()
-                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)),
-                    end_coordinate: s.end_location.as_ref()
-                        .map(|l| Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)),
-                }
-            }).collect())
-            .unwrap_or_default();
+        let steps: Vec<RouteStep> =
+            route
+                .legs
+                .first()
+                .map(|leg| {
+                    leg.steps
+                        .iter()
+                        .map(|s| RouteStep {
+                            instruction: s.html_instructions.clone(),
+                            distance: s.distance.as_ref().map(|d| d.value as f64),
+                            duration: s.duration.as_ref().map(|d| d.value as f64),
+                            start_coordinate: s.start_location.as_ref().map(|l| {
+                                Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)
+                            }),
+                            end_coordinate: s.end_location.as_ref().map(|l| {
+                                Coordinate::new(l.lat, l.lng).unwrap_or(Coordinate::ORIGIN)
+                            }),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default();
 
-        let bounding_box = route.bounds
-            .map(|b| BoundingBox::new(
+        let bounding_box = route.bounds.map(|b| {
+            BoundingBox::new(
                 Coordinate::new(b.northeast.lat, b.northeast.lng).unwrap_or(Coordinate::ORIGIN),
                 Coordinate::new(b.southwest.lat, b.southwest.lng).unwrap_or(Coordinate::ORIGIN),
-            ));
+            )
+        });
 
         Self {
             distance,
@@ -129,7 +143,12 @@ fn decode_polyline_value(encoded: &str, mut index: usize) -> (i64, usize) {
 
 #[async_trait]
 impl Router for GoogleRouter {
-    async fn calculate_route(&self, start: &Coordinate, end: &Coordinate, options: &RouteOptions) -> EveryMapResult<RouteResponse> {
+    async fn calculate_route(
+        &self,
+        start: &Coordinate,
+        end: &Coordinate,
+        options: &RouteOptions,
+    ) -> EveryMapResult<RouteResponse> {
         let mode = match options.transport_mode {
             Some(TransportMode::Car) | None => "driving",
             Some(TransportMode::Bicycle) => "bicycling",
@@ -147,22 +166,27 @@ impl Router for GoogleRouter {
             params.push(("language", lang.clone()));
         }
         if !options.avoid.is_empty() {
-            let avoid_str: String = options.avoid.iter().map(|a| match a {
-                everymap_core::domains::routing::AvoidType::Tolls => "tolls",
-                everymap_core::domains::routing::AvoidType::Highways => "highways",
-                everymap_core::domains::routing::AvoidType::Ferries => "ferries",
-                everymap_core::domains::routing::AvoidType::Tunnels => "tunnels",
-                everymap_core::domains::routing::AvoidType::DirtRoads => "indoor",
-            }).collect::<Vec<&str>>().join("|");
+            let avoid_str: String = options
+                .avoid
+                .iter()
+                .map(|a| match a {
+                    everymap_core::domains::routing::AvoidType::Tolls => "tolls",
+                    everymap_core::domains::routing::AvoidType::Highways => "highways",
+                    everymap_core::domains::routing::AvoidType::Ferries => "ferries",
+                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels",
+                    everymap_core::domains::routing::AvoidType::DirtRoads => "indoor",
+                })
+                .collect::<Vec<&str>>()
+                .join("|");
             params.push(("avoid", avoid_str));
         }
-        if let Some(alts) = options.alternatives {
-            if alts > 1 {
+        if let Some(alternatives) = options.alternatives {
+            if alternatives > 1 {
                 params.push(("alternatives", "true".to_string()));
             }
         }
-        if let Some(dep) = &options.departure_time {
-            params.push(("departure_time", dep.clone()));
+        if let Some(departure_time) = &options.departure_time {
+            params.push(("departure_time", departure_time.clone()));
         }
 
         // Extract Google-specific options from provider_extra
@@ -182,7 +206,10 @@ impl Router for GoogleRouter {
                 if let Some(v) = obj.get("transit_mode").and_then(|v| v.as_str()) {
                     params.push(("transit_mode", v.to_string()));
                 }
-                if let Some(v) = obj.get("transit_routing_preference").and_then(|v| v.as_str()) {
+                if let Some(v) = obj
+                    .get("transit_routing_preference")
+                    .and_then(|v| v.as_str())
+                {
                     params.push(("transit_routing_preference", v.to_string()));
                 }
                 if let Some(v) = obj.get("units").and_then(|v| v.as_str()) {
@@ -192,7 +219,9 @@ impl Router for GoogleRouter {
         }
 
         let url = self.base_url.clone();
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
 
         let google_res: GoogleDirectionsResponse = self.client.request_json(builder).await?;
@@ -201,11 +230,16 @@ impl Router for GoogleRouter {
             return Err(EveryMapError::provider(
                 "google",
                 &google_res.status,
-                google_res.error_message.as_deref().unwrap_or("Unknown error"),
+                google_res
+                    .error_message
+                    .as_deref()
+                    .unwrap_or("Unknown error"),
             ));
         }
 
-        let routes: Vec<RouteResult> = google_res.routes.into_iter()
+        let routes: Vec<RouteResult> = google_res
+            .routes
+            .into_iter()
             .map(RouteResult::from)
             .collect();
 

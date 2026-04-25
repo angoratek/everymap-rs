@@ -1,10 +1,10 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
-use everymap_core::domains::tiling::{TileProvider, TileOptions};
-use everymap_providers_mapbox::MapBoxTileProvider;
-use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_providers_mapbox::client::MapBoxClient;
+use everymap_providers_mapbox::MapBoxTileProvider;
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_tiling_contract() {
@@ -22,7 +22,10 @@ async fn test_tiling_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let tiling = MapBoxTileProvider::with_base_url(client, server.uri());
 
@@ -36,5 +39,8 @@ async fn test_tiling_contract() {
     let res = tiling.get_tile(10, 523, 335, &opts).await.unwrap();
 
     assert_eq!(res.data.len(), 6);
-    assert_eq!(res.content_type, Some("application/vnd.mapbox-vector-tile".to_string()));
+    assert_eq!(
+        res.content_type,
+        Some("application/vnd.mapbox-vector-tile".to_string())
+    );
 }

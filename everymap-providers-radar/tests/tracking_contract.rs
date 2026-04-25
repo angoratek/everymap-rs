@@ -1,19 +1,19 @@
-use everymap_core::domains::tracking::{TripTracker, TripCreateOptions, TripUpdateOptions, TripStatus};
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
-use everymap_providers_radar::{RadarTripTracker, RadarClient};
+use everymap_core::domains::tracking::{
+    TripCreateOptions, TripStatus, TripTracker, TripUpdateOptions,
+};
 use everymap_core::types::Coordinate;
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_providers_radar::{RadarClient, RadarTripTracker};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_tracker_mock() -> (MockServer, RadarTripTracker) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> =
+        Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let tracker = RadarTripTracker::with_base_url(
-        client,
-        format!("{}/v1/trips", server.uri()),
-    );
+    let tracker = RadarTripTracker::with_base_url(client, format!("{}/v1/trips", server.uri()));
     (server, tracker)
 }
 

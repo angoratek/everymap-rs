@@ -1,12 +1,12 @@
 pub mod types;
 
+use crate::client::RadarClient;
 use async_trait::async_trait;
 use everymap_core::domains::tracking::{
-    TripTracker, TripCreateOptions, TripUpdateOptions, TripResult, TripStatus,
+    TripCreateOptions, TripResult, TripStatus, TripTracker, TripUpdateOptions,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
-use crate::client::RadarClient;
 pub use types::*;
 
 const TRIPS_URL: &str = "https://api.radar.io/v1/trips";
@@ -45,12 +45,14 @@ impl From<RadarTrip> for TripResult {
     fn from(trip: RadarTrip) -> Self {
         let raw = serde_json::to_value(&trip).unwrap_or_default();
 
-        let origin = trip.origin.as_ref().and_then(|o| {
-            Coordinate::new(o.latitude, o.longitude).ok()
-        });
-        let destination = trip.destination.as_ref().and_then(|d| {
-            Coordinate::new(d.latitude, d.longitude).ok()
-        });
+        let origin = trip
+            .origin
+            .as_ref()
+            .and_then(|o| Coordinate::new(o.latitude, o.longitude).ok());
+        let destination = trip
+            .destination
+            .as_ref()
+            .and_then(|d| Coordinate::new(d.latitude, d.longitude).ok());
 
         let status = trip.status.as_deref().map(parse_trip_status);
 
@@ -74,31 +76,44 @@ impl TripTracker for RadarTripTracker {
         let mut body = serde_json::Map::new();
 
         if let Some(origin) = &options.origin {
-            body.insert("origin".to_string(), serde_json::json!({
-                "latitude": origin.lat,
-                "longitude": origin.lng
-            }));
+            body.insert(
+                "origin".to_string(),
+                serde_json::json!({
+                    "latitude": origin.lat,
+                    "longitude": origin.lng
+                }),
+            );
         }
-        if let Some(dest) = &options.destination {
-            body.insert("destination".to_string(), serde_json::json!({
-                "latitude": dest.lat,
-                "longitude": dest.lng
-            }));
+        if let Some(destination) = &options.destination {
+            body.insert(
+                "destination".to_string(),
+                serde_json::json!({
+                    "latitude": destination.lat,
+                    "longitude": destination.lng
+                }),
+            );
         }
         if let Some(mode) = &options.mode {
             body.insert("mode".to_string(), serde_json::Value::String(mode.clone()));
         }
-        if let Some(eid) = &options.external_id {
-            body.insert("externalId".to_string(), serde_json::Value::String(eid.clone()));
+        if let Some(external_id) = &options.external_id {
+            body.insert(
+                "externalId".to_string(),
+                serde_json::Value::String(external_id.clone()),
+            );
         }
         if let Some(tag) = &options.tag {
             body.insert("tag".to_string(), serde_json::Value::String(tag.clone()));
         }
         if let Some(metadata) = &options.metadata {
-            body.insert("metadata".to_string(), serde_json::to_value(metadata).unwrap_or_default());
+            body.insert(
+                "metadata".to_string(),
+                serde_json::to_value(metadata).unwrap_or_default(),
+            );
         }
 
-        let builder = self.client
+        let builder = self
+            .client
             .build_request(reqwest::Method::POST, &self.base_url)
             .json(&serde_json::Value::Object(body));
 
@@ -116,13 +131,16 @@ impl TripTracker for RadarTripTracker {
     }
 
     async fn update_trip(&self, options: &TripUpdateOptions) -> EveryMapResult<TripResult> {
-        let status_str = options.status.map(|s| match s {
-            TripStatus::Pending => "pending",
-            TripStatus::Started => "started",
-            TripStatus::Approaching => "approaching",
-            TripStatus::Arrived => "arrived",
-            TripStatus::Completed => "completed",
-        }).unwrap_or("pending");
+        let status_str = options
+            .status
+            .map(|s| match s {
+                TripStatus::Pending => "pending",
+                TripStatus::Started => "started",
+                TripStatus::Approaching => "approaching",
+                TripStatus::Arrived => "arrived",
+                TripStatus::Completed => "completed",
+            })
+            .unwrap_or("pending");
 
         let url = format!("{}/{}/update", self.base_url, options.trip_id);
         let body = serde_json::json!({ "status": status_str });
@@ -205,9 +223,15 @@ mod tests {
     fn test_parse_trip_status_all_variants() {
         assert!(matches!(parse_trip_status("pending"), TripStatus::Pending));
         assert!(matches!(parse_trip_status("started"), TripStatus::Started));
-        assert!(matches!(parse_trip_status("approaching"), TripStatus::Approaching));
+        assert!(matches!(
+            parse_trip_status("approaching"),
+            TripStatus::Approaching
+        ));
         assert!(matches!(parse_trip_status("arrived"), TripStatus::Arrived));
-        assert!(matches!(parse_trip_status("completed"), TripStatus::Completed));
+        assert!(matches!(
+            parse_trip_status("completed"),
+            TripStatus::Completed
+        ));
     }
 
     #[test]

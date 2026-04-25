@@ -1,20 +1,20 @@
-use everymap_core::domains::tour::TourPlanner;
-use everymap_core::domains::tour::TourOptions;
 use everymap_core::auth::AuthProvider;
+use everymap_core::domains::tour::TourOptions;
+use everymap_core::domains::tour::TourPlanner;
 use everymap_core::types::Coordinate;
-use everymap_providers_radar::{RadarTourPlanner, RadarClient};
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_providers_radar::{RadarClient, RadarTourPlanner};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_tour_mock() -> (MockServer, RadarTourPlanner) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new(
+        "prj_test_pk_123".to_string(),
+    ));
     let client = Arc::new(RadarClient::new(auth));
-    let planner = RadarTourPlanner::with_base_url(
-        client,
-        format!("{}/v1/route/optimize", server.uri()),
-    );
+    let planner =
+        RadarTourPlanner::with_base_url(client, format!("{}/v1/route/optimize", server.uri()));
     (server, planner)
 }
 
@@ -57,7 +57,10 @@ async fn test_tour_contract() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.53, 13.41).unwrap(),
     ];
-    let result = planner.optimize_tour(&stops, &TourOptions::default()).await.unwrap();
+    let result = planner
+        .optimize_tour(&stops, &TourOptions::default())
+        .await
+        .unwrap();
     assert_eq!(result.stops.len(), 3); // 2 legs start + 1 final end
     assert!((result.total_distance.unwrap() - 15000.0).abs() < 1.0);
 }

@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for tour/sequence optimization.
@@ -48,7 +48,11 @@ pub struct TourResponse {
 
 #[async_trait]
 pub trait TourPlanner: Send + Sync {
-    async fn optimize_tour(&self, stops: &[Coordinate], options: &TourOptions) -> EveryMapResult<TourResponse>;
+    async fn optimize_tour(
+        &self,
+        stops: &[Coordinate],
+        options: &TourOptions,
+    ) -> EveryMapResult<TourResponse>;
 }
 
 #[cfg(test)]

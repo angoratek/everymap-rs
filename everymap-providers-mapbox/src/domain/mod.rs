@@ -1,9 +1,9 @@
 pub mod geo;
-pub mod search;
-pub mod routing;
+pub mod imaging;
 pub mod isoline;
 pub mod matching;
-pub mod tour;
+pub mod routing;
+pub mod search;
 pub mod tiling;
-pub mod imaging;
+pub mod tour;
 pub mod unsupported;

@@ -74,9 +74,15 @@ pub const BOSTON_COORDS: &str = "42.36,-71.06";
 pub const BERLIN_BBOX: &str = "52.4,13.2;52.6,13.5";
 
 // ============================================================
-// Tile coordinates
+// Tile coordinates (HERE Vector Tile API v2 tiling scheme)
 // ============================================================
 
+/// Berlin area at zoom 14 in HERE's own tiling scheme.
+pub const HERE_TILE_Z: &str = "14";
+pub const HERE_TILE_X: &str = "4494";
+pub const HERE_TILE_Y: &str = "2832";
+
+/// Standard web Mercator tile coords (Slippy map, used by TomTom/MapBox).
 pub const TILE_Z: &str = "14";
 pub const TILE_X: &str = "8800";
 pub const TILE_Y: &str = "5374";
@@ -164,7 +170,7 @@ pub fn cli_no_key_env() -> Command {
 pub fn cli_no_key() -> Command {
     let mut cmd = cli();
     cmd.env_remove("EVERYMAP_API_KEY")
-       .env("HOME", "/tmp/everymap-test-no-config");
+        .env("HOME", "/tmp/everymap-test-no-config");
     cmd
 }
 

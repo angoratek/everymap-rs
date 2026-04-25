@@ -1,20 +1,20 @@
-use everymap_core::domains::routing::Router;
-use everymap_core::domains::routing::RouteOptions;
 use everymap_core::auth::AuthProvider;
+use everymap_core::domains::routing::RouteOptions;
+use everymap_core::domains::routing::Router;
 use everymap_core::types::Coordinate;
-use everymap_providers_radar::{RadarRouter, RadarClient};
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path};
+use everymap_providers_radar::{RadarClient, RadarRouter};
 use std::sync::Arc;
+use wiremock::matchers::{method, path};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_router_mock() -> (MockServer, RadarRouter) {
     let server = MockServer::start().await;
-    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new("prj_test_pk_123".to_string()));
+    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new(
+        "prj_test_pk_123".to_string(),
+    ));
     let client = Arc::new(RadarClient::new(auth));
-    let router = RadarRouter::with_base_url(
-        client,
-        format!("{}/v1/route/directions", server.uri()),
-    );
+    let router =
+        RadarRouter::with_base_url(client, format!("{}/v1/route/directions", server.uri()));
     (server, router)
 }
 
@@ -53,7 +53,10 @@ async fn test_routing_contract() {
 
     let start = Coordinate::new(52.5163, 13.3777).unwrap();
     let end = Coordinate::new(48.8566, 2.3522).unwrap();
-    let result = router.calculate_route(&start, &end, &RouteOptions::default()).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &RouteOptions::default())
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
     let route = &result.routes[0];
     assert!((route.distance - 250000.0).abs() < 1.0);

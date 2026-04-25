@@ -1,6 +1,6 @@
-use async_trait::async_trait;
-use crate::types::Coordinate;
 use crate::error::EveryMapResult;
+use crate::types::Coordinate;
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
 /// Options for network-based positioning.
@@ -33,7 +33,10 @@ pub struct PositioningResponse {
 
 #[async_trait]
 pub trait NetworkPositioner: Send + Sync {
-    async fn get_position(&self, options: &PositioningOptions) -> EveryMapResult<PositioningResponse>;
+    async fn get_position(
+        &self,
+        options: &PositioningOptions,
+    ) -> EveryMapResult<PositioningResponse>;
 }
 
 #[cfg(test)]

@@ -3,24 +3,28 @@ mod output;
 mod provider;
 
 use clap::{Parser, Subcommand};
-use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
-use everymap_core::domains::traffic::TrafficOptions;
-use everymap_core::domains::positioning::PositioningOptions;
+use everymap_core::domains::attributes::AttributeOptions;
+use everymap_core::domains::fraud::FraudCheckOptions;
+use everymap_core::domains::geofencing::{GeofenceCreateOptions, GeofenceOptions, GeofenceType};
+use everymap_core::domains::imaging::ImageOptions;
 use everymap_core::domains::isoline::{IsolineOptions, RangeType as CoreRangeType};
 use everymap_core::domains::matching::MatchingOptions;
-use everymap_core::domains::tour::TourOptions;
+use everymap_core::domains::positioning::PositioningOptions;
+use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
+use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
 use everymap_core::domains::tiling::TileOptions;
-use everymap_core::domains::attributes::AttributeOptions;
-use everymap_core::domains::imaging::ImageOptions;
-use everymap_core::domains::geofencing::{GeofenceOptions, GeofenceCreateOptions, GeofenceType};
-use everymap_core::domains::tracking::{TripCreateOptions, TripUpdateOptions, TripStatus};
-use everymap_core::domains::fraud::FraudCheckOptions;
+use everymap_core::domains::tour::TourOptions;
+use everymap_core::domains::tracking::{TripCreateOptions, TripStatus, TripUpdateOptions};
+use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
 use provider::ProviderRegistry;
 
 #[derive(Parser)]
-#[command(name = "everymap", version, about = "Geospatial API CLI - unified interface for map providers")]
+#[command(
+    name = "everymap",
+    version,
+    about = "Geospatial API CLI - unified interface for map providers"
+)]
 struct Cli {
     /// Provider to use (here, google, tomtom, mapbox, radar)
     #[arg(long, default_value = "here")]
@@ -129,6 +133,9 @@ enum Commands {
         /// Tile layer (base, core, hybrid) — default: base
         #[arg(long, default_value = "base")]
         layer: String,
+        /// Output file path (default: tile.omv)
+        #[arg(long, default_value = "tile.omv")]
+        output_file: String,
     },
     /// Query road attributes
     Attributes {
@@ -159,6 +166,9 @@ enum Commands {
         /// Zoom level
         #[arg(long, default_value = "14")]
         zoom: u32,
+        /// Output file path (default: map.png)
+        #[arg(long, default_value = "map.png")]
+        output_file: String,
     },
     /// Search for geofences near a location
     GeofenceSearch {
@@ -289,13 +299,13 @@ fn print_output(value: &serde_json::Value, format: &output::OutputFormat) {
     }
 }
 
-fn exit_with_coord_error(msg: &str) -> ! {
-    eprintln!("Invalid coordinates: {}", msg);
+fn exit_with_coord_error(message: &str) -> ! {
+    eprintln!("Invalid coordinates: {}", message);
     std::process::exit(1);
 }
 
-fn exit_with_error(msg: &str) -> ! {
-    eprintln!("Error: {}", msg);
+fn exit_with_error(message: &str) -> ! {
+    eprintln!("Error: {}", message);
     std::process::exit(1);
 }
 
@@ -306,8 +316,8 @@ async fn main() {
     let api_key = match cli.api_key.clone() {
         Some(key) => key,
         None => {
-            let cfg = config::Config::load();
-            match cfg.resolve_api_key(&None, &cli.provider, "EVERYMAP_API_KEY") {
+            let config = config::Config::load();
+            match config.resolve_api_key(&None, &cli.provider, "EVERYMAP_API_KEY") {
                 Some(key) => key,
                 None => {
                     eprintln!("Error: API key required. Use --api-key, set EVERYMAP_API_KEY env var, or configure ~/.everymap/config.toml");
@@ -322,27 +332,32 @@ async fn main() {
         std::process::exit(1);
     }
 
-    let key_param = cli.api_key_param.clone().unwrap_or_else(|| {
-        match cli.provider.as_str() {
+    let key_param = cli
+        .api_key_param
+        .clone()
+        .unwrap_or_else(|| match cli.provider.as_str() {
             "google" | "tomtom" => "key".to_string(),
             "mapbox" => "access_token".to_string(),
             _ => "apiKey".to_string(),
-        }
-    });
+        });
 
-    let fmt = output::OutputFormat::from_str(&cli.output);
+    let output_format = output::OutputFormat::from_str(&cli.output);
     let registry = ProviderRegistry::new(&cli.provider, api_key, key_param, cli.verbose);
-    run_commands(&cli, &registry, &fmt).await;
+    run_commands(&cli, &registry, &output_format).await;
 }
 
-async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::OutputFormat) {
+async fn run_commands(
+    cli: &Cli,
+    registry: &ProviderRegistry,
+    output_format: &output::OutputFormat,
+) {
     match &cli.command {
         Commands::Geocode { query } => {
             let geocoder = registry.geocoder();
-            let opts = GeocodeOptions::default();
-            match geocoder.geocode(query, &opts).await {
-                Ok(res) => {
-                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+            let options = GeocodeOptions::default();
+            match geocoder.geocode(query, &options).await {
+                Ok(result) => {
+                    let output: Vec<serde_json::Value> = result.items.iter().map(|item| {
                         serde_json::json!({
                             "id": item.id,
                             "title": item.title,
@@ -352,18 +367,19 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                             "distance": item.distance,
                         })
                     }).collect();
-                    print_output(&serde_json::json!({ "results": output }), fmt);
+                    print_output(&serde_json::json!({ "results": output }), output_format);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::ReverseGeocode { lat, lng } => {
             let geocoder = registry.geocoder();
-            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = ReverseGeocodeOptions::default();
-            match geocoder.reverse_geocode(&coord, &opts).await {
-                Ok(res) => {
-                    let output: Vec<serde_json::Value> = res.items.iter().map(|item| {
+            let coordinate = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = ReverseGeocodeOptions::default();
+            match geocoder.reverse_geocode(&coordinate, &options).await {
+                Ok(result) => {
+                    let output: Vec<serde_json::Value> = result.items.iter().map(|item| {
                         serde_json::json!({
                             "id": item.id,
                             "title": item.title,
@@ -372,153 +388,211 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                             "result_type": format!("{:?}", item.result_type),
                         })
                     }).collect();
-                    print_output(&serde_json::json!({ "results": output }), fmt);
+                    print_output(&serde_json::json!({ "results": output }), output_format);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Route { origin, destination, transport } => {
+        Commands::Route {
+            origin,
+            destination,
+            transport,
+        } => {
             let router = registry.router();
-            let start = parse_coordinate(origin).unwrap_or_else(|e| exit_with_error(&format!("Invalid origin: {}", e)));
-            let end = parse_coordinate(destination).unwrap_or_else(|e| exit_with_error(&format!("Invalid destination: {}", e)));
+            let start = parse_coordinate(origin)
+                .unwrap_or_else(|e| exit_with_error(&format!("Invalid origin: {}", e)));
+            let end = parse_coordinate(destination)
+                .unwrap_or_else(|e| exit_with_error(&format!("Invalid destination: {}", e)));
             let transport_mode = parse_transport_mode(transport);
-            let opts = RouteOptions { transport_mode: Some(transport_mode), ..Default::default() };
-            match router.calculate_route(&start, &end, &opts).await {
-                Ok(res) => {
-                    let routes: Vec<serde_json::Value> = res.routes.iter().map(|r| {
-                        serde_json::json!({
-                            "distance_m": r.distance,
-                            "duration_s": r.duration,
-                            "points": r.geometry.points.len(),
+            let options = RouteOptions {
+                transport_mode: Some(transport_mode),
+                ..Default::default()
+            };
+            match router.calculate_route(&start, &end, &options).await {
+                Ok(result) => {
+                    let routes: Vec<serde_json::Value> = result
+                        .routes
+                        .iter()
+                        .map(|r| {
+                            serde_json::json!({
+                                "distance_m": r.distance,
+                                "duration_s": r.duration,
+                                "points": r.geometry.points.len(),
+                            })
                         })
-                    }).collect();
-                    print_output(&serde_json::json!({ "routes": routes }), fmt);
+                        .collect();
+                    print_output(&serde_json::json!({ "routes": routes }), output_format);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::Traffic { lat, lng } => {
             let traffic = registry.traffic();
-            let coord = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = TrafficOptions::default();
-            match traffic.get_traffic(&coord, &opts).await {
-                Ok(res) => {
-                    let flows: Vec<serde_json::Value> = res.flows.iter().map(|f| {
-                        serde_json::json!({
-                            "jam_factor": f.jam_factor,
-                            "speed": f.speed,
-                            "free_flow_speed": f.free_flow_speed,
-                            "road_name": f.road_name,
+            let coordinate = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = TrafficOptions::default();
+            match traffic.get_traffic(&coordinate, &options).await {
+                Ok(result) => {
+                    let flows: Vec<serde_json::Value> = result
+                        .flows
+                        .iter()
+                        .map(|f| {
+                            serde_json::json!({
+                                "jam_factor": f.jam_factor,
+                                "speed": f.speed,
+                                "free_flow_speed": f.free_flow_speed,
+                                "road_name": f.road_name,
+                            })
                         })
-                    }).collect();
-                    print_output(&serde_json::json!({ "flows": flows, "incidents": res.incidents.len() }), fmt);
+                        .collect();
+                    print_output(
+                        &serde_json::json!({ "flows": flows, "incidents": result.incidents.len() }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::Position => {
             let positioner = registry.positioner();
-            let opts = PositioningOptions::default();
-            match positioner.get_position(&opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "coordinate": { "lat": res.coordinate.lat, "lng": res.coordinate.lng },
-                        "accuracy": res.accuracy,
-                        "altitude": res.altitude,
-                    }), fmt);
+            let options = PositioningOptions::default();
+            match positioner.get_position(&options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "coordinate": { "lat": result.coordinate.lat, "lng": result.coordinate.lng },
+                            "accuracy": result.accuracy,
+                            "altitude": result.altitude,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::Isoline { lat, lng, range } => {
             let isoline = registry.isoline();
-            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = IsolineOptions { range_type: Some(CoreRangeType::Distance), ..Default::default() };
-            match isoline.get_isoline(&center, *range, &opts).await {
-                Ok(res) => {
-                    let isolines: Vec<serde_json::Value> = res.isolines.iter().map(|iso| {
+            let center = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = IsolineOptions {
+                range_type: Some(CoreRangeType::Distance),
+                ..Default::default()
+            };
+            match isoline.get_isoline(&center, *range, &options).await {
+                Ok(result) => {
+                    let isolines: Vec<serde_json::Value> = result.isolines.iter().map(|iso| {
                         serde_json::json!({ "range": iso.range, "points": iso.polygon.len() })
                     }).collect();
-                    print_output(&serde_json::json!({ "isolines": isolines }), fmt);
+                    print_output(&serde_json::json!({ "isolines": isolines }), output_format);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::MatchRoute { trace, transport } => {
             let matcher = registry.route_matcher();
-            let points: Vec<Coordinate> = trace.split(';')
+            let points: Vec<Coordinate> = trace
+                .split(';')
                 .filter_map(|p| parse_coordinate(p.trim()).ok())
                 .collect();
             if points.is_empty() {
                 exit_with_error("No valid coordinates in trace. Use format: 'lat,lng;lat,lng'");
             }
             let transport_mode = parse_transport_mode(transport);
-            let opts = MatchingOptions {
+            let options = MatchingOptions {
                 transport_mode: Some(transport_mode),
                 provider_extra: Some(serde_json::json!({
                     "transport_mode": transport
                 })),
                 ..Default::default()
             };
-            match matcher.match_route(&points, &opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "matched_points": res.matched_points.len(),
-                        "distance_m": res.distance,
-                        "duration_s": res.duration,
-                    }), fmt);
+            match matcher.match_route(&points, &options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "matched_points": result.matched_points.len(),
+                            "distance_m": result.distance,
+                            "duration_s": result.duration,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
         Commands::Tour { stops, departure } => {
             let planner = registry.tour_planner();
-            let coordinates: Vec<Coordinate> = stops.iter()
+            let coordinates: Vec<Coordinate> = stops
+                .iter()
                 .filter_map(|s| parse_coordinate(s).ok())
                 .collect();
             if coordinates.len() < 2 {
                 exit_with_error("At least 2 stops required for tour optimization");
             }
             let mut provider_extra = serde_json::json!({});
-            if let Some(dep) = departure {
-                provider_extra["departure_time"] = serde_json::json!(dep);
+            if let Some(departure_time) = departure {
+                provider_extra["departure_time"] = serde_json::json!(departure_time);
             }
-            let opts = TourOptions {
+            let options = TourOptions {
                 provider_extra: Some(provider_extra),
             };
-            match planner.optimize_tour(&coordinates, &opts).await {
-                Ok(res) => {
-                    let stop_list: Vec<serde_json::Value> = res.stops.iter().map(|s| {
-                        serde_json::json!({
-                            "coordinate": { "lat": s.coordinate.lat, "lng": s.coordinate.lng },
-                            "arrival_time": s.arrival_time,
-                            "departure_time": s.departure_time,
+            match planner.optimize_tour(&coordinates, &options).await {
+                Ok(result) => {
+                    let stop_list: Vec<serde_json::Value> = result
+                        .stops
+                        .iter()
+                        .map(|s| {
+                            serde_json::json!({
+                                "coordinate": { "lat": s.coordinate.lat, "lng": s.coordinate.lng },
+                                "arrival_time": s.arrival_time,
+                                "departure_time": s.departure_time,
+                            })
                         })
-                    }).collect();
-                    print_output(&serde_json::json!({
-                        "stops": stop_list,
-                        "total_distance": res.total_distance,
-                        "total_duration": res.total_duration,
-                        "unassigned_count": res.unassigned_count,
-                    }), fmt);
+                        .collect();
+                    print_output(
+                        &serde_json::json!({
+                            "stops": stop_list,
+                            "total_distance": result.total_distance,
+                            "total_duration": result.total_duration,
+                            "unassigned_count": result.unassigned_count,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Tile { z, x, y, layer } => {
+        Commands::Tile {
+            z,
+            x,
+            y,
+            layer,
+            output_file,
+        } => {
             let tile_provider = registry.tile_provider();
-            let opts = TileOptions {
+            let options = TileOptions {
                 format: None,
                 provider_extra: Some(serde_json::json!({ "layer": layer })),
             };
-            match tile_provider.get_tile(*z, *x, *y, &opts).await {
-                Ok(res) => {
-                    println!("Retrieved tile ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
-                }
+            match tile_provider.get_tile(*z, *x, *y, &options).await {
+                Ok(result) => match std::fs::write(output_file, &result.data) {
+                    Ok(()) => println!(
+                        "Saved tile to {} ({} bytes, {})",
+                        output_file,
+                        result.data.len(),
+                        result.content_type.as_deref().unwrap_or("unknown")
+                    ),
+                    Err(e) => eprintln!("Error writing file {}: {}", output_file, e),
+                },
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Attributes { bbox, layer, format, ids, include } => {
+        Commands::Attributes {
+            bbox,
+            layer,
+            format,
+            ids,
+            include,
+        } => {
             let attr_provider = registry.attribute_provider();
             let mut provider_extra = serde_json::json!({
                 "layer": layer,
@@ -528,66 +602,112 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 provider_extra["ids"] = serde_json::json!(ids);
             }
             if let Some(include) = include {
-                provider_extra["include"] = serde_json::json!(include.split(',').collect::<Vec<_>>());
+                provider_extra["include"] =
+                    serde_json::json!(include.split(',').collect::<Vec<_>>());
             }
-            let opts = AttributeOptions {
+            let options = AttributeOptions {
                 bbox: bbox.clone(),
                 provider_extra: Some(provider_extra),
                 ..Default::default()
             };
-            match attr_provider.get_attributes(&opts).await {
-                Ok(res) => {
-                    print_output(&res.data, fmt);
+            match attr_provider.get_attributes(&options).await {
+                Ok(result) => {
+                    print_output(&result.data, output_format);
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::MapImage { lat, lng, zoom } => {
+        Commands::MapImage {
+            lat,
+            lng,
+            zoom,
+            output_file,
+        } => {
             let image_provider = registry.image_provider();
-            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = ImageOptions::default();
-            match image_provider.get_image(&center, *zoom, (800, 600), &opts).await {
-                Ok(res) => {
-                    println!("Retrieved map image ({} bytes, content_type: {:?})", res.data.len(), res.content_type);
-                }
+            let center = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = ImageOptions::default();
+            match image_provider
+                .get_image(&center, *zoom, (800, 600), &options)
+                .await
+            {
+                Ok(result) => match std::fs::write(output_file, &result.data) {
+                    Ok(()) => println!(
+                        "Saved map image to {} ({} bytes, {})",
+                        output_file,
+                        result.data.len(),
+                        result.content_type.as_deref().unwrap_or("unknown")
+                    ),
+                    Err(e) => eprintln!("Error writing file {}: {}", output_file, e),
+                },
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::GeofenceSearch { lat, lng, radius, tags, limit } => {
+        Commands::GeofenceSearch {
+            lat,
+            lng,
+            radius,
+            tags,
+            limit,
+        } => {
             let provider = match registry.geofence() {
                 Some(p) => p,
-                None => { eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Geofence search is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
-            let near = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = GeofenceOptions {
+            let near = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = GeofenceOptions {
                 near: Some(near),
                 radius: *radius,
-                tags: tags.as_ref().map(|t| t.split(',').map(String::from).collect()).unwrap_or_default(),
+                tags: tags
+                    .as_ref()
+                    .map(|t| t.split(',').map(String::from).collect())
+                    .unwrap_or_default(),
                 limit: *limit,
                 ..Default::default()
             };
-            match provider.search_geofences(&opts).await {
-                Ok(res) => {
-                    let geofences: Vec<serde_json::Value> = res.geofences.iter().map(|g| {
-                        serde_json::json!({
-                            "id": g.id,
-                            "tag": g.tag,
-                            "description": g.description,
-                            "enabled": g.enabled,
+            match provider.search_geofences(&options).await {
+                Ok(result) => {
+                    let geofences: Vec<serde_json::Value> = result
+                        .geofences
+                        .iter()
+                        .map(|g| {
+                            serde_json::json!({
+                                "id": g.id,
+                                "tag": g.tag,
+                                "description": g.description,
+                                "enabled": g.enabled,
+                            })
                         })
-                    }).collect();
-                    print_output(&serde_json::json!({ "geofences": geofences }), fmt);
+                        .collect();
+                    print_output(
+                        &serde_json::json!({ "geofences": geofences }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::GeofenceCreate { lat, lng, radius, tag, description } => {
+        Commands::GeofenceCreate {
+            lat,
+            lng,
+            radius,
+            tag,
+            description,
+        } => {
             let provider = match registry.geofence() {
                 Some(p) => p,
-                None => { eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Geofence creation is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
-            let center = Coordinate::new(*lat, *lng).unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let opts = GeofenceCreateOptions {
+            let center = Coordinate::new(*lat, *lng)
+                .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let options = GeofenceCreateOptions {
                 center: Some(center),
                 radius: Some(*radius),
                 tag: tag.clone(),
@@ -595,14 +715,17 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 geofence_type: Some(GeofenceType::Circle),
                 ..Default::default()
             };
-            match provider.create_geofence(&opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "id": res.id,
-                        "tag": res.tag,
-                        "description": res.description,
-                        "enabled": res.enabled,
-                    }), fmt);
+            match provider.create_geofence(&options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "id": result.id,
+                            "tag": result.tag,
+                            "description": result.description,
+                            "enabled": result.enabled,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -610,16 +733,22 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
         Commands::GeofenceGet { id } => {
             let provider = match registry.geofence() {
                 Some(p) => p,
-                None => { eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Geofence get is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
             match provider.get_geofence(id).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "id": res.id,
-                        "tag": res.tag,
-                        "description": res.description,
-                        "enabled": res.enabled,
-                    }), fmt);
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "id": result.id,
+                            "tag": result.tag,
+                            "description": result.description,
+                            "enabled": result.enabled,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -627,19 +756,31 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
         Commands::GeofenceDelete { id } => {
             let provider = match registry.geofence() {
                 Some(p) => p,
-                None => { eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Geofence deletion is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
             match provider.delete_geofence(id).await {
                 Ok(()) => println!("Geofence '{}' deleted", id),
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::TripCreate { origin, destination, mode, external_id, tag } => {
+        Commands::TripCreate {
+            origin,
+            destination,
+            mode,
+            external_id,
+            tag,
+        } => {
             let tracker = match registry.trip_tracker() {
                 Some(t) => t,
-                None => { eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
-            let opts = TripCreateOptions {
+            let options = TripCreateOptions {
                 origin: origin.as_ref().and_then(|o| parse_coordinate(o).ok()),
                 destination: destination.as_ref().and_then(|d| parse_coordinate(d).ok()),
                 mode: Some(mode.clone()),
@@ -647,14 +788,17 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 tag: tag.clone(),
                 ..Default::default()
             };
-            match tracker.create_trip(&opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "id": res.id,
-                        "status": format!("{:?}", res.status),
-                        "mode": res.mode,
-                        "eta": res.eta,
-                    }), fmt);
+            match tracker.create_trip(&options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "id": result.id,
+                            "status": format!("{:?}", result.status),
+                            "mode": result.mode,
+                            "eta": result.eta,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -662,7 +806,10 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
         Commands::TripUpdate { trip_id, status } => {
             let tracker = match registry.trip_tracker() {
                 Some(t) => t,
-                None => { eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
             let trip_status = match status.as_str() {
                 "pending" => Some(TripStatus::Pending),
@@ -672,17 +819,20 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 "completed" => Some(TripStatus::Completed),
                 _ => None,
             };
-            let opts = TripUpdateOptions {
+            let options = TripUpdateOptions {
                 trip_id: trip_id.clone(),
                 status: trip_status,
                 ..Default::default()
             };
-            match tracker.update_trip(&opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "id": res.id,
-                        "status": format!("{:?}", res.status),
-                    }), fmt);
+            match tracker.update_trip(&options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "id": result.id,
+                            "status": format!("{:?}", result.status),
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
@@ -690,26 +840,41 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
         Commands::TripGet { id } => {
             let tracker = match registry.trip_tracker() {
                 Some(t) => t,
-                None => { eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Trip tracking is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
             match tracker.get_trip(id).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "id": res.id,
-                        "status": format!("{:?}", res.status),
-                        "mode": res.mode,
-                        "eta": res.eta,
-                    }), fmt);
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "id": result.id,
+                            "status": format!("{:?}", result.status),
+                            "mode": result.mode,
+                            "eta": result.eta,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::FraudCheck { device_id, lat, lng, accuracy, user_id } => {
+        Commands::FraudCheck {
+            device_id,
+            lat,
+            lng,
+            accuracy,
+            user_id,
+        } => {
             let detector = match registry.fraud_detector() {
                 Some(d) => d,
-                None => { eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar"); return; }
+                None => {
+                    eprintln!("Error: Fraud detection is not supported by this provider. Use --provider radar");
+                    return;
+                }
             };
-            let opts = FraudCheckOptions {
+            let options = FraudCheckOptions {
                 device_id: device_id.clone(),
                 latitude: *lat,
                 longitude: *lng,
@@ -717,18 +882,21 @@ async fn run_commands(cli: &Cli, registry: &ProviderRegistry, fmt: &output::Outp
                 user_id: user_id.clone(),
                 ..Default::default()
             };
-            match detector.check_fraud(&opts).await {
-                Ok(res) => {
-                    print_output(&serde_json::json!({
-                        "verified": res.verified,
-                        "passed": res.passed,
-                        "mocked": res.mocked,
-                        "jumped": res.jumped,
-                        "compromised": res.compromised,
-                        "inaccurate": res.inaccurate,
-                        "proxy": res.proxy,
-                        "blocked": res.blocked,
-                    }), fmt);
+            match detector.check_fraud(&options).await {
+                Ok(result) => {
+                    print_output(
+                        &serde_json::json!({
+                            "verified": result.verified,
+                            "passed": result.passed,
+                            "mocked": result.mocked,
+                            "jumped": result.jumped,
+                            "compromised": result.compromised,
+                            "inaccurate": result.inaccurate,
+                            "proxy": result.proxy,
+                            "blocked": result.blocked,
+                        }),
+                        output_format,
+                    );
                 }
                 Err(e) => eprintln!("Error: {}", e),
             }

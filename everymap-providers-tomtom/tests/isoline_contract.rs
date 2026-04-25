@@ -1,11 +1,11 @@
-use wiremock::{MockServer, Mock, ResponseTemplate};
-use wiremock::matchers::{method, path, query_param};
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions, RangeType};
-use everymap_core::types::Coordinate;
-use everymap_providers_tomtom::TomTomIsoline;
-use everymap_providers_tomtom::client::TomTomClient;
 use everymap_core::auth::ApiKeyProvider;
+use everymap_core::domains::isoline::{IsolineOptions, IsolineProvider, RangeType};
+use everymap_core::types::Coordinate;
+use everymap_providers_tomtom::client::TomTomClient;
+use everymap_providers_tomtom::TomTomIsoline;
 use std::sync::Arc;
+use wiremock::matchers::{method, path, query_param};
+use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
 async fn test_isoline_contract() {
@@ -34,7 +34,10 @@ async fn test_isoline_contract() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let isoline = TomTomIsoline::with_base_url(client, server.uri());
 

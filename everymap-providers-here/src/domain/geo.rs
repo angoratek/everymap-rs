@@ -14,7 +14,7 @@ pub struct HereLatLng {
 }
 
 impl From<HereLatLng> for Coordinate {
-    fn from(val: HereLatLng) -> Self {
-        Coordinate::new(val.lat, val.lng).unwrap_or(Coordinate::ORIGIN)
+    fn from(value: HereLatLng) -> Self {
+        Coordinate::new(value.lat, value.lng).unwrap_or(Coordinate::ORIGIN)
     }
 }

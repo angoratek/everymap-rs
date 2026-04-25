@@ -1,10 +1,12 @@
 pub mod types;
 
+use crate::client::GoogleClient;
 use async_trait::async_trait;
-use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions, PositioningResponse as CorePositioningResponse};
+use everymap_core::domains::positioning::{
+    NetworkPositioner, PositioningOptions, PositioningResponse as CorePositioningResponse,
+};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
-use crate::client::GoogleClient;
 use serde::Serialize;
 use std::sync::Arc;
 
@@ -54,10 +56,15 @@ impl GooglePositioner {
 
     /// Get position estimate with rich response type.
     /// POST /geolocation/v1/geolocate
-    pub async fn locate(&self, options: GooglePositioningOptions) -> EveryMapResult<GoogleGeolocationResponse> {
+    pub async fn locate(
+        &self,
+        options: GooglePositioningOptions,
+    ) -> EveryMapResult<GoogleGeolocationResponse> {
         let url = format!("{}/geolocate", self.base_url);
         let body = GeolocationRequestBody::from(options);
-        let builder = self.client.build_request(reqwest::Method::POST, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::POST, &url)
             .json(&body);
 
         let result: GoogleGeolocationResponse = self.client.request_json(builder).await?;
@@ -67,10 +74,10 @@ impl GooglePositioner {
 
 /// Convert core `PositioningOptions` to Google-specific `GooglePositioningOptions`,
 /// extracting fields from `provider_extra`.
-fn positioning_options_from_core(opts: &PositioningOptions) -> GooglePositioningOptions {
+fn positioning_options_from_core(options: &PositioningOptions) -> GooglePositioningOptions {
     let mut google_opts = GooglePositioningOptions::default();
 
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Ok(parsed) = serde_json::from_value::<GooglePositioningOptions>(extra.clone()) {
             google_opts = parsed;
         }
@@ -80,12 +87,16 @@ fn positioning_options_from_core(opts: &PositioningOptions) -> GooglePositioning
 }
 
 impl From<GoogleGeolocationResponse> for CorePositioningResponse {
-    fn from(res: GoogleGeolocationResponse) -> Self {
-        let coordinate = Coordinate::new(res.location.lat, res.location.lng)
+    fn from(response: GoogleGeolocationResponse) -> Self {
+        let coordinate = Coordinate::new(response.location.lat, response.location.lng)
             .unwrap_or(Coordinate::ORIGIN);
         Self {
             coordinate,
-            accuracy: if res.accuracy > 0.0 { Some(res.accuracy) } else { None },
+            accuracy: if response.accuracy > 0.0 {
+                Some(response.accuracy)
+            } else {
+                None
+            },
             altitude: None,
             altitude_accuracy: None,
             raw: None,
@@ -95,7 +106,10 @@ impl From<GoogleGeolocationResponse> for CorePositioningResponse {
 
 #[async_trait]
 impl NetworkPositioner for GooglePositioner {
-    async fn get_position(&self, options: &PositioningOptions) -> EveryMapResult<CorePositioningResponse> {
+    async fn get_position(
+        &self,
+        options: &PositioningOptions,
+    ) -> EveryMapResult<CorePositioningResponse> {
         let google_opts = positioning_options_from_core(options);
         let result = self.locate(google_opts).await?;
         Ok(result.into())

@@ -1,16 +1,20 @@
-use everymap_core::domains::isoline::{IsolineProvider, IsolineOptions};
-use everymap_core::domains::traffic::{TrafficProvider, TrafficOptions};
-use everymap_core::domains::tour::{TourPlanner, TourOptions};
-use everymap_core::domains::tiling::{TileProvider, TileOptions};
+use everymap_core::domains::isoline::{IsolineOptions, IsolineProvider};
+use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
+use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
-use everymap_providers_google::{GoogleIsoline, GoogleTraffic, GoogleTourPlanner, GoogleTileProvider};
+use everymap_providers_google::{
+    GoogleIsoline, GoogleTileProvider, GoogleTourPlanner, GoogleTraffic,
+};
 
 #[tokio::test]
 async fn test_unsupported_isoline() {
     let isoline = GoogleIsoline;
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let result = isoline.get_isoline(&center, 1800.0, &IsolineOptions::default()).await;
+    let result = isoline
+        .get_isoline(&center, 1800.0, &IsolineOptions::default())
+        .await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::UnsupportedDomain { provider, domain } => {
@@ -25,7 +29,9 @@ async fn test_unsupported_isoline() {
 async fn test_unsupported_traffic() {
     let traffic = GoogleTraffic;
     let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let result = traffic.get_traffic(&coord, &TrafficOptions::default()).await;
+    let result = traffic
+        .get_traffic(&coord, &TrafficOptions::default())
+        .await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::UnsupportedDomain { provider, domain } => {
@@ -57,7 +63,9 @@ async fn test_unsupported_tour() {
 #[tokio::test]
 async fn test_unsupported_tiling() {
     let tiling = GoogleTileProvider;
-    let result = tiling.get_tile(14, 8802, 5373, &TileOptions::default()).await;
+    let result = tiling
+        .get_tile(14, 8802, 5373, &TileOptions::default())
+        .await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::UnsupportedDomain { provider, domain } => {

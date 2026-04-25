@@ -93,6 +93,7 @@ let geocoder: Box<dyn Geocoder> = Box::new(GoogleGeocoder::new(client));
 ### CLI Usage
 
 > **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
+> Binary commands (`tile`, `map-image`) save to a file instead of printing to stdout. Use `--output-file` to set the path.
 
 ```bash
 # HERE provider (default)
@@ -105,7 +106,7 @@ everymap --provider google --api-key $GOOGLE_KEY geocode "Brandenburg Gate, Berl
 # TomTom, MapBox, Radar providers
 everymap --provider tomtom --api-key $TOMTOM_KEY geocode "Berlin"
 everymap --provider mapbox --api-key $MAPBOX_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
-everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng -74.01
+everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng=-74.01
 
 # Config file (~/.everymap/config.toml)
 # [providers.here]
@@ -114,31 +115,31 @@ everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng
 # api_key = "your-google-key"
 
 # Output formats — flag goes before the subcommand
-everymap --output json geocode "Paris"       # compact JSON
-everymap --output pretty geocode "Paris"     # formatted JSON
-everymap --output summary geocode "Paris"    # condensed human-readable
+everymap --output json --api-key $KEY geocode "Paris"       # compact JSON
+everymap --output pretty --api-key $KEY geocode "Paris"     # formatted JSON
+everymap --output summary --api-key $KEY geocode "Paris"    # condensed human-readable
 
-# All 19 commands
-everymap geocode "Berlin"
-everymap reverse-geocode --lat 52.52 --lng 13.40
-everymap route --origin "52.52,13.40" --destination "52.54,13.42" --transport car
-everymap traffic --lat 52.52 --lng 13.40
-everymap position
-everymap isoline --lat 52.52 --lng 13.40 --range 1000
-everymap match-route --trace "52.5,13.3;52.6,13.4"
-everymap tour --stops "52.5,13.3" "52.6,13.4"
-everymap tile --z 14 --x 8800 --y 5374
-everymap attributes --bbox "52.0,13.0;52.5,13.5"
-everymap map-image --lat 52.52 --lng 13.40 --zoom 14
+# All 19 commands (examples use HERE provider)
+everymap --api-key $KEY geocode "Berlin"
+everymap --api-key $KEY reverse-geocode --lat 52.52 --lng 13.40
+everymap --api-key $KEY route --origin "52.52,13.40" --destination "52.54,13.42" --transport car
+everymap --api-key $KEY traffic --lat 52.52 --lng 13.40
+everymap --api-key $KEY position
+everymap --api-key $KEY isoline --lat 52.52 --lng 13.40 --range 1000
+everymap --api-key $KEY match-route --trace "52.5164,13.3777;52.5170,13.3900;52.5175,13.3950" --transport car
+everymap --api-key $KEY tour --stops "52.5,13.3" "52.6,13.4"
+everymap --api-key $KEY tile --z 14 --x 4494 --y 2832
+everymap --api-key $KEY attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
+everymap --api-key $KEY map-image --lat 52.52 --lng 13.40 --zoom 14
 # Radar-specific:
-everymap --provider radar geofence-search --lat 40.71 --lng -74.01
-everymap --provider radar geofence-create --lat 40.71 --lng -74.01 --radius 500
-everymap --provider radar geofence-get gf_123
-everymap --provider radar geofence-delete gf_123
-everymap --provider radar trip-create --origin "40.71,-74.01" --destination "42.36,-71.06" --mode car
-everymap --provider radar trip-update --trip-id trip_123 --status started
-everymap --provider radar trip-get trip_123
-everymap --provider radar fraud-check --device-id dev_1 --lat 40.71 --lng -74.01
+everymap --provider radar --api-key $KEY geofence-search --lat 40.71 --lng=-74.01
+everymap --provider radar --api-key $KEY geofence-create --lat 40.71 --lng=-74.01 --radius 500
+everymap --provider radar --api-key $KEY geofence-get gf_123
+everymap --provider radar --api-key $KEY geofence-delete gf_123
+everymap --provider radar --api-key $KEY trip-create --origin "40.71,-74.01" --destination "42.36,-71.06" --mode car
+everymap --provider radar --api-key $KEY trip-update --trip-id trip_123 --status started
+everymap --provider radar --api-key $KEY trip-get trip_123
+everymap --provider radar --api-key $KEY fraud-check --device-id dev_1 --lat 40.71 --lng=-74.01
 ```
 
 ### Benchmarking

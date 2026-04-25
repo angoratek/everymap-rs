@@ -3,13 +3,17 @@ mod report;
 mod scenarios;
 
 use clap::Parser;
-use everymap_core::auth::{AuthProvider, ApiKeyProvider};
 use everymap_core::auth::header::HeaderAuthProvider;
+use everymap_core::auth::{ApiKeyProvider, AuthProvider};
 use scenarios::ScenarioParams;
 use std::sync::Arc;
 
 #[derive(Parser)]
-#[command(name = "everymap-bench", version, about = "Cross-provider benchmark framework for EveryMap")]
+#[command(
+    name = "everymap-bench",
+    version,
+    about = "Cross-provider benchmark framework for EveryMap"
+)]
 struct Cli {
     /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging, geofencing, tracking, fraud)
     #[arg(long)]
@@ -76,47 +80,37 @@ fn get_key_param(provider: &str) -> &'static str {
     }
 }
 
-async fn run_scenario(scenario: &scenarios::BenchmarkScenario, providers: &benchmark::BenchProviders) -> benchmark::BenchmarkResult {
+async fn run_scenario(
+    scenario: &scenarios::BenchmarkScenario,
+    providers: &benchmark::BenchProviders,
+) -> benchmark::BenchmarkResult {
     match &scenario.params {
-        ScenarioParams::Geocode { query } => {
-            benchmark::bench_geocode(providers, query).await
+        ScenarioParams::Geocode { query } => benchmark::bench_geocode(providers, query).await,
+        ScenarioParams::ReverseGeocode { coord: coordinate } => {
+            benchmark::bench_reverse_geocode(providers, coordinate).await
         }
-        ScenarioParams::ReverseGeocode { coord } => {
-            benchmark::bench_reverse_geocode(providers, coord).await
-        }
-        ScenarioParams::Route { start, end } => {
-            benchmark::bench_route(providers, start, end).await
-        }
+        ScenarioParams::Route { start, end } => benchmark::bench_route(providers, start, end).await,
         ScenarioParams::Isoline { center, range } => {
             benchmark::bench_isoline(providers, center, *range).await
         }
-        ScenarioParams::Matching { points } => {
-            benchmark::bench_matching(providers, points).await
-        }
-        ScenarioParams::Tour { stops } => {
-            benchmark::bench_tour(providers, stops).await
-        }
-        ScenarioParams::Traffic { location } => {
-            benchmark::bench_traffic(providers, location).await
-        }
-        ScenarioParams::Tile { z, x, y } => {
-            benchmark::bench_tile(providers, *z, *x, *y).await
-        }
+        ScenarioParams::Matching { points } => benchmark::bench_matching(providers, points).await,
+        ScenarioParams::Tour { stops } => benchmark::bench_tour(providers, stops).await,
+        ScenarioParams::Traffic { location } => benchmark::bench_traffic(providers, location).await,
+        ScenarioParams::Tile { z, x, y } => benchmark::bench_tile(providers, *z, *x, *y).await,
         ScenarioParams::Positioning { provider_extra } => {
             benchmark::bench_positioning(providers, provider_extra).await
         }
-        ScenarioParams::Attributes { bbox } => {
-            benchmark::bench_attributes(providers, bbox).await
-        }
+        ScenarioParams::Attributes { bbox } => benchmark::bench_attributes(providers, bbox).await,
         ScenarioParams::Image { center, zoom } => {
             benchmark::bench_image(providers, center, *zoom).await
         }
         ScenarioParams::GeofenceSearch { near, radius } => {
             benchmark::bench_geofence_search(providers, near, *radius).await
         }
-        ScenarioParams::TripCreate { origin, destination } => {
-            benchmark::bench_trip_create(providers, origin, destination).await
-        }
+        ScenarioParams::TripCreate {
+            origin,
+            destination,
+        } => benchmark::bench_trip_create(providers, origin, destination).await,
         ScenarioParams::FraudCheck { lat, lng } => {
             benchmark::bench_fraud_check(providers, *lat, *lng).await
         }
@@ -127,7 +121,9 @@ async fn run_scenario(scenario: &scenarios::BenchmarkScenario, providers: &bench
 async fn main() {
     let cli = Cli::parse();
 
-    let provider_names: Vec<&str> = cli.providers.split(',')
+    let provider_names: Vec<&str> = cli
+        .providers
+        .split(',')
         .map(|s| s.trim())
         .filter(|s| !s.is_empty())
         .collect();
@@ -157,7 +153,10 @@ async fn main() {
         let auth: Arc<dyn AuthProvider> = if *provider == "radar" {
             Arc::new(HeaderAuthProvider::new(key))
         } else {
-            Arc::new(ApiKeyProvider::new(key, get_key_param(provider).to_string()))
+            Arc::new(ApiKeyProvider::new(
+                key,
+                get_key_param(provider).to_string(),
+            ))
         };
 
         match benchmark::BenchProviders::new(provider, auth) {

@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
 use everymap_core::domains::matching::MatchedPoint;
 use everymap_core::types::Coordinate;
+use serde::{Deserialize, Serialize};
 
 impl From<MapBoxTracepoint> for MatchedPoint {
     fn from(tp: MapBoxTracepoint) -> Self {
-        let coordinate = tp.location.as_ref()
+        let coordinate = tp
+            .location
+            .as_ref()
             .and_then(|loc| {
                 if loc.len() >= 2 {
-                    Some(Coordinate::new(loc[1], loc[0])
-                        .unwrap_or(Coordinate::ORIGIN))
+                    Some(Coordinate::new(loc[1], loc[0]).unwrap_or(Coordinate::ORIGIN))
                 } else {
                     None
                 }

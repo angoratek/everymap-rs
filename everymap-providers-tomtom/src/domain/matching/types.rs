@@ -1,6 +1,6 @@
-use serde::{Deserialize, Serialize};
 use everymap_core::domains::matching::MatchedPoint;
 use everymap_core::types::Coordinate;
+use serde::{Deserialize, Serialize};
 
 /// Response from TomTom Snap to Roads API (Synchronous).
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -62,7 +62,8 @@ pub struct TomTomDistances {
 
 impl From<TomTomProjectedPoint> for MatchedPoint {
     fn from(pp: TomTomProjectedPoint) -> Self {
-        let coordinate = pp.geometry
+        let coordinate = pp
+            .geometry
             .and_then(|g| {
                 // GeoJSON coordinates are [longitude, latitude]
                 if g.coordinates.len() >= 2 {

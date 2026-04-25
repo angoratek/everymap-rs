@@ -19,7 +19,8 @@ use predicates::prelude::*;
 /// 2. `EVERYMAP_API_KEY` env var (non-empty)
 /// 3. `~/.everymap/config.toml` → `[providers.here] api_key`
 fn get_here_api_key() -> Option<String> {
-    std::env::var("EVERYMAP_HERE_API_KEY").ok()
+    std::env::var("EVERYMAP_HERE_API_KEY")
+        .ok()
         .or_else(|| std::env::var("EVERYMAP_API_KEY").ok())
         .filter(|s| !s.is_empty())
         .or_else(read_here_key_from_config)
@@ -72,18 +73,18 @@ fn test_missing_api_key_shows_error() {
 fn test_api_key_from_env_var() {
     let mut cmd = cli();
     cmd.env("EVERYMAP_API_KEY", TEST_API_KEY)
-       .args(["geocode", QUERY_BERLIN])
-       .assert()
-       .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
+        .args(["geocode", QUERY_BERLIN])
+        .assert()
+        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
 
 #[test]
 fn test_cli_flag_overrides_env() {
     let mut cmd = cli();
     cmd.env("EVERYMAP_API_KEY", "wrong_key")
-       .args(["--api-key", TEST_API_KEY, "geocode", QUERY_BERLIN])
-       .assert()
-       .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
+        .args(["--api-key", TEST_API_KEY, "geocode", QUERY_BERLIN])
+        .assert()
+        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
 
 // --- Unsupported domains for HERE (geofence, trip, fraud) ---
@@ -91,7 +92,15 @@ fn test_cli_flag_overrides_env() {
 #[test]
 fn test_here_geofence_search_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "geofence-search", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "geofence-search",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -99,7 +108,17 @@ fn test_here_geofence_search_unsupported() {
 #[test]
 fn test_here_geofence_create_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "geofence-create", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG, "--radius", RADIUS_500])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "geofence-create",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+            "--radius",
+            RADIUS_500,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -107,7 +126,12 @@ fn test_here_geofence_create_unsupported() {
 #[test]
 fn test_here_geofence_get_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "geofence-get", TEST_GEOFENCE_ID])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "geofence-get",
+            TEST_GEOFENCE_ID,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -115,7 +139,12 @@ fn test_here_geofence_get_unsupported() {
 #[test]
 fn test_here_geofence_delete_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "geofence-delete", TEST_GEOFENCE_ID])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "geofence-delete",
+            TEST_GEOFENCE_ID,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -123,7 +152,13 @@ fn test_here_geofence_delete_unsupported() {
 #[test]
 fn test_here_trip_create_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "trip-create", "--mode", TRANSPORT_CAR])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "trip-create",
+            "--mode",
+            TRANSPORT_CAR,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -131,7 +166,15 @@ fn test_here_trip_create_unsupported() {
 #[test]
 fn test_here_trip_update_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "trip-update", "--trip-id", TEST_TRIP_ID, "--status", "started"])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "trip-update",
+            "--trip-id",
+            TEST_TRIP_ID,
+            "--status",
+            "started",
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -147,7 +190,17 @@ fn test_here_trip_get_unsupported() {
 #[test]
 fn test_here_fraud_check_unsupported() {
     cli_with_key()
-        .args(["--provider", PROVIDER_HERE, "fraud-check", "--device-id", TEST_DEVICE_ID, "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--provider",
+            PROVIDER_HERE,
+            "fraud-check",
+            "--device-id",
+            TEST_DEVICE_ID,
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .stderr(predicate::str::contains(ERR_NOT_SUPPORTED));
 }
@@ -170,8 +223,8 @@ fn live_here_geocode() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"results\""))
-        .stdout(predicate::str::contains("52.5"))   // Berlin latitude
-        .stdout(predicate::str::contains("13.3"));  // Berlin longitude
+        .stdout(predicate::str::contains("52.5")) // Berlin latitude
+        .stdout(predicate::str::contains("13.3")); // Berlin longitude
 }
 
 #[test]
@@ -182,7 +235,15 @@ fn live_here_reverse_geocode() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "reverse-geocode", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "reverse-geocode",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"results\""))
@@ -197,7 +258,15 @@ fn live_here_route() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--api-key",
+            &api_key,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"routes\""))
@@ -213,7 +282,17 @@ fn live_here_route_car() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "car"])
+        .args([
+            "--api-key",
+            &api_key,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "car",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"routes\""))
@@ -228,7 +307,17 @@ fn live_here_route_pedestrian() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS, "--transport", "pedestrian"])
+        .args([
+            "--api-key",
+            &api_key,
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+            "--transport",
+            "pedestrian",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"routes\""));
@@ -242,7 +331,15 @@ fn live_here_traffic() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "traffic", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "traffic",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"flows\""));
@@ -256,7 +353,15 @@ fn live_here_isoline() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "isoline",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"isolines\""));
@@ -288,7 +393,14 @@ fn live_here_tour() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "tour", "--stops", BERLIN_COORDS, PARIS_COORDS])
+        .args([
+            "--api-key",
+            &api_key,
+            "tour",
+            "--stops",
+            BERLIN_COORDS,
+            PARIS_COORDS,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"stops\""));
@@ -302,12 +414,31 @@ fn live_here_tile() {
     };
 
     // HERE Vector Tile API v2 uses its own tiling scheme.
-    // For Berlin at zoom 14: x=4494, y=2832 (from live_api.rs).
+    // For Berlin at zoom 14: x=4494, y=2832.
+    let tmp = std::env::temp_dir().join("everymap_test_tile.omv");
+    let tmp_str = tmp.to_str().unwrap();
     cli()
-        .args(["--api-key", &api_key, "tile", "--z", "14", "--x", "4494", "--y", "2832"])
+        .args([
+            "--api-key",
+            &api_key,
+            "tile",
+            "--z",
+            common::HERE_TILE_Z,
+            "--x",
+            common::HERE_TILE_X,
+            "--y",
+            common::HERE_TILE_Y,
+            "--output-file",
+            tmp_str,
+        ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Retrieved tile"));
+        .stdout(predicate::str::contains("Saved tile to"));
+    assert!(
+        tmp.exists() && tmp.metadata().unwrap().len() > 0,
+        "Tile file should be non-empty"
+    );
+    let _ = std::fs::remove_file(&tmp);
 }
 
 #[test]
@@ -329,9 +460,12 @@ fn live_here_position() {
 
     // Accept: either real coordinate output, or a graceful error on stderr
     assert!(
-        stdout.contains("\"coordinate\"") || stdout.contains("Position:") || stderr.contains("Error:"),
+        stdout.contains("\"coordinate\"")
+            || stdout.contains("Position:")
+            || stderr.contains("Error:"),
         "Position should return coordinates or a graceful error, got stdout: {}, stderr: {}",
-        stdout, stderr
+        stdout,
+        stderr
     );
 }
 
@@ -343,7 +477,15 @@ fn live_here_attributes() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "attributes", "--bbox", BERLIN_BBOX, "--layer", "roads"])
+        .args([
+            "--api-key",
+            &api_key,
+            "attributes",
+            "--bbox",
+            BERLIN_BBOX,
+            "--layer",
+            "roads",
+        ])
         .assert()
         .success();
 }
@@ -355,11 +497,34 @@ fn live_here_map_image() {
         None => return,
     };
 
+    let tmp = std::env::temp_dir().join("everymap_test_image.png");
+    let tmp_str = tmp.to_str().unwrap();
     cli()
-        .args(["--api-key", &api_key, "map-image", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "map-image",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+            "--output-file",
+            tmp_str,
+        ])
         .assert()
         .success()
-        .stdout(predicate::str::contains("Retrieved map image"));
+        .stdout(predicate::str::contains("Saved map image to"));
+    assert!(
+        tmp.exists() && tmp.metadata().unwrap().len() > 0,
+        "Image file should be non-empty"
+    );
+    // Verify it's a valid PNG (starts with PNG magic bytes)
+    let data = std::fs::read(&tmp).unwrap();
+    assert!(
+        data.starts_with(&[0x89, 0x50, 0x4E, 0x47]),
+        "File should be a valid PNG"
+    );
+    let _ = std::fs::remove_file(&tmp);
 }
 
 // --- Output format variations with real data ---
@@ -372,7 +537,14 @@ fn live_here_geocode_pretty() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "--output", "pretty", "geocode", "Berlin"])
+        .args([
+            "--api-key",
+            &api_key,
+            "--output",
+            "pretty",
+            "geocode",
+            "Berlin",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"results\""))
@@ -387,7 +559,14 @@ fn live_here_geocode_summary() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "--output", "summary", "geocode", "Berlin"])
+        .args([
+            "--api-key",
+            &api_key,
+            "--output",
+            "summary",
+            "geocode",
+            "Berlin",
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("52.5")) // summary has (lat, lng)
@@ -402,7 +581,17 @@ fn live_here_route_summary() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "--output", "summary", "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--api-key",
+            &api_key,
+            "--output",
+            "summary",
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("km"))
@@ -417,7 +606,17 @@ fn live_here_traffic_summary() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "--output", "summary", "traffic", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "--output",
+            "summary",
+            "traffic",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("flow measurements"));
@@ -431,7 +630,17 @@ fn live_here_isoline_summary() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "--output", "summary", "isoline", "--lat", BERLIN_LAT, "--lng", BERLIN_LNG])
+        .args([
+            "--api-key",
+            &api_key,
+            "--output",
+            "summary",
+            "isoline",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("isoline"));
@@ -462,7 +671,16 @@ fn live_here_verbose_route() {
     };
 
     cli()
-        .args(["--api-key", &api_key, "-v", "route", "--origin", BERLIN_COORDS, "--destination", PARIS_COORDS])
+        .args([
+            "--api-key",
+            &api_key,
+            "-v",
+            "route",
+            "--origin",
+            BERLIN_COORDS,
+            "--destination",
+            PARIS_COORDS,
+        ])
         .assert()
         .success()
         .stdout(predicate::str::contains("\"routes\""))

@@ -52,9 +52,7 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
         language: Option<&str>,
     ) -> EveryMapResult<super::domain::search::MapBoxSearchResponse> {
         let url = format!("{}/search/geocode/v6/forward", self.base_url);
-        let mut params: Vec<(&str, String)> = vec![
-            ("q", query.to_string()),
-        ];
+        let mut params: Vec<(&str, String)> = vec![("q", query.to_string())];
         if let Some(lim) = limit {
             params.push(("limit", lim.to_string()));
         }
@@ -62,7 +60,9 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
             params.push(("language", lang.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -76,12 +76,13 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
         let mut results = Vec::with_capacity(queries.len());
         for query in queries {
             let url = format!("{}/search/geocode/v6/forward", self.base_url);
-            let params: Vec<(&str, String)> = vec![
-                ("q", query.clone()),
-            ];
-            let builder = self.client.build_request(reqwest::Method::GET, &url)
+            let params: Vec<(&str, String)> = vec![("q", query.clone())];
+            let builder = self
+                .client
+                .build_request(reqwest::Method::GET, &url)
                 .query(&params);
-            let result: super::domain::search::MapBoxSearchResponse = self.client.request_json(builder).await?;
+            let result: super::domain::search::MapBoxSearchResponse =
+                self.client.request_json(builder).await?;
             results.push(result);
         }
         Ok(results)
@@ -98,26 +99,34 @@ impl MapBoxRouterExt for super::domain::routing::MapBoxRouter {
     ) -> EveryMapResult<super::domain::routing::MapBoxRouteResponse> {
         if coordinates.len() < 2 {
             return Err(everymap_core::error::EveryMapError::provider(
-                "mapbox", "INVALID_INPUT", "At least 2 coordinates required for routing"
+                "mapbox",
+                "INVALID_INPUT",
+                "At least 2 coordinates required for routing",
             ));
         }
 
-        let coords: String = coordinates.iter()
+        let coords: String = coordinates
+            .iter()
             .map(|c| format!("{},{}", c.lng, c.lat))
             .collect::<Vec<_>>()
             .join(";");
-        let url = format!("{}/directions/v5/mapbox/{}/{}", self.base_url, profile, coords);
+        let url = format!(
+            "{}/directions/v5/mapbox/{}/{}",
+            self.base_url, profile, coords
+        );
 
         let mut params: Vec<(&str, String)> = vec![
             ("overview", "full".to_string()),
             ("geometries", "polyline".to_string()),
             ("steps", "true".to_string()),
         ];
-        if let Some(alt) = alternatives {
-            params.push(("alternatives", alt.to_string()));
+        if let Some(alternative) = alternatives {
+            params.push(("alternatives", alternative.to_string()));
         }
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url)
+        let builder = self
+            .client
+            .build_request(reqwest::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
