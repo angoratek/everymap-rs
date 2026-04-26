@@ -39,7 +39,7 @@ impl RouteMatcher for TomTomRouteMatcher {
         points: &[Coordinate],
         options: &MatchingOptions,
     ) -> EveryMapResult<TraceResponse> {
-        let url = format!("{}/snapToRoads/1", self.base_url);
+        let url = format!("{}/snapToRoads/1/snap", self.base_url);
 
         // TomTom snapToRoads uses semicolon-separated "lon,lat" pairs (longitude first)
         let points_str: String = points

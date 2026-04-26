@@ -66,12 +66,14 @@ impl TrafficProvider for TomTomTraffic {
         let incidents: Vec<TrafficIncident> = if options.include_incidents.unwrap_or(false) {
             if let Some(radius) = options.radius {
                 let inc_url = format!("{}/traffic/services/5/incidentDetails", self.base_url);
+                let lat_offset = radius / 111000.0;
+                let lng_offset = radius / (111000.0 * location.lat.to_radians().cos().max(0.01));
                 let bbox = format!(
                     "{},{},{},{}",
-                    location.lat - radius / 111000.0,
-                    location.lng - radius / 111000.0,
-                    location.lat + radius / 111000.0,
-                    location.lng + radius / 111000.0
+                    location.lat - lat_offset,
+                    location.lng - lng_offset,
+                    location.lat + lat_offset,
+                    location.lng + lng_offset
                 );
                 let inc_params: Vec<(&str, String)> = vec![
                     ("bbox", bbox),

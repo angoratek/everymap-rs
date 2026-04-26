@@ -211,6 +211,7 @@ pub struct HereIncidentsOptions {
 
 /// Location referencing format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum LocationReferencing {
     None,
     Olr,
@@ -222,6 +223,7 @@ pub enum LocationReferencing {
 
 /// Advanced traffic flow features.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum AdvancedFeature {
     DeepCoverage,
     Lanes,
@@ -229,6 +231,7 @@ pub enum AdvancedFeature {
 
 /// Incident criticality level.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum CriticalityLevel {
     Low,
     Minor,
@@ -238,6 +241,7 @@ pub enum CriticalityLevel {
 
 /// Traffic incident type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum IncidentType {
     Accident,
     Construction,
@@ -254,6 +258,7 @@ pub enum IncidentType {
 
 /// Traffic units.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum TrafficUnits {
     Metric,
     Imperial,

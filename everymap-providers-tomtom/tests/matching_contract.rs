@@ -50,7 +50,7 @@ async fn test_matching_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/snapToRoads/1"))
+        .and(path("/snapToRoads/1/snap"))
         .and(query_param("points", "13.405,52.52;13.41,52.53"))
         .and(query_param("fields", "{projectedPoints{type,geometry{type,coordinates},properties{routeIndex,snapResult}},route{type,geometry{type,coordinates}},distances{total,unit}}"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))

@@ -453,6 +453,7 @@ async fn live_tour_3_stops_berlin() {
     };
 
     let opts = TourOptions {
+        transport_mode: None,
         provider_extra: Some(serde_json::to_value(problem).unwrap()),
     };
 

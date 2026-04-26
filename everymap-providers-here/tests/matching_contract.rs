@@ -95,7 +95,7 @@ async fn test_matching_with_options() {
         .and(path("/match/routelinks"))
         .and(query_param("waypoint0", "52.52,13.405"))
         .and(query_param("waypoint1", "52.53,13.41"))
-        .and(query_param("mode", "car"))
+        .and(query_param("mode", "fastest;car;traffic:disabled"))
         .and(query_param("mapMatchRadius", "50"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)

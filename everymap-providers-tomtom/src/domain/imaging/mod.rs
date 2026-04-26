@@ -38,7 +38,7 @@ impl MapImageProvider for TomTomMapImageProvider {
         let url = format!("{}/map/1/staticimage", self.base_url);
 
         let mut params: Vec<(&str, String)> = vec![
-            ("center", format!("{},{}", center.lat, center.lng)),
+            ("center", format!("{},{}", center.lng, center.lat)),
             ("zoom", zoom.to_string()),
             ("width", size.0.to_string()),
             ("height", size.1.to_string()),

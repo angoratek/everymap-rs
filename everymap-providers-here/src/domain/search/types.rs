@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 // --- Shared enums used across multiple search endpoints ---
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum SearchType {
     Address,
     Area,
@@ -26,7 +26,7 @@ pub enum AddressNamesMode {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum PostalCodeMode {
     #[default]
     CityLookup,
@@ -40,7 +40,7 @@ pub enum WithFeature {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum ShowFeature {
     AddressUsage,
     CountryInfo,
@@ -52,7 +52,7 @@ pub enum ShowFeature {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum ShowMapReference {
     AdminIds,
     CmVersion,
@@ -63,7 +63,7 @@ pub enum ShowMapReference {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum ShowNavAttribute {
     Access,
     FunctionalClass,
@@ -72,11 +72,12 @@ pub enum ShowNavAttribute {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum ShowRelated {
     Mpa,
     Intersections,
-    ParentPA,
+    #[serde(rename = "parentPa")]
+    ParentPa,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -89,7 +90,7 @@ pub enum ShowTranslation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum DiscoverWithFeature {
     RecommendPlaces,
 }
@@ -103,7 +104,7 @@ pub enum MobilityMode {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum RankingMode {
     ExcursionDistance,
 }

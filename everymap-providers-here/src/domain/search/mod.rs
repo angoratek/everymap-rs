@@ -380,9 +380,6 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("showTranslations", value));
     }
-    if let Some(rid) = &opts.request_id {
-        params.push(("X-Request-ID", rid.clone()));
-    }
 }
 
 /// Helper to apply discover options to query params.
@@ -521,10 +518,14 @@ impl Geocoder for HereGeocoder {
         apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/geocode", self.geocode_base_url);
-        let builder = self
+        let mut builder = self
             .client
             .build_request(reqwest::Method::GET, &url)
             .query(&params);
+
+        if let Some(rid) = &here_opts.request_id {
+            builder = builder.header("X-Request-ID", rid.as_str());
+        }
 
         let here_res: HereSearchResponse = self.client.request_json(builder).await?;
 
@@ -545,10 +546,14 @@ impl Geocoder for HereGeocoder {
         apply_geocode_options(&here_opts, &mut params);
 
         let url = format!("{}/revgeocode", self.reverse_geocode_base_url);
-        let builder = self
+        let mut builder = self
             .client
             .build_request(reqwest::Method::GET, &url)
             .query(&params);
+
+        if let Some(rid) = &here_opts.request_id {
+            builder = builder.header("X-Request-ID", rid.as_str());
+        }
 
         let here_res: HereSearchResponse = self.client.request_json(builder).await?;
 

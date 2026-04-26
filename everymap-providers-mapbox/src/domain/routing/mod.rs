@@ -116,9 +116,8 @@ impl Router for MapBoxRouter {
         if let Some(alternatives) = options.alternatives {
             params.push(("alternatives", alternatives.to_string()));
         }
-        if let Some(lang) = &options.language {
-            params.push(("language", lang.clone()));
-        }
+        // Note: MapBox Directions API v5 does not support a `language` parameter.
+        // The `options.language` field is intentionally not forwarded here.
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("annotations").and_then(|v| v.as_str()) {

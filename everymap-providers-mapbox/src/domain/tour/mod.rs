@@ -35,7 +35,7 @@ impl TourPlanner for MapBoxTourPlanner {
     async fn optimize_tour(
         &self,
         stops: &[Coordinate],
-        _options: &TourOptions,
+        options: &TourOptions,
     ) -> EveryMapResult<TourResponse> {
         if stops.len() < 2 {
             return Err(everymap_core::error::EveryMapError::provider(
@@ -45,14 +45,26 @@ impl TourPlanner for MapBoxTourPlanner {
             ));
         }
 
+        let profile = options
+            .transport_mode
+            .as_ref()
+            .map(|m| match m {
+                everymap_core::domains::routing::TransportMode::Car => "driving",
+                everymap_core::domains::routing::TransportMode::Truck => "driving",
+                everymap_core::domains::routing::TransportMode::Pedestrian => "walking",
+                everymap_core::domains::routing::TransportMode::Bicycle => "cycling",
+                _ => "driving",
+            })
+            .unwrap_or("driving");
+
         let coords: String = stops
             .iter()
             .map(|c| format!("{},{}", c.lng, c.lat))
             .collect::<Vec<_>>()
             .join(";");
         let url = format!(
-            "{}/optimized-trips/v1/mapbox/driving/{}",
-            self.base_url, coords
+            "{}/optimized-trips/v1/mapbox/{}/{}",
+            self.base_url, profile, coords
         );
 
         let params: Vec<(&str, String)> = vec![

@@ -206,6 +206,9 @@ impl Geocoder for RadarGeocoder {
         if let Some(lang) = &options.language {
             params.push(("lang", lang.clone()));
         }
+        if let Some(radius) = options.radius {
+            params.push(("radius", radius.to_string()));
+        }
         // Extract Radar-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {

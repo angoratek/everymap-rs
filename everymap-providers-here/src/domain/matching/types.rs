@@ -127,9 +127,29 @@ pub struct HereMatchError {
 
 // --- Parameter enums ---
 
-/// Route match mode.
+/// Route match routing type (first component of compound mode parameter).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum MatchRoutingMode {
+    #[default]
+    #[serde(rename = "fastest")]
+    Fastest,
+    #[serde(rename = "shortest")]
+    Shortest,
+}
+
+/// Route match traffic mode (third component of compound mode parameter).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub enum MatchTrafficMode {
+    #[default]
+    #[serde(rename = "disabled")]
+    Disabled,
+    #[serde(rename = "enabled")]
+    Enabled,
+}
+
+/// Route match mode (transport mode, second component of compound mode parameter).
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum MatchMode {
     Car,
     Truck,
@@ -195,6 +215,7 @@ pub enum EmissionType {
 
 /// Fuel type for route matching.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum MatchFuelType {
     Petrol,
     Diesel,
@@ -219,6 +240,7 @@ pub enum TunnelCategory {
 
 /// Hazardous goods type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum HazardousGoodsType {
     Explosive,
     Gas,
@@ -232,6 +254,7 @@ pub enum HazardousGoodsType {
 
 /// Instruction format.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum InstructionFormat {
     Text,
     Html,
@@ -239,6 +262,7 @@ pub enum InstructionFormat {
 
 /// Avoid features.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum AvoidFeature {
     TollRoad,
     Ferry,

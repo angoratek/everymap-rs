@@ -157,7 +157,7 @@ impl Geocoder for GoogleGeocoder {
             params.push((
                 "bounds",
                 format!(
-                    "{},{},{},{}",
+                    "{},{}|{},{}",
                     bbox.south_west.lat,
                     bbox.south_west.lng,
                     bbox.north_east.lat,
@@ -166,7 +166,14 @@ impl Geocoder for GoogleGeocoder {
             ));
         }
         if !options.country_codes.is_empty() {
-            params.push(("region", options.country_codes[0].clone()));
+            // Map country codes to components filter (country:XX format)
+            let components = options
+                .country_codes
+                .iter()
+                .map(|code| format!("country:{}", code.to_lowercase()))
+                .collect::<Vec<_>>()
+                .join("|");
+            params.push(("components", components));
         }
         // Extract Google-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {

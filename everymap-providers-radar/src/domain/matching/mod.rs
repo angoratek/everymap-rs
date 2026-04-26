@@ -58,7 +58,7 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
     async fn match_route(
         &self,
         points: &[Coordinate],
-        _options: &MatchingOptions,
+        options: &MatchingOptions,
     ) -> EveryMapResult<TraceResponse> {
         if points.is_empty() {
             return Err(EveryMapError::ValidationError(
@@ -75,9 +75,24 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
             })
             .collect();
 
+        let mode = options
+            .transport_mode
+            .as_ref()
+            .map(|tm| match tm {
+                everymap_core::domains::routing::TransportMode::Car => "car",
+                everymap_core::domains::routing::TransportMode::Pedestrian => "foot",
+                everymap_core::domains::routing::TransportMode::Bicycle => "bike",
+                everymap_core::domains::routing::TransportMode::Truck => "truck",
+                everymap_core::domains::routing::TransportMode::Scooter => "scooter",
+                everymap_core::domains::routing::TransportMode::Bus => "bus",
+                everymap_core::domains::routing::TransportMode::Taxi => "taxi",
+                _ => "car",
+            })
+            .unwrap_or("car");
+
         let body = serde_json::json!({
             "path": path,
-            "mode": "car",
+            "mode": mode,
             "geometry": "polyline6"
         });
 

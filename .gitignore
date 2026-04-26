@@ -28,3 +28,5 @@ tmp/.env
 
 # Release artifacts
 release-artifacts/
+
+smoke-test-results

@@ -45,7 +45,7 @@ pub enum RangeType {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(rename_all = "camelCase")]
 pub enum IsolineTransportMode {
     #[default]
     Car,
@@ -359,6 +359,27 @@ impl IsolineProvider for HereIsoline {
         }
         if let Some(traffic) = &here_opts.traffic {
             params.push(("traffic", crate::util::enum_as_str(traffic)));
+        }
+        if let Some(shape) = &here_opts.shape {
+            params.push(("shape", shape.clone()));
+        }
+        if let Some(vehicle) = &here_opts.vehicle {
+            params.push(("vehicle", vehicle.join(",")));
+        }
+        if let Some(consumption_model) = &here_opts.consumption_model {
+            params.push(("consumptionModel", crate::util::enum_as_str(consumption_model)));
+        }
+        if let Some(ev) = &here_opts.ev {
+            params.push(("ev", ev.join(",")));
+        }
+        if let Some(fuel) = &here_opts.fuel {
+            params.push(("fuel", fuel.join(",")));
+        }
+        if let Some(max_speed_on_segment) = &here_opts.max_speed_on_segment {
+            params.push(("maxSpeedOnSegment", max_speed_on_segment.join(",")));
+        }
+        if let Some(taxi) = &here_opts.taxi {
+            params.push(("taxi", taxi.join(",")));
         }
         if let Some(billing_tag) = &here_opts.billing_tag {
             params.push(("billingTag", billing_tag.clone()));

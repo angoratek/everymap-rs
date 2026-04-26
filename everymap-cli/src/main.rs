@@ -86,6 +86,12 @@ enum Commands {
         /// Longitude
         #[arg(long)]
         lng: f64,
+        /// Search radius in meters
+        #[arg(long)]
+        radius: Option<f64>,
+        /// Include incident data (true/false)
+        #[arg(long)]
+        include_incidents: Option<bool>,
     },
     /// Get position estimate from network data
     Position,
@@ -97,9 +103,15 @@ enum Commands {
         /// Center longitude
         #[arg(long)]
         lng: f64,
-        /// Range value in meters
+        /// Range value (meters for distance, seconds for time)
         #[arg(long, default_value = "1000")]
         range: f64,
+        /// Transport mode (car, truck, pedestrian, bicycle) — default: car
+        #[arg(long, default_value = "car")]
+        transport: String,
+        /// Range type (distance, time) — default: distance
+        #[arg(long, default_value = "distance")]
+        range_type: String,
     },
     /// Match a GPS trace to the road network
     MatchRoute {
@@ -115,6 +127,9 @@ enum Commands {
         /// Stop coordinates as space-separated lat,lng pairs
         #[arg(long, num_args = 1..)]
         stops: Vec<String>,
+        /// Transport mode (car, truck, pedestrian, bicycle) — default: car
+        #[arg(long, default_value = "car")]
+        transport: String,
         /// Departure time (ISO 8601, e.g., "2026-04-21T08:00:00Z") — default: now
         #[arg(long)]
         departure: Option<String>,
@@ -130,9 +145,9 @@ enum Commands {
         /// Y coordinate
         #[arg(long)]
         y: u32,
-        /// Tile layer (base, core, hybrid) — default: base
-        #[arg(long, default_value = "base")]
-        layer: String,
+        /// Tile layer (provider-specific: HERE uses base/core/hybrid, TomTom uses basic/hybrid/labels)
+        #[arg(long)]
+        layer: Option<String>,
         /// Output file path (default: tile.omv)
         #[arg(long, default_value = "tile.omv")]
         output_file: String,
@@ -426,11 +441,15 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Traffic { lat, lng } => {
+        Commands::Traffic { lat, lng, radius, include_incidents } => {
             let traffic = registry.traffic();
             let coordinate = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let options = TrafficOptions::default();
+            let options = TrafficOptions {
+                radius: *radius,
+                include_incidents: *include_incidents,
+                ..Default::default()
+            };
             match traffic.get_traffic(&coordinate, &options).await {
                 Ok(result) => {
                     let flows: Vec<serde_json::Value> = result
@@ -470,12 +489,18 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Isoline { lat, lng, range } => {
+        Commands::Isoline { lat, lng, range, transport, range_type } => {
             let isoline = registry.isoline();
             let center = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
+            let transport_mode = parse_transport_mode(transport);
+            let core_range_type = match range_type.as_str() {
+                "time" => CoreRangeType::Time,
+                _ => CoreRangeType::Distance,
+            };
             let options = IsolineOptions {
-                range_type: Some(CoreRangeType::Distance),
+                range_type: Some(core_range_type),
+                transport_mode: Some(transport_mode),
                 ..Default::default()
             };
             match isoline.get_isoline(&center, *range, &options).await {
@@ -519,7 +544,7 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Tour { stops, departure } => {
+        Commands::Tour { stops, transport, departure } => {
             let planner = registry.tour_planner();
             let coordinates: Vec<Coordinate> = stops
                 .iter()
@@ -528,11 +553,13 @@ async fn run_commands(
             if coordinates.len() < 2 {
                 exit_with_error("At least 2 stops required for tour optimization");
             }
+            let transport_mode = parse_transport_mode(transport);
             let mut provider_extra = serde_json::json!({});
             if let Some(departure_time) = departure {
                 provider_extra["departure_time"] = serde_json::json!(departure_time);
             }
             let options = TourOptions {
+                transport_mode: Some(transport_mode),
                 provider_extra: Some(provider_extra),
             };
             match planner.optimize_tour(&coordinates, &options).await {
@@ -569,9 +596,13 @@ async fn run_commands(
             output_file,
         } => {
             let tile_provider = registry.tile_provider();
+            let mut provider_extra = serde_json::json!({});
+            if let Some(ref layer_val) = layer {
+                provider_extra["layer"] = serde_json::json!(layer_val);
+            }
             let options = TileOptions {
                 format: None,
-                provider_extra: Some(serde_json::json!({ "layer": layer })),
+                provider_extra: Some(provider_extra),
             };
             match tile_provider.get_tile(*z, *x, *y, &options).await {
                 Ok(result) => match std::fs::write(output_file, &result.data) {

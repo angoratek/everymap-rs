@@ -47,9 +47,13 @@ impl TileProvider for TomTomTileProvider {
             .and_then(|v| v.as_str())
             .unwrap_or("main");
 
+        let ext = match options.format.as_deref() {
+            Some("jpg") | Some("jpeg") => "jpg",
+            _ => "png",
+        };
         let url = format!(
-            "{}/map/1/tile/{}/{}/{}/{}/{}.png",
-            self.base_url, layer, style, z, x, y
+            "{}/map/1/tile/{}/{}/{}/{}/{}.{}",
+            self.base_url, layer, style, z, x, y, ext
         );
 
         let params: Vec<(&str, String)> = vec![("tileSize", "256".to_string())];

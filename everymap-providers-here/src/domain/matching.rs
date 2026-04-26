@@ -21,6 +21,8 @@ pub struct HereMatchingOptions {
     // --- Match mode ---
     pub route_match: Option<u8>,
     pub mode: Option<MatchMode>,
+    pub routing_mode: Option<MatchRoutingMode>,
+    pub traffic: Option<MatchTrafficMode>,
     pub legal: Option<LegalConstraint>,
     pub traverse_gates: Option<bool>,
     pub oneway: Option<bool>,
@@ -257,6 +259,12 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
             }
             if let Some(v) = obj.get("mode") {
                 here_opts.mode = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("routing_mode") {
+                here_opts.routing_mode = serde_json::from_value(v.clone()).ok();
+            }
+            if let Some(v) = obj.get("traffic") {
+                here_opts.traffic = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("legal") {
                 here_opts.legal = serde_json::from_value(v.clone()).ok();
@@ -527,6 +535,14 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
     if here_opts.mode.is_none() {
         here_opts.mode = Some(MatchMode::Car);
     }
+    // Default routing mode to fastest if none specified
+    if here_opts.routing_mode.is_none() {
+        here_opts.routing_mode = Some(MatchRoutingMode::Fastest);
+    }
+    // Default traffic to disabled if none specified
+    if here_opts.traffic.is_none() {
+        here_opts.traffic = Some(MatchTrafficMode::Disabled);
+    }
 
     here_opts
 }
@@ -553,10 +569,22 @@ impl RouteMatcher for HereRouteMatcher {
 
         let opts = &opts;
 
-        // Match mode
+        // Match mode — compound format: {routing_type};{transport_mode}[;traffic:{enabled|disabled}]
         add_option(&mut params, "routeMatch", opts.route_match);
-        if let Some(mode) = &opts.mode {
-            params.push(("mode".to_string(), crate::util::enum_as_str(mode)));
+        {
+            let routing = match &opts.routing_mode {
+                Some(MatchRoutingMode::Shortest) => "shortest",
+                _ => "fastest",
+            };
+            let transport = match &opts.mode {
+                Some(m) => crate::util::enum_as_str(m),
+                None => "car".to_string(),
+            };
+            let traffic = match &opts.traffic {
+                Some(MatchTrafficMode::Enabled) => ";traffic:enabled",
+                _ => ";traffic:disabled",
+            };
+            params.push(("mode".to_string(), format!("{};{}{}", routing, transport, traffic)));
         }
         if let Some(legal) = &opts.legal {
             params.push(("legal".to_string(), crate::util::enum_as_str(legal)));

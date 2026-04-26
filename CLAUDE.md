@@ -84,7 +84,8 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 - Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.omv`, `map.png`)
 - `match-route` requires `--transport` (car, truck, pedestrian, bicycle; default: car)
 - `tour` supports `--departure` for ISO 8601 departure time (default: now)
-- `tile` supports `--layer` (base, core, hybrid; default: base) — HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- `tile` supports `--layer` (optional; HERE: base/core/hybrid, TomTom: basic/hybrid/labels, MapBox: no layer param) — default varies by provider; HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
 - 11 base commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
@@ -97,13 +98,30 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 ## API Compatibility Notes
 - TomTom reverse geocode returns `addresses` (not `results`), position as `"lat,lon"` string
 - TomTom isoline uses `distanceBudgetInMeters`/`timeBudgetInSec` (not `distance`/`time`)
-- TomTom match-route uses `lon,lat;lon,lat` format (longitude first, semicolon-separated); needs `fields` param for `projectedPoints`
-- TomTom tour endpoint is `/routing/waypointoptimization/1`; request body uses `waypoints`; response returns `optimizedOrder`
+- TomTom match-route uses `lon,lat;lon,lat` format (longitude first, semicolon-separated); endpoint is `/snapToRoads/1/snap` (not `/snapToRoads/1`); needs `fields` param for `projectedPoints`
+- TomTokyo tour endpoint is `/routing/waypointoptimization/1`; request body uses `waypoints`; response returns `optimizedOrder`
+- TomTokyo static image `center` parameter uses `lng,lat` order (longitude first); TomTom tile layer names are `basic`/`hybrid`/`labels` (not `base`)
 - MapBox search v6 puts data in `properties` (`full_address`, `name`, `coordinates`, `bbox`, `context`), not top-level `place_name`/`text`/`center`
 - MapBox static image URL has no `.png` extension; default style is `streets-v12`
 - Radar routing step fields are `snake_case` (`start_location`) while leg fields are `camelCase` (`startLocation`)
 - Radar geofence/trip IDs use `_id` field name (with underscore prefix)
 - Radar trip creation requires `externalId` parameter
+- HERE Route Matching API v8 `mode` parameter uses compound format: `fastest;car;traffic:disabled` (not just transport mode)
+- HERE Route Matching API v8 transport modes: `car`, `carHov`, `truck`, `pedestrian`, `bicycle`, `bus`, `emergency`, `motorcycle`, `roadTrain` (camelCase)
+- `TourOptions` has `transport_mode: Option<TransportMode>` field for providers that support it (MapBox uses it for profile selection: driving/walking/cycling)
+
+## Known Issues (from comprehensive provider review)
+- **Google routing**: Uses legacy Directions API (not the recommended Routes API v2).
+- **TomTom traffic severity**: "moderate" maps to `Minor` (core `IncidentSeverity` has no `Moderate` variant).
+
+## Fixed Issues (previously known)
+- **HERE enum serialization**: Fixed — all 21 enums now use `camelCase` (or `lowercase`) `rename_all` to match HERE API expectations.
+- **HERE search `X-Request-ID`**: Fixed — now sent as HTTP header instead of query parameter.
+- **HERE matching `mode` parameter**: Fixed — now uses compound format `fastest;car;traffic:disabled`.
+- **HERE routing/isoline vehicle options**: Fixed — scooter, truck, ev, fuel, driver, taxi, tolls, max_speed_on_segment now serialized to query params.
+- **MapBox tour**: Fixed — now uses `transport_mode` from `TourOptions` instead of hardcoded `driving`.
+- **MapBox routing language**: Fixed — no longer sends unsupported `language` parameter to Directions API v5.
+- **TomTom traffic bbox**: Fixed — longitude offset now uses `cos(lat)` correction for meridian convergence.
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.

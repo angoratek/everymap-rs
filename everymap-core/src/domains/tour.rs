@@ -1,3 +1,4 @@
+use crate::domains::routing::TransportMode;
 use crate::error::EveryMapResult;
 use crate::types::Coordinate;
 use async_trait::async_trait;
@@ -10,6 +11,9 @@ use serde::{Deserialize, Serialize};
 /// type is minimal; all provider-specific data goes through `provider_extra`.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TourOptions {
+    /// Transport mode for the tour (car, pedestrian, bicycle, etc.)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transport_mode: Option<TransportMode>,
     /// Provider-specific problem definition (HERE: TourProblem JSON; other providers: their format)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider_extra: Option<serde_json::Value>,
@@ -63,11 +67,13 @@ mod tests {
     fn test_tour_options_default() {
         let opts = TourOptions::default();
         assert!(opts.provider_extra.is_none());
+        assert!(opts.transport_mode.is_none());
     }
 
     #[test]
     fn test_tour_options_with_provider_extra() {
         let opts = TourOptions {
+            transport_mode: None,
             provider_extra: Some(serde_json::json!({"fleet": {"types": []}})),
         };
         assert!(opts.provider_extra.is_some());
@@ -163,6 +169,7 @@ mod tests {
     #[test]
     fn test_tour_options_serde_roundtrip() {
         let opts = TourOptions {
+            transport_mode: None,
             provider_extra: Some(serde_json::json!({
                 "fleet": {"types": [{"id": "truck"}]},
                 "plan": {"jobs": []}

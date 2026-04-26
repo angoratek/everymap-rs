@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 // ============================================================================
 // Response types — Google Directions API
 // ============================================================================
+// NOTE: The Google Directions API returns snake_case JSON fields.
+// All serde renames use the actual API field names.
 
 /// Full response from the Google Directions API.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,11 +14,11 @@ pub struct GoogleDirectionsResponse {
     pub routes: Vec<GoogleRoute>,
     #[serde(default)]
     pub status: String,
-    #[serde(default, rename = "errorMessage")]
+    #[serde(default, rename = "error_message")]
     pub error_message: Option<String>,
-    #[serde(default, rename = "geocodedWaypoints")]
+    #[serde(default, rename = "geocoded_waypoints")]
     pub geocoded_waypoints: Vec<GoogleGeocodedWaypoint>,
-    #[serde(default, rename = "availableTravelModes")]
+    #[serde(default, rename = "available_travel_modes")]
     pub available_travel_modes: Vec<String>,
 }
 
@@ -27,7 +29,7 @@ pub struct GoogleRoute {
     pub summary: Option<String>,
     #[serde(default)]
     pub legs: Vec<GoogleRouteLeg>,
-    #[serde(default, rename = "overviewPolyline")]
+    #[serde(default, rename = "overview_polyline")]
     pub overview_polyline: Option<GooglePolyline>,
     #[serde(default)]
     pub bounds: Option<GoogleBounds>,
@@ -35,7 +37,7 @@ pub struct GoogleRoute {
     pub copyrights: Option<String>,
     #[serde(default)]
     pub warnings: Vec<String>,
-    #[serde(default, rename = "waypointOrder")]
+    #[serde(default, rename = "waypoint_order")]
     pub waypoint_order: Vec<u32>,
 }
 
@@ -46,15 +48,15 @@ pub struct GoogleRouteLeg {
     pub distance: Option<GoogleDistance>,
     #[serde(default)]
     pub duration: Option<GoogleDuration>,
-    #[serde(default, rename = "durationInTraffic")]
+    #[serde(default, rename = "duration_in_traffic")]
     pub duration_in_traffic: Option<GoogleDuration>,
-    #[serde(default, rename = "startLocation")]
+    #[serde(default, rename = "start_location")]
     pub start_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "endLocation")]
+    #[serde(default, rename = "end_location")]
     pub end_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "startAddress")]
+    #[serde(default, rename = "start_address")]
     pub start_address: Option<String>,
-    #[serde(default, rename = "endAddress")]
+    #[serde(default, rename = "end_address")]
     pub end_address: Option<String>,
     #[serde(default)]
     pub steps: Vec<GoogleRouteStep>,
@@ -67,17 +69,17 @@ pub struct GoogleRouteStep {
     pub distance: Option<GoogleDistance>,
     #[serde(default)]
     pub duration: Option<GoogleDuration>,
-    #[serde(default, rename = "startLocation")]
+    #[serde(default, rename = "start_location")]
     pub start_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "endLocation")]
+    #[serde(default, rename = "end_location")]
     pub end_location: Option<GoogleLatLng>,
-    #[serde(default, rename = "htmlInstructions")]
+    #[serde(default, rename = "html_instructions")]
     pub html_instructions: Option<String>,
     #[serde(default)]
     pub maneuver: Option<String>,
     #[serde(default)]
     pub polyline: Option<GooglePolyline>,
-    #[serde(default, rename = "travelMode")]
+    #[serde(default, rename = "travel_mode")]
     pub travel_mode: Option<String>,
 }
 
@@ -104,9 +106,9 @@ pub struct GooglePolyline {
 /// Geocoded waypoint information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GoogleGeocodedWaypoint {
-    #[serde(default, rename = "geocoderStatus")]
+    #[serde(default, rename = "geocoder_status")]
     pub geocoder_status: Option<String>,
-    #[serde(default, rename = "placeId")]
+    #[serde(default, rename = "place_id")]
     pub place_id: Option<String>,
     #[serde(default)]
     pub types: Vec<String>,

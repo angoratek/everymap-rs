@@ -173,8 +173,8 @@ impl Router for GoogleRouter {
                     everymap_core::domains::routing::AvoidType::Tolls => "tolls",
                     everymap_core::domains::routing::AvoidType::Highways => "highways",
                     everymap_core::domains::routing::AvoidType::Ferries => "ferries",
-                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels",
-                    everymap_core::domains::routing::AvoidType::DirtRoads => "indoor",
+                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels", // Not a valid Google avoid value, but pass through
+                    everymap_core::domains::routing::AvoidType::DirtRoads => "indoor", // Closest Google equivalent; indoor means avoid indoor walking
                 })
                 .collect::<Vec<&str>>()
                 .join("|");
@@ -186,18 +186,36 @@ impl Router for GoogleRouter {
             }
         }
         if let Some(departure_time) = &options.departure_time {
-            params.push(("departure_time", departure_time.clone()));
+            // Google Directions API accepts "now" or Unix timestamp in seconds.
+            // If the value looks like an ISO 8601 date, try to convert it.
+            let departure_value = if departure_time == "now" {
+                "now".to_string()
+            } else if let Ok(ts) = departure_time.parse::<i64>() {
+                // Already a Unix timestamp
+                ts.to_string()
+            } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(departure_time) {
+                // ISO 8601 → convert to Unix timestamp
+                dt.timestamp().to_string()
+            } else {
+                // Pass through as-is (could be "now" or other format)
+                departure_time.clone()
+            };
+            params.push(("departure_time", departure_value));
         }
 
         // Extract Google-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("waypoints").and_then(|v| v.as_str()) {
-                    params.push(("waypoints", v.to_string()));
-                }
-                if let Some(v) = obj.get("optimize_waypoints").and_then(|v| v.as_bool()) {
-                    if v {
-                        params.push(("optimize", "true".to_string()));
+                    // Google uses optimize:true| prefix in waypoints value for optimization
+                    if let Some(optimize) = obj.get("optimize_waypoints").and_then(|v| v.as_bool()) {
+                        if optimize {
+                            params.push(("waypoints", format!("optimize:true|{}", v)));
+                        } else {
+                            params.push(("waypoints", v.to_string()));
+                        }
+                    } else {
+                        params.push(("waypoints", v.to_string()));
                     }
                 }
                 if let Some(v) = obj.get("traffic_model").and_then(|v| v.as_str()) {
