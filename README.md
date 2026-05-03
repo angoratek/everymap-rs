@@ -1,5 +1,8 @@
 # EveryMap-RS
 
+[![CI](https://github.com/angoratek/everymap-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/angoratek/everymap-rs/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
@@ -226,9 +229,8 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide including live API 
 
 - OAuth2 authentication provider
 - Google Roads API (route matching), Static Maps API (imaging)
-- CI/CD pipeline with GitHub Actions
-- Config file permission check
-- Zeroize API keys in memory
+- HERE routing: wire vehicle options (scooter, truck, EV, fuel) through to query params
+- Provider client macro to reduce boilerplate across crates
 
 ## License
 

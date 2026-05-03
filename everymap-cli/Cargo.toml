@@ -1,10 +1,11 @@
 [package]
 name = "everymap-cli"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "Unified CLI for geospatial APIs — geocode, route, match, and more across 5 providers"
-license = "MIT"
-repository = "https://github.com/angoratek/everymap-rs"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 keywords = ["geospatial", "maps", "cli", "api"]
 categories = ["command-line-utilities", "science::geo"]
 
@@ -29,3 +30,5 @@ directories = "5"
 [dev-dependencies]
 assert_cmd = "2"
 predicates = "3"
+[lints]
+workspace = true

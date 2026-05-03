@@ -2,6 +2,8 @@ use everymap_core::auth::AuthProvider;
 use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
+const PROVIDER_NAME: &str = "mapbox";
+
 /// The shared HTTP client for MapBox APIs.
 ///
 /// Delegates to `everymap_core::client::ProviderClient` for common
@@ -15,7 +17,7 @@ impl MapBoxClient {
     /// Creates a new `MapBoxClient` with the given authentication provider.
     pub fn new(auth_provider: Arc<dyn AuthProvider>) -> Self {
         Self {
-            inner: everymap_core::client::ProviderClient::new(auth_provider, "mapbox"),
+            inner: everymap_core::client::ProviderClient::new(auth_provider, PROVIDER_NAME),
         }
     }
 
@@ -28,7 +30,7 @@ impl MapBoxClient {
             inner: everymap_core::client::ProviderClient::with_client_builder(
                 builder,
                 auth_provider,
-                "mapbox",
+                PROVIDER_NAME,
             )?,
         })
     }

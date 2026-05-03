@@ -1,16 +1,14 @@
 use everymap_core::auth::AuthProvider;
-use everymap_core::client::HttpClient;
 use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
+
+const PROVIDER_NAME: &str = "here";
 
 /// The shared HTTP client for HERE Technologies APIs.
 ///
 /// Delegates to `everymap_core::client::ProviderClient` for common
 /// request/response logic. Each domain module constructs its own
 /// base URL per the HERE API specification.
-///
-/// For testing, use `with_http_client()` to inject a custom `HttpClient`
-/// implementation. For production, use `new()` with the default client.
 pub struct HereClient {
     inner: everymap_core::client::ProviderClient,
 }
@@ -19,7 +17,7 @@ impl HereClient {
     /// Creates a new `HereClient` with the given authentication provider.
     pub fn new(auth_provider: Arc<dyn AuthProvider>) -> Self {
         Self {
-            inner: everymap_core::client::ProviderClient::new(auth_provider, "here"),
+            inner: everymap_core::client::ProviderClient::new(auth_provider, PROVIDER_NAME),
         }
     }
 
@@ -32,7 +30,7 @@ impl HereClient {
             inner: everymap_core::client::ProviderClient::with_client_builder(
                 builder,
                 auth_provider,
-                "here",
+                PROVIDER_NAME,
             )?,
         })
     }
@@ -67,15 +65,4 @@ impl HereClient {
     ) -> EveryMapResult<T> {
         self.inner.request_json(builder).await
     }
-}
-
-/// Sends a request using a custom `HttpClient` implementation, applying auth first.
-/// This is useful for testing with mock HTTP clients.
-pub async fn send_with_auth(
-    http_client: &dyn HttpClient,
-    auth_provider: &Arc<dyn AuthProvider>,
-    builder: reqwest::RequestBuilder,
-) -> EveryMapResult<reqwest::Response> {
-    let builder = auth_provider.apply(builder).await?;
-    http_client.send(builder).await
 }

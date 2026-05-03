@@ -2,6 +2,8 @@ use everymap_core::auth::AuthProvider;
 use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
+const PROVIDER_NAME: &str = "radar";
+
 /// The shared HTTP client for Radar APIs.
 ///
 /// Delegates to `everymap_core::client::ProviderClient` for common
@@ -16,7 +18,7 @@ impl RadarClient {
     /// Creates a new `RadarClient` with the given authentication provider.
     pub fn new(auth_provider: Arc<dyn AuthProvider>) -> Self {
         Self {
-            inner: everymap_core::client::ProviderClient::new(auth_provider, "radar"),
+            inner: everymap_core::client::ProviderClient::new(auth_provider, PROVIDER_NAME),
         }
     }
 
@@ -29,7 +31,7 @@ impl RadarClient {
             inner: everymap_core::client::ProviderClient::with_client_builder(
                 builder,
                 auth_provider,
-                "radar",
+                PROVIDER_NAME,
             )?,
         })
     }

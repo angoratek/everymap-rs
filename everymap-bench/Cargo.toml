@@ -1,11 +1,12 @@
 [package]
 name = "everymap-bench"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 publish = false
 description = "Cross-provider benchmark framework for EveryMap"
-license = "MIT"
-repository = "https://github.com/angoratek/everymap-rs"
+license.workspace = true
+repository.workspace = true
 
 [[bin]]
 name = "everymap-bench"
@@ -22,4 +23,7 @@ clap = { version = "4", features = ["derive", "env"] }
 tokio = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-chrono = "0.4"
+chrono = { workspace = true }
+
+[lints]
+workspace = true

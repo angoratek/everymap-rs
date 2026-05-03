@@ -1,10 +1,11 @@
 [package]
 name = "everymap-providers-google"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "Google Maps provider for EveryMap — geocoding, routing, map matching, and more"
-license = "MIT"
-repository = "https://github.com/angoratek/everymap-rs"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 keywords = ["geospatial", "maps", "google", "api"]
 categories = ["api-bindings", "science::geo"]
 
@@ -20,3 +21,5 @@ chrono = { workspace = true }
 
 [dev-dependencies]
 wiremock = { workspace = true }
+[lints]
+workspace = true

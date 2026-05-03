@@ -2,6 +2,8 @@ use everymap_core::auth::AuthProvider;
 use everymap_core::error::EveryMapResult;
 use std::sync::Arc;
 
+const PROVIDER_NAME: &str = "tomtom";
+
 /// The shared HTTP client for TomTom APIs.
 ///
 /// Delegates to `everymap_core::client::ProviderClient` for common
@@ -15,7 +17,7 @@ impl TomTomClient {
     /// Creates a new `TomTomClient` with the given authentication provider.
     pub fn new(auth_provider: Arc<dyn AuthProvider>) -> Self {
         Self {
-            inner: everymap_core::client::ProviderClient::new(auth_provider, "tomtom"),
+            inner: everymap_core::client::ProviderClient::new(auth_provider, PROVIDER_NAME),
         }
     }
 
@@ -28,7 +30,7 @@ impl TomTomClient {
             inner: everymap_core::client::ProviderClient::with_client_builder(
                 builder,
                 auth_provider,
-                "tomtom",
+                PROVIDER_NAME,
             )?,
         })
     }

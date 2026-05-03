@@ -1,10 +1,11 @@
 [package]
 name = "everymap-core"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
 description = "Core traits, types, and error handling for EveryMap — unified geospatial API abstraction"
-license = "MIT"
-repository = "https://github.com/angoratek/everymap-rs"
 keywords = ["geospatial", "maps", "api", "abstraction"]
 categories = ["api-bindings", "science::geo"]
 
@@ -18,7 +19,6 @@ tokio = { workspace = true }
 async-trait = { workspace = true }
 reqwest = { workspace = true }
 thiserror = { workspace = true }
-futures = { workspace = true }
 flexpolyline = { workspace = true }
 zeroize = { workspace = true }
 
@@ -27,3 +27,6 @@ everymap-providers-here = { workspace = true }
 everymap-providers-google = { workspace = true }
 everymap-providers-tomtom = { workspace = true }
 everymap-providers-mapbox = { workspace = true }
+
+[lints]
+workspace = true

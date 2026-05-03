@@ -35,10 +35,13 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - Error body truncation in deserialization errors: 256 bytes max.
 - API keys are zeroized on drop via `zeroize` crate (`#[zeroize(drop)]` on `ApiKeyProvider` and `HeaderAuthProvider`).
 - CLI output writes directly to stdout via `serde_json::to_writer` (no intermediate `String` allocation for JSON/Pretty formats).
+- Provider crates define `const PROVIDER_NAME: &str` in their client module for consistent naming in errors and logs.
+- Workspace-level lints configured in root `Cargo.toml` (`[workspace.lints]`): `unsafe_code = "deny"`, clippy `all = warn`.
+- MSRV declared as 1.75 in `[workspace.package]`.
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 540+ tests (unit + contract + CLI integration + error cases)
+- `cargo test` — runs 740+ tests (unit + contract + CLI integration + error cases)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)

@@ -10,50 +10,23 @@ const VERBOSE_BODY_LIMIT: usize = 10_240;
 /// Maximum bytes of response body included in deserialization error messages.
 const ERROR_BODY_LIMIT: usize = 256;
 
+/// HTTP header name for rate-limit retry indication.
+const RETRY_AFTER_HEADER: &str = "retry-after";
+
+/// Error code for JSON deserialization failures.
+const DESERIALIZATION_ERROR: &str = "DESERIALIZATION_ERROR";
+
+/// Fallback status text when `canonical_reason()` returns `None`.
+const UNKNOWN_STATUS: &str = "Unknown";
+
 /// Trait for HTTP clients, allowing dependency injection and testing.
 ///
-/// The default implementation wraps `reqwest::Client`. Custom implementations
-/// can be used for testing (mock clients), retry logic, or custom transport
-/// configuration (timeouts, proxies, connection pools).
+/// Custom implementations can be used for testing (mock clients),
+/// retry logic, or custom transport configuration (timeouts, proxies).
 #[async_trait]
 pub trait HttpClient: Send + Sync {
     /// Send an HTTP request and return the response.
     async fn send(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<reqwest::Response>;
-}
-
-/// Default HTTP client that wraps `reqwest::Client`.
-pub struct DefaultHttpClient {
-    #[allow(dead_code)] // Used by HttpClient impl
-    inner: reqwest::Client,
-}
-
-impl DefaultHttpClient {
-    /// Create a new default HTTP client with default configuration.
-    pub fn new() -> Self {
-        Self {
-            inner: reqwest::Client::new(),
-        }
-    }
-
-    /// Create a default HTTP client with custom configuration.
-    pub fn with_config(builder: reqwest::ClientBuilder) -> EveryMapResult<Self> {
-        Ok(Self {
-            inner: builder.build()?,
-        })
-    }
-}
-
-impl Default for DefaultHttpClient {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[async_trait]
-impl HttpClient for DefaultHttpClient {
-    async fn send(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<reqwest::Response> {
-        builder.send().await.map_err(Into::into)
-    }
 }
 
 /// A generic provider HTTP client that consolidates the common request/response logic
@@ -134,7 +107,7 @@ impl ProviderClient {
                 "[VERBOSE] {} {} — {} ({:.0}ms)",
                 status.as_u16(),
                 redact_api_key(&url),
-                status.canonical_reason().unwrap_or("Unknown"),
+                status.canonical_reason().unwrap_or(UNKNOWN_STATUS),
                 elapsed.as_secs_f64() * 1000.0
             );
         }
@@ -143,11 +116,11 @@ impl ProviderClient {
             Ok(response)
         } else {
             let status_code = status.as_u16();
-            let status_text = status.canonical_reason().unwrap_or("Unknown").to_string();
+            let status_text = status.canonical_reason().unwrap_or(UNKNOWN_STATUS).to_string();
             let retry_after = if status_code == 429 {
                 response
                     .headers()
-                    .get("retry-after")
+                    .get(RETRY_AFTER_HEADER)
                     .and_then(|v| v.to_str().ok())
                     .and_then(|v| v.parse::<u64>().ok())
             } else {
@@ -199,7 +172,7 @@ impl ProviderClient {
             let snippet = truncate_str(&body, ERROR_BODY_LIMIT);
             EveryMapError::provider(
                 self.provider_name,
-                "DESERIALIZATION_ERROR",
+                DESERIALIZATION_ERROR,
                 format!(
                     "Failed to deserialize response: {}\nResponse body (first {} bytes): {}",
                     e, ERROR_BODY_LIMIT, snippet
@@ -219,11 +192,14 @@ impl ProviderClient {
     }
 }
 
+/// API key query parameter names to redact from URLs in verbose output.
+const REDACTED_PARAMS: &[&str] = &["apiKey", "key", "access_token"];
+
 /// Redact API key values from a URL string for verbose output.
 /// Replaces the value of common API key query params with `***`.
 pub fn redact_api_key(url: &str) -> String {
     let mut result = url.to_string();
-    for param in &["apiKey", "key", "access_token"] {
+    for param in REDACTED_PARAMS {
         let prefix = format!("{}=", param);
         if let Some(start) = result.find(&prefix) {
             let val_start = start + prefix.len();

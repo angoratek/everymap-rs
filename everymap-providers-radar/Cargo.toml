@@ -1,10 +1,11 @@
 [package]
 name = "everymap-providers-radar"
-version = "0.2.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "Radar provider for EveryMap — geocoding, routing, geofencing, trip tracking, fraud detection"
-license = "MIT"
-repository = "https://github.com/angoratek/everymap-rs"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
 keywords = ["geospatial", "maps", "radar", "api", "geofencing"]
 categories = ["api-bindings", "science::geo"]
 
@@ -19,3 +20,5 @@ thiserror = { workspace = true }
 
 [dev-dependencies]
 wiremock = { workspace = true }
+[lints]
+workspace = true
