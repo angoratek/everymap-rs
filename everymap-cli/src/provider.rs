@@ -1,8 +1,6 @@
 use everymap_core::auth::header::HeaderAuthProvider;
 use everymap_core::auth::{ApiKeyProvider, AuthProvider};
 use everymap_core::domains::attributes::AttributeProvider;
-use everymap_core::domains::fraud::FraudDetector;
-use everymap_core::domains::geofencing::GeofenceProvider;
 use everymap_core::domains::imaging::MapImageProvider;
 use everymap_core::domains::isoline::IsolineProvider;
 use everymap_core::domains::matching::RouteMatcher;
@@ -11,7 +9,6 @@ use everymap_core::domains::routing::Router;
 use everymap_core::domains::search::Geocoder;
 use everymap_core::domains::tiling::TileProvider;
 use everymap_core::domains::tour::TourPlanner;
-use everymap_core::domains::tracking::TripTracker;
 use everymap_core::domains::traffic::TrafficProvider;
 use std::sync::Arc;
 
@@ -21,9 +18,6 @@ use std::sync::Arc;
 /// functions with a single unified dispatch. Each accessor method returns a
 /// `Box<dyn Trait>` that either delegates to a real implementation or to a
 /// stub that returns `EveryMapError::UnsupportedDomain`.
-///
-/// Provider-specific domains (geofencing, tracking, fraud) return `None`
-/// from their accessors for providers that don't support them.
 pub struct ProviderRegistry {
     geocoder: Box<dyn Geocoder>,
     router: Box<dyn Router>,
@@ -35,9 +29,6 @@ pub struct ProviderRegistry {
     tile_provider: Box<dyn TileProvider>,
     attribute_provider: Box<dyn AttributeProvider>,
     image_provider: Box<dyn MapImageProvider>,
-    geofence: Option<Box<dyn GeofenceProvider>>,
-    trip_tracker: Option<Box<dyn TripTracker>>,
-    fraud_detector: Option<Box<dyn FraudDetector>>,
 }
 
 impl ProviderRegistry {
@@ -91,9 +82,6 @@ impl ProviderRegistry {
             image_provider: Box::new(
                 everymap_providers_here::domain::imaging::HereMapImageProvider::new(client),
             ),
-            geofence: None,
-            trip_tracker: None,
-            fraud_detector: None,
         }
     }
 
@@ -124,9 +112,6 @@ impl ProviderRegistry {
             image_provider: Box::new(everymap_providers_google::GoogleMapImageProvider::new(
                 client,
             )),
-            geofence: None,
-            trip_tracker: None,
-            fraud_detector: None,
         }
     }
 
@@ -161,9 +146,6 @@ impl ProviderRegistry {
             image_provider: Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(
                 client,
             )),
-            geofence: None,
-            trip_tracker: None,
-            fraud_detector: None,
         }
     }
 
@@ -196,9 +178,6 @@ impl ProviderRegistry {
             image_provider: Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(
                 client,
             )),
-            geofence: None,
-            trip_tracker: None,
-            fraud_detector: None,
         }
     }
 
@@ -223,15 +202,6 @@ impl ProviderRegistry {
             tile_provider: Box::new(everymap_providers_radar::RadarTileProvider),
             attribute_provider: Box::new(everymap_providers_radar::RadarAttributeProvider),
             image_provider: Box::new(everymap_providers_radar::RadarMapImageProvider),
-            geofence: Some(Box::new(
-                everymap_providers_radar::RadarGeofenceProvider::new(client.clone()),
-            )),
-            trip_tracker: Some(Box::new(everymap_providers_radar::RadarTripTracker::new(
-                client.clone(),
-            ))),
-            fraud_detector: Some(Box::new(everymap_providers_radar::RadarFraudDetector::new(
-                client,
-            ))),
         }
     }
 
@@ -273,17 +243,5 @@ impl ProviderRegistry {
 
     pub fn image_provider(&self) -> &dyn MapImageProvider {
         self.image_provider.as_ref()
-    }
-
-    pub fn geofence(&self) -> Option<&dyn GeofenceProvider> {
-        self.geofence.as_deref()
-    }
-
-    pub fn trip_tracker(&self) -> Option<&dyn TripTracker> {
-        self.trip_tracker.as_deref()
-    }
-
-    pub fn fraud_detector(&self) -> Option<&dyn FraudDetector> {
-        self.fraud_detector.as_deref()
     }
 }

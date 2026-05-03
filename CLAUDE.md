@@ -1,16 +1,16 @@
 # CLAUDE.md — Project Guidance for Claude Code
 
 ## Project Overview
-EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs across 13 geospatial domains.
+EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs across 10 geospatial domains.
 
 ## Architecture
-- **Workspace** (8 crates): `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` + `everymap-providers-google` + `everymap-providers-tomtom` + `everymap-providers-mapbox` + `everymap-providers-radar` + `everymap-cli` (CLI tool, 19 commands) + `everymap-bench` (benchmark framework, all 13 domains)
-- **13 Domain Traits** in `everymap-core/src/domains/`: search, routing, traffic, positioning, isoline, matching, tour, tiling, attributes, imaging, geofencing, tracking, fraud
+- **Workspace** (8 crates): `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` + `everymap-providers-google` + `everymap-providers-tomtom` + `everymap-providers-mapbox` + `everymap-providers-radar` + `everymap-cli` (CLI tool, 11 commands) + `everymap-bench` (benchmark framework, all 10 domains)
+- **10 Domain Traits** in `everymap-core/src/domains/`: search, routing, traffic, positioning, isoline, matching, tour, tiling, attributes, imaging
 - **Pattern**: Each domain trait uses concrete `Options` and `Response` types (not associated types). Provider implementations define their own rich types and map to core via `From` conversions.
 - **Dynamic dispatch**: Traits use concrete types enabling `Box<dyn Geocoder>` for runtime provider selection.
 - **ProviderClient** in `everymap-core/src/client/` consolidates all HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str). Provider crates wrap it with thin structs.
-- **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (10 macros): `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`, `unsupported_geofence!`, `unsupported_trip_tracker!`, `unsupported_fraud_detector!`
-- **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 19 commands.
+- **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (7 macros): `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`
+- **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 11 commands.
 - **Each domain module** has its own `types.rs` submodule with provider-specific request/response types.
 - **Shared geo types**: `HereLatLng` in HERE's `domain/geo.rs`, `GoogleLatLng` in Google's `domain/geo.rs`.
 - **Core response types** are rich enough for most use cases, with an optional `raw: Option<serde_json::Value>` escape hatch for provider-specific data.
@@ -41,7 +41,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 740+ tests (unit + contract + CLI integration + error cases)
+- `cargo test` — runs 575+ tests (unit + contract + CLI integration + error cases)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
@@ -60,11 +60,8 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 | Positioning | `NetworkPositioner` | `HerePositioner` | `GooglePositioner` | stub | stub | stub |
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
-| Geofencing | `GeofenceProvider` | N/A | N/A | N/A | N/A | `RadarGeofenceProvider` |
-| Tracking | `TripTracker` | N/A | N/A | N/A | N/A | `RadarTripTracker` |
-| Fraud | `FraudDetector` | N/A | N/A | N/A | N/A | `RadarFraudDetector` |
 
-Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 real implementations** across 5 providers.
+**31 real implementations** across 5 providers.
 
 ## Adding a New Provider
 1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`
@@ -91,8 +88,7 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 - **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
-- 11 base commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
-- 8 Radar-specific commands: geofence-search, geofence-create, geofence-get, geofence-delete, trip-create, trip-update, trip-get, fraud-check
+- 11 commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
 
 ## Git Rules
 - **Never commit without explicit user approval.** Always ask before committing.
@@ -107,8 +103,6 @@ Implementation counts: HERE 10, Google 6, TomTom 8, MapBox 7, Radar 7 = **38 rea
 - MapBox search v6 puts data in `properties` (`full_address`, `name`, `coordinates`, `bbox`, `context`), not top-level `place_name`/`text`/`center`
 - MapBox static image URL has no `.png` extension; default style is `streets-v12`
 - Radar routing step fields are `snake_case` (`start_location`) while leg fields are `camelCase` (`startLocation`)
-- Radar geofence/trip IDs use `_id` field name (with underscore prefix)
-- Radar trip creation requires `externalId` parameter
 - HERE Route Matching API v8 `mode` parameter uses compound format: `fastest;car;traffic:disabled` (not just transport mode)
 - HERE Route Matching API v8 transport modes: `car`, `carHov`, `truck`, `pedestrian`, `bicycle`, `bus`, `emergency`, `motorcycle`, `roadTrain` (camelCase)
 - `TourOptions` has `transport_mode: Option<TransportMode>` field for providers that support it (MapBox uses it for profile selection: driving/walking/cycling)

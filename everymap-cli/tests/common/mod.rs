@@ -44,7 +44,7 @@ pub const ALL_PROVIDERS: &[&str] = &[
 /// Berlin (Brandenburg Gate area) — primary test coordinate.
 pub const BERLIN_LAT: &str = "52.5";
 pub const BERLIN_LNG: &str = "13.3";
-/// Combined "lat,lng" for route/trip/tour arguments.
+/// Combined "lat,lng" for route/tour arguments.
 pub const BERLIN_COORDS: &str = "52.5,13.3";
 
 /// Second point near Berlin — used in traces, multi-stop tours.
@@ -53,7 +53,7 @@ pub const BERLIN2_COORDS: &str = "52.6,13.4";
 /// Paris — used as route destination.
 pub const PARIS_COORDS: &str = "48.8,2.3";
 
-/// New York City — primary Radar test coordinate (correct negative longitude).
+/// New York City — test coordinate with correct negative longitude.
 pub const NYC_LAT: &str = "40.71";
 pub const NYC_LNG: &str = "-74.01";
 pub const NYC_COORDS: &str = "40.71,-74.01";
@@ -63,7 +63,7 @@ pub const NYC_COORDS: &str = "40.71,-74.01";
 pub const NYC_LAT_POSLNG: &str = "40.71";
 pub const NYC_LNG_POS: &str = "74.0";
 
-/// Boston — used as Radar trip destination.
+/// Boston — used as route destination.
 pub const BOSTON_COORDS: &str = "42.36,-71.06";
 
 // ============================================================
@@ -88,15 +88,6 @@ pub const TILE_X: &str = "8800";
 pub const TILE_Y: &str = "5374";
 
 // ============================================================
-// IDs
-// ============================================================
-
-pub const TEST_TRIP_ID: &str = "trip_123";
-pub const TEST_GEOFENCE_ID: &str = "gf_123";
-pub const TEST_DEVICE_ID: &str = "dev_1";
-pub const TEST_USER_ID: &str = "user_1";
-
-// ============================================================
 // Query strings
 // ============================================================
 
@@ -118,20 +109,6 @@ pub const TRACE_NYC: &str = "40.71,-74.01;40.72,-74.00";
 // ============================================================
 
 pub const TRANSPORT_CAR: &str = "car";
-
-// ============================================================
-// Radii and ranges
-// ============================================================
-
-pub const RADIUS_500: &str = "500";
-pub const RADIUS_1000: &str = "1000";
-pub const ISOLINE_RANGE_DEFAULT: &str = "1000";
-
-// ============================================================
-// Geofence tags
-// ============================================================
-
-pub const TAG_STORE: &str = "store";
 
 // ============================================================
 // CLI helpers
@@ -178,7 +155,7 @@ pub fn cli_no_key() -> Command {
 // Predicate / assertion string constants
 // ============================================================
 
-/// Stderr substring when an optional domain (geofence/trip/fraud) is not available for a provider.
+/// Stderr substring when a domain is not available for a provider.
 pub const ERR_NOT_SUPPORTED: &str = "not supported by this provider";
 
 /// Stderr substring prefix for unsupported domain stubs.

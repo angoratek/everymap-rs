@@ -61,15 +61,6 @@ pub trait RadarSearchExt {
         radius: Option<f64>,
         limit: Option<u32>,
     ) -> EveryMapResult<RadarPlaceSearchResponse>;
-
-    /// Search geofences near a location, filtered by tag/metadata.
-    async fn search_geofences(
-        &self,
-        near: &Coordinate,
-        tags: Option<&[String]>,
-        radius: Option<f64>,
-        limit: Option<u32>,
-    ) -> EveryMapResult<RadarGeofenceSearchResponse>;
 }
 
 /// Extension trait for Radar-specific route matching with road attributes.
@@ -125,12 +116,8 @@ pub struct RadarChain {
     pub metadata: Option<serde_json::Value>,
 }
 
-/// Response from Radar Search Geofences API (re-exported for extension trait).
-pub use crate::domain::geofencing::types::RadarGeofenceSearchResponse;
-
 // --- Extension trait implementations ---
 
-use crate::domain::geofencing::RadarGeofenceProvider;
 use crate::domain::matching::RadarRouteMatcher;
 use crate::domain::routing::RadarRouter;
 use crate::domain::search::RadarGeocoder;
@@ -296,7 +283,7 @@ impl RadarRouterExt for RadarRouter {
 }
 
 #[async_trait]
-impl RadarSearchExt for RadarGeofenceProvider {
+impl RadarSearchExt for RadarGeocoder {
     async fn search_places(
         &self,
         near: &Coordinate,
@@ -323,33 +310,6 @@ impl RadarSearchExt for RadarGeofenceProvider {
         let builder = self
             .client
             .build_request(reqwest::Method::GET, PLACES_URL)
-            .query(&params);
-
-        self.client.request_json(builder).await
-    }
-
-    async fn search_geofences(
-        &self,
-        near: &Coordinate,
-        tags: Option<&[String]>,
-        radius: Option<f64>,
-        limit: Option<u32>,
-    ) -> EveryMapResult<RadarGeofenceSearchResponse> {
-        let mut params: Vec<(&str, String)> = vec![("near", format!("{},{}", near.lat, near.lng))];
-
-        if let Some(t) = tags {
-            params.push(("tags", t.join(",")));
-        }
-        if let Some(r) = radius {
-            params.push(("radius", r.to_string()));
-        }
-        if let Some(l) = limit {
-            params.push(("limit", l.to_string()));
-        }
-
-        let builder = self
-            .client
-            .build_request(reqwest::Method::GET, &self.search_url)
             .query(&params);
 
         self.client.request_json(builder).await

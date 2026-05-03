@@ -1,6 +1,4 @@
 pub mod attributes;
-pub mod fraud;
-pub mod geofencing;
 pub mod imaging;
 pub mod isoline;
 pub mod matching;
@@ -9,12 +7,9 @@ pub mod routing;
 pub mod search;
 pub mod tiling;
 pub mod tour;
-pub mod tracking;
 pub mod traffic;
 
 pub use attributes::*;
-pub use fraud::*;
-pub use geofencing::*;
 pub use imaging::*;
 pub use isoline::*;
 pub use matching::*;
@@ -23,5 +18,4 @@ pub use routing::*;
 pub use search::*;
 pub use tiling::*;
 pub use tour::*;
-pub use tracking::*;
 pub use traffic::*;

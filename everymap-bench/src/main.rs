@@ -15,9 +15,13 @@ use std::sync::Arc;
     about = "Cross-provider benchmark framework for EveryMap"
 )]
 struct Cli {
-    /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging, geofencing, tracking, fraud)
+    /// Benchmark a specific domain (geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging)
     #[arg(long)]
     domain: Option<String>,
+
+    /// List available domains and exit
+    #[arg(long)]
+    list: bool,
 
     /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar)
     #[arg(long, default_value = "here,google,tomtom,mapbox,radar")]
@@ -51,7 +55,7 @@ struct Cli {
     #[arg(long, env = "EVERYMAP_MAPBOX_API_KEY")]
     mapbox_key: Option<String>,
 
-    /// Radar API key
+    /// Radar API key (publishable, for read operations)
     #[arg(long, env = "EVERYMAP_RADAR_API_KEY")]
     radar_key: Option<String>,
 
@@ -100,19 +104,11 @@ async fn run_scenario(
         ScenarioParams::Positioning { provider_extra } => {
             benchmark::bench_positioning(providers, provider_extra).await
         }
-        ScenarioParams::Attributes { bbox } => benchmark::bench_attributes(providers, bbox).await,
+        ScenarioParams::Attributes { bbox, provider_extra } => {
+            benchmark::bench_attributes(providers, bbox, provider_extra).await
+        }
         ScenarioParams::Image { center, zoom } => {
             benchmark::bench_image(providers, center, *zoom).await
-        }
-        ScenarioParams::GeofenceSearch { near, radius } => {
-            benchmark::bench_geofence_search(providers, near, *radius).await
-        }
-        ScenarioParams::TripCreate {
-            origin,
-            destination,
-        } => benchmark::bench_trip_create(providers, origin, destination).await,
-        ScenarioParams::FraudCheck { lat, lng } => {
-            benchmark::bench_fraud_check(providers, *lat, *lng).await
         }
     }
 }
@@ -120,6 +116,11 @@ async fn run_scenario(
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+
+    if cli.list {
+        println!("Available domains: geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging");
+        return;
+    }
 
     let provider_names: Vec<&str> = cli
         .providers
@@ -131,7 +132,14 @@ async fn main() {
     let scenarios = scenarios::get_scenarios(cli.domain.as_deref());
 
     if scenarios.is_empty() {
-        eprintln!("No scenarios match the given domain filter.");
+        if let Some(domain) = &cli.domain {
+            eprintln!(
+                "Unknown domain '{}'. Valid domains: geocoder, routing, isoline, matching, tour, traffic, tiling, positioning, attributes, imaging",
+                domain
+            );
+        } else {
+            eprintln!("No scenarios match the given domain filter.");
+        }
         std::process::exit(1);
     }
 

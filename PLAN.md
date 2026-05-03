@@ -11,20 +11,20 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 
 - **`everymap-core`**: The bedrock. Zero-dependency where possible.
     - Shared Types: `Coordinate`, `BoundingBox`, `Address`, `Polyline`, `FlexiblePolyline`.
-    - 13 Domain Traits: `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`, `GeofenceProvider`, `TripTracker`, `FraudDetector`.
+    - 10 Domain Traits: `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`.
     - Core Options Types: `GeocodeOptions`, `RouteOptions`, etc. with `provider_extra: Option<serde_json::Value>` escape hatch.
     - Enriched Response Types: `SearchResult`, `RouteResult`, `TrafficFlow`, `TrafficIncident`, `IsolineResult`, `MatchedPoint`, `TourResponse`, etc.
     - Auth Traits: `AuthProvider` (`ApiKeyProvider`, `HeaderAuthProvider`, future `OAuth2Provider`).
     - Error System: Structured `EveryMapError` with `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, etc.
     - `ProviderClient`: Consolidated HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str).
-    - 10 Unsupported Domain Macros: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`, `unsupported_geofence!`, `unsupported_trip_tracker!`, `unsupported_fraud_detector!`.
+    - 7 Unsupported Domain Macros: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`.
 - **`everymap-providers-here`**: HERE Technologies — 10 domains implemented (all common domains).
 - **`everymap-providers-google`**: Google Maps — 6 domains implemented (search, routing, matching, positioning, attributes, imaging).
 - **`everymap-providers-tomtom`**: TomTom — 8 domains implemented (search, routing, traffic, isoline, matching, tour, tiling, imaging).
 - **`everymap-providers-mapbox`**: MapBox — 7 domains implemented (search, routing, isoline, matching, tour, tiling, imaging).
-- **`everymap-providers-radar`**: Radar — 7 domains (search, routing, matching, tour, geofencing, tracking, fraud). Geofencing/tracking/fraud are Radar-exclusive.
-- **`everymap-cli`**: CLI tool with 19 commands, unified `ProviderRegistry` dispatch.
-- **`everymap-bench`**: Cross-provider benchmark framework covering all 13 domains with typed `ScenarioParams` dispatch.
+- **`everymap-providers-radar`**: Radar — 4 domains (search, routing, matching, tour).
+- **`everymap-cli`**: CLI tool with 11 commands, unified `ProviderRegistry` dispatch.
+- **`everymap-bench`**: Cross-provider benchmark framework covering all 10 domains with typed `ScenarioParams` dispatch.
 
 ### 2. Domain Abstraction
 
@@ -40,11 +40,8 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 | **Positioning** | `NetworkPositioner` | ✅ | ✅ | stub | stub | stub |
 | **Attributes** | `AttributeProvider` | ✅ | ✅ | stub | stub | stub |
 | **Imaging** | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | stub |
-| **Geofencing** | `GeofenceProvider` | N/A | N/A | N/A | N/A | ✅ |
-| **Tracking** | `TripTracker` | N/A | N/A | N/A | N/A | ✅ |
-| **Fraud** | `FraudDetector` | N/A | N/A | N/A | N/A | ✅ |
 
-**38 real implementations** across 5 providers. 15 stubs. 12 N/A (provider-exclusive domains).
+**31 real implementations** across 5 providers.
 
 ### 3. Key Design Decisions
 
@@ -54,7 +51,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - **Feature flags** for providers in CLI: `--features here,google` to control compile time.
 - **Version independently**: Each crate follows its own semver pace.
 - **ProviderClient consolidation**: All 5 provider clients delegate to shared `ProviderClient` from core.
-- **Unsupported domain macros**: 10 macros eliminate boilerplate stubs.
+- **Unsupported domain macros**: 7 macros eliminate boilerplate stubs.
 - **Unified CLI dispatch**: `ProviderRegistry` replaces 5 duplicated command handler functions.
 
 ### 4. Authentication Layer
@@ -86,21 +83,21 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - Google provider crate (search + routing)
 - TomTom provider crate (search, routing, traffic, isoline, matching, tour, tiling, imaging)
 - MapBox provider crate (search, routing, isoline, matching, tour, tiling, imaging)
-- Radar provider crate (search, routing, matching, tour, geofencing, tracking, fraud)
+- Radar provider crate (search, routing, matching, tour)
 
 ### Phase 15: Phase 3 — Architecture Hardening ✅
 - **CLI unified dispatch**: `ProviderRegistry` replaces 5 `run_<provider>_commands()` functions. main.rs reduced from ~1750 to ~500 lines.
 - **ProviderClient extracted**: Shared HTTP client logic in `everymap-core/src/client/mod.rs`. All 5 provider crates have thin wrappers.
-- **Unsupported domain macros**: 10 macros in `everymap-core/src/unsupported.rs`. All 5 provider stubs converted to 1-line macro invocations.
+- **Unsupported domain macros**: 7 macros in `everymap-core/src/unsupported.rs`. All 5 provider stubs converted to 1-line macro invocations.
 - **Security**: Error body truncation reduced to 256 bytes. Shared `redact_api_key()` from core.
-- **Tests**: 540 total (up from 345). ~180 new core domain tests.
+- **Tests**: 575 total (up from 345). ~230 new tests.
 - **Clippy**: Zero warnings with `-D warnings`.
 
 ### Phase 16: Benchmark Expansion ✅
-- `everymap-bench` expanded from 2 domains (geocode, route) to all 13 domains
-- `ScenarioParams` enum with 14 variants for typed dispatch
+- `everymap-bench` expanded from 2 domains (geocode, route) to all 10 domains
+- `ScenarioParams` enum with typed dispatch across all 10 domains
 - 15 predefined scenarios covering all domains
-- `BenchProviders` struct holds trait objects for all 13 domains per provider
+- `BenchProviders` struct holds trait objects for all 10 domains per provider
 - Supports 5 providers: HERE, Google, TomTom, MapBox, Radar
 - Output formats: table (default), json, markdown
 
@@ -111,17 +108,17 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 | Metric | Value |
 |--------|-------|
 | Workspace crates | 8 |
-| Domain traits | 13 |
-| CLI commands | 19 |
-| Total tests | 747 (nextest) |
-| Real implementations | 38 across 5 providers |
+| Domain traits | 10 |
+| CLI commands | 11 |
+| Total tests | 575+ (nextest) |
+| Real implementations | 31 across 5 providers |
 | Clippy warnings | 0 |
 | Version | 0.2.0 |
 
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 747 tests (unit + contract + CLI integration + error cases), all passing with nextest
+- **TDD**: 575+ tests (unit + contract + CLI integration + error cases), all passing with nextest
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green

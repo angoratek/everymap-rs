@@ -27,7 +27,7 @@ everymap-rs/
 ├── everymap-providers-tomtom/ # TomTom
 ├── everymap-providers-mapbox/ # MapBox
 ├── everymap-providers-radar/  # Radar
-├── everymap-cli/           # CLI tool (19 commands)
+├── everymap-cli/           # CLI tool (11 commands)
 └── everymap-bench/         # Benchmark framework
 ```
 
@@ -74,7 +74,7 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Pull Request Process
 
 1. Ensure `cargo clippy -- -D warnings` passes with zero warnings
-2. Ensure `cargo test` passes (all 740+ tests)
+2. Ensure `cargo test` passes (all 575+ tests)
 3. Ensure `cargo fmt --all -- --check` passes
 4. Add tests for any new functionality
 5. Update documentation (CLAUDE.md, README.md, TESTING.md) as needed

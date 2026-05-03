@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-cargo test                    # Run 540+ tests (unit + contract + CLI integration)
+cargo test                    # Run 575+ tests (unit + contract + CLI integration)
 cargo clippy -- -D warnings   # Lint (must pass clean)
 cargo build                   # Build all 8 workspace crates
 ```
@@ -81,9 +81,6 @@ Each provider crate has a `tests/` directory with per-domain contract test files
 | Radar | `tests/routing_contract.rs` | route (snake_case step fields) |
 | Radar | `tests/matching_contract.rs` | match-route |
 | Radar | `tests/tour_contract.rs` | optimization |
-| Radar | `tests/geofencing_contract.rs` | search, search with tags, create, get, delete |
-| Radar | `tests/tracking_contract.rs` | create trip, update trip, get trip |
-| Radar | `tests/fraud_contract.rs` | clean, spoofed, no-fraud-data, error response |
 
 Run per provider:
 ```bash
@@ -91,7 +88,7 @@ cargo test -p everymap-providers-here   # ~25 contract tests
 cargo test -p everymap-providers-google # ~14 contract tests
 cargo test -p everymap-providers-tomtom  # ~14 contract tests
 cargo test -p everymap-providers-mapbox  # ~14 contract tests
-cargo test -p everymap-providers-radar   # ~18 contract tests
+cargo test -p everymap-providers-radar   # ~8 contract tests
 ```
 
 ### 3. Error Case Tests
@@ -186,14 +183,12 @@ cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary m
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary position
 cargo run -p everymap-cli -- --provider google --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 
-# --- Radar (7 domains) ---
+# --- Radar (4 domains) ---
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary geocode "New York"
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary reverse-geocode --lat 40.71 --lng=-74.01
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary route --origin "40.71,-74.01" --destination "42.36,-71.06" --transport car
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary match-route --trace "40.71,-74.01;40.72,-74.00;40.73,-73.99" --transport car
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary tour --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
-cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary geofence-search --lat 40.71 --lng=-74.01
-cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary fraud-check --device-id dev_1 --lat 40.71 --lng=-74.01
 ```
 
 **Note**: Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI argument parsing issues.
@@ -280,5 +275,3 @@ These are provider-specific quirks discovered during live API testing:
 | MapBox | Map-image | URL format is `/styles/v1/{user}/{style}/static/{lon},{lat},{zoom}/{w}x{h}@2x` — no `.png` extension; default style is `streets-v12` |
 | MapBox | Tour | Optimization API returns "NotImplemented" on free tier |
 | Radar | Routing | Step-level fields use `snake_case` (`start_location`, `bearing_after`) while leg-level uses `camelCase` (`startLocation`); API has typo `manuever` for `maneuver` |
-| Radar | Geofences/Trips | ID field is `_id` (with underscore prefix), not `id` |
-| Radar | Trips | `externalId` param is required for trip creation |

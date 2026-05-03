@@ -7,7 +7,7 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
 
-EveryMap-RS provides a unified interface for geospatial services across multiple providers — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. The architecture uses **domain-driven design** with 13 geospatial capabilities, each defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
+EveryMap-RS provides a unified interface for geospatial services across multiple providers — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. The architecture uses **domain-driven design** with 10 geospatial capabilities, each defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
 
 ## Architecture
 
@@ -15,19 +15,19 @@ EveryMap-RS provides a unified interface for geospatial services across multiple
 everymap-rs/
 ├── everymap-core/              # Core traits, types, auth, error, client
 │   └── src/
-│       ├── domains/            # 13 domain traits + concrete Options/Response types
+│       ├── domains/            # 10 domain traits + concrete Options/Response types
 │       ├── types/              # Coordinate, BoundingBox, Address, Polyline
 │       ├── auth/               # AuthProvider, ApiKeyProvider, HeaderAuthProvider
 │       ├── client/             # ProviderClient (shared HTTP logic), HttpClient trait
-│       ├── unsupported.rs      # 10 stub macros for unsupported domains
+│       ├── unsupported.rs      # 7 stub macros for unsupported domains
 │       └── error/              # EveryMapError (structured errors)
 ├── everymap-providers-here/    # HERE Technologies (10 domains implemented)
 ├── everymap-providers-google/  # Google Maps (6 domains implemented)
 ├── everymap-providers-tomtom/  # TomTom (8 domains implemented)
 ├── everymap-providers-mapbox/  # MapBox (7 domains implemented)
-├── everymap-providers-radar/   # Radar (7 domains, including geofencing/tracking/fraud)
-├── everymap-cli/               # CLI with 19 commands + unified ProviderRegistry
-└── everymap-bench/             # Cross-provider benchmark framework (all 13 domains)
+├── everymap-providers-radar/   # Radar (4 domains: search, routing, matching, tour)
+├── everymap-cli/               # CLI with 11 commands + unified ProviderRegistry
+└── everymap-bench/             # Cross-provider benchmark framework (all 10 domains)
 ```
 
 ## Provider Support
@@ -44,11 +44,8 @@ everymap-rs/
 | Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — |
 | Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — |
 | Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — |
-| Geofencing | `GeofenceProvider` | — | — | — | — | ✅ |
-| Tracking | `TripTracker` | — | — | — | — | ✅ |
-| Fraud | `FraudDetector` | — | — | — | — | ✅ |
 
-✅ = real implementation, — = unsupported (stub or N/A). **38 real implementations** across 5 providers.
+✅ = real implementation, — = unsupported (stub or N/A). **31 real implementations** across 5 providers.
 
 Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
@@ -109,7 +106,7 @@ everymap --provider google --api-key $GOOGLE_KEY geocode "Brandenburg Gate, Berl
 # TomTom, MapBox, Radar providers
 everymap --provider tomtom --api-key $TOMTOM_KEY geocode "Berlin"
 everymap --provider mapbox --api-key $MAPBOX_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
-everymap --provider radar --api-key $RADAR_KEY geofence-search --lat 40.71 --lng=-74.01
+everymap --provider radar --api-key $RADAR_KEY geocode "Berlin"
 
 # Config file (~/.everymap/config.toml)
 # [providers.here]
@@ -122,7 +119,7 @@ everymap --output json --api-key $KEY geocode "Paris"       # compact JSON
 everymap --output pretty --api-key $KEY geocode "Paris"     # formatted JSON
 everymap --output summary --api-key $KEY geocode "Paris"    # condensed human-readable
 
-# All 19 commands (examples use HERE provider)
+# All 11 commands (examples use HERE provider)
 everymap --api-key $KEY geocode "Berlin"
 everymap --api-key $KEY reverse-geocode --lat 52.52 --lng 13.40
 everymap --api-key $KEY route --origin "52.52,13.40" --destination "52.54,13.42" --transport car
@@ -134,28 +131,22 @@ everymap --api-key $KEY tour --stops "52.5,13.3" "52.6,13.4"
 everymap --api-key $KEY tile --z 14 --x 4494 --y 2832
 everymap --api-key $KEY attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
 everymap --api-key $KEY map-image --lat 52.52 --lng 13.40 --zoom 14
-# Radar-specific:
-everymap --provider radar --api-key $KEY geofence-search --lat 40.71 --lng=-74.01
-everymap --provider radar --api-key $KEY geofence-create --lat 40.71 --lng=-74.01 --radius 500
-everymap --provider radar --api-key $KEY geofence-get gf_123
-everymap --provider radar --api-key $KEY geofence-delete gf_123
-everymap --provider radar --api-key $KEY trip-create --origin "40.71,-74.01" --destination "42.36,-71.06" --mode car
-everymap --provider radar --api-key $KEY trip-update --trip-id trip_123 --status started
-everymap --provider radar --api-key $KEY trip-get trip_123
-everymap --provider radar --api-key $KEY fraud-check --device-id dev_1 --lat 40.71 --lng=-74.01
 ```
 
 ### Benchmarking
 
 ```bash
 # Benchmark all domains against all configured providers
-everymap-bench --all --here-key $HERE_KEY --google-key $GOOGLE_KEY
+everymap-bench --here-key $HERE_KEY --google-key $GOOGLE_KEY
+
+# List available domains
+everymap-bench --list
 
 # Benchmark a specific domain
 everymap-bench --domain routing --here-key $HERE_KEY --tomtom-key $TOMTOM_KEY
 
 # Output formats: table (default), json, markdown
-everymap-bench --all --output json --api-key $KEY
+everymap-bench --output json --api-key $KEY
 ```
 
 ## Core Response Types
@@ -194,7 +185,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 747 tests (unit + contract + CLI integration + error cases), all passing with nextest.
+- **TDD**: 575+ tests (unit + contract + CLI integration + error cases), all passing with nextest.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
@@ -204,7 +195,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 
 ```bash
 cargo build                              # Build all 8 workspace crates
-cargo nextest run --all-features         # Run 747 tests (install: cargo install cargo-nextest)
+cargo nextest run --all-features         # Run 575+ tests (install: cargo install cargo-nextest)
 cargo test                               # Or use cargo test
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI

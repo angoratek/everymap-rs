@@ -518,15 +518,6 @@ test_here() {
     run_cli "here_route_berlin_paris_verbose" \
         --api-key "$key" --provider here -v route --origin "52.52,13.40" --destination "48.86,2.35" --transport car
 
-    # Unsupported domains for HERE (should fail with "not supported")
-    run_cli "here_geofence_search_unsupported" \
-        --api-key "$key" --provider here geofence-search --lat 52.52 --lng=13.40
-
-    run_cli "here_trip_create_unsupported" \
-        --api-key "$key" --provider here trip-create --mode car
-
-    run_cli "here_fraud_check_unsupported" \
-        --api-key "$key" --provider here fraud-check --device-id dev_1 --lat 52.52 --lng=13.40
 }
 
 # ===================== GOOGLE ==============================================
@@ -742,12 +733,6 @@ test_tomtom() {
     run_cli "tomtom_geocode_berlin_verbose" \
         --api-key "$key" --provider tomtom --verbose geocode "Berlin"
 
-    # Unsupported domains
-    run_cli "tomtom_geofence_search_unsupported" \
-        --api-key "$key" --provider tomtom geofence-search --lat 52.52 --lng=13.40
-
-    run_cli "tomtom_fraud_check_unsupported" \
-        --api-key "$key" --provider tomtom fraud-check --device-id dev_1 --lat 52.52 --lng=13.40
 }
 
 # ===================== MAPBOX ===============================================
@@ -851,12 +836,6 @@ test_mapbox() {
     run_cli "mapbox_geocode_berlin_verbose" \
         --api-key "$key" --provider mapbox --verbose geocode "Berlin"
 
-    # Unsupported domains
-    run_cli "mapbox_geofence_search_unsupported" \
-        --api-key "$key" --provider mapbox geofence-search --lat 52.52 --lng=13.40
-
-    run_cli "mapbox_fraud_check_unsupported" \
-        --api-key "$key" --provider mapbox fraud-check --device-id dev_1 --lat 52.52 --lng=13.40
 }
 
 # ===================== RADAR ================================================
@@ -897,33 +876,6 @@ test_radar() {
         run_cli "radar_reverse_${name}_summary" \
             --api-key "$key" --provider radar --output summary reverse-geocode --lat "$lat" $(lng_flag "$lng")
 
-        # Geofence search
-        run_cli "radar_geofence_search_${name}" \
-            --api-key "$key" --provider radar geofence-search --lat "$lat" $(lng_flag "$lng")
-
-        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
-            run_cli "radar_geofence_search_${name}_radius" \
-                --api-key "$key" --provider radar geofence-search --lat "$lat" $(lng_flag "$lng") --radius 500
-        fi
-
-        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
-            run_cli "radar_geofence_search_${name}_tags" \
-                --api-key "$key" --provider radar geofence-search --lat "$lat" $(lng_flag "$lng") --tags store
-        fi
-
-        # Fraud check
-        run_cli "radar_fraud_${name}" \
-            --api-key "$key" --provider radar fraud-check --device-id "dev_smoke_${name}" --lat "$lat" $(lng_flag "$lng")
-
-        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
-            run_cli "radar_fraud_${name}_accuracy" \
-                --api-key "$key" --provider radar fraud-check --device-id "dev_smoke_${name}" --lat "$lat" $(lng_flag "$lng") --accuracy 5.0
-        fi
-
-        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
-            run_cli "radar_fraud_${name}_user" \
-                --api-key "$key" --provider radar fraud-check --device-id "dev_smoke_${name}" --lat "$lat" $(lng_flag "$lng") --user-id "user_smoke_${name}"
-        fi
     done
 
     # Routes
@@ -949,17 +901,6 @@ test_radar() {
 
     run_cli "radar_tour_nyc_summary" \
         --api-key "$key" --provider radar --output summary tour --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
-
-    # Trip create/update/get (Radar-specific)
-    run_cli "radar_trip_create" \
-        --api-key "$key" --provider radar trip-create --mode car --external-id "smoke_trip_001"
-
-    # Geofence create (then we can get/delete it)
-    run_cli "radar_geofence_create_nyc" \
-        --api-key "$key" --provider radar geofence-create --lat 40.71 --lng=-74.01 --radius 500 --tag smoke_test
-
-    run_cli "radar_geofence_create_nyc_desc" \
-        --api-key "$key" --provider radar geofence-create --lat 40.71 --lng=-74.01 --radius 1000 --tag smoke_test --description "Smoke test geofence"
 
     # Verbose mode
     run_cli "radar_geocode_nyc_verbose" \

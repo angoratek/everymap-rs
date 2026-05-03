@@ -3,16 +3,6 @@
 //! These macros eliminate boilerplate when a provider doesn't support a particular
 //! domain. Instead of manually writing trait implementations that return
 //! `EveryMapError::unsupported_domain`, use the appropriate macro.
-//!
-//! # Example
-//! ```ignore
-//! // In everymap-providers-here/src/domain/unsupported.rs:
-//! use everymap_core::unsupported::*;
-//!
-//! unsupported_geofence!(HereGeofenceProvider, "here");
-//! unsupported_trip_tracker!(HereTripTracker, "here");
-//! unsupported_fraud_detector!(HereFraudDetector, "here");
-//! ```
 
 /// Generates an unsupported `IsolineProvider` stub implementation.
 #[macro_export]
@@ -169,122 +159,6 @@ macro_rules! unsupported_image {
                 _options: &everymap_core::domains::imaging::ImageOptions,
             ) -> everymap_core::error::EveryMapResult<everymap_core::domains::imaging::ImageResponse> {
                 Err(everymap_core::error::EveryMapError::unsupported_domain($provider, "imaging"))
-            }
-        }
-    };
-}
-
-/// Generates an unsupported `GeofenceProvider` stub implementation (4 methods).
-#[macro_export]
-macro_rules! unsupported_geofence {
-    ($struct_name:ident, $provider:expr) => {
-        pub struct $struct_name;
-
-        #[async_trait::async_trait]
-        impl everymap_core::domains::geofencing::GeofenceProvider for $struct_name {
-            async fn search_geofences(
-                &self,
-                _options: &everymap_core::domains::geofencing::GeofenceOptions,
-            ) -> everymap_core::error::EveryMapResult<
-                everymap_core::domains::geofencing::GeofenceResponse,
-            > {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider,
-                    "geofencing",
-                ))
-            }
-
-            async fn create_geofence(
-                &self,
-                _options: &everymap_core::domains::geofencing::GeofenceCreateOptions,
-            ) -> everymap_core::error::EveryMapResult<
-                everymap_core::domains::geofencing::GeofenceResult,
-            > {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider,
-                    "geofencing",
-                ))
-            }
-
-            async fn get_geofence(
-                &self,
-                _id: &str,
-            ) -> everymap_core::error::EveryMapResult<
-                everymap_core::domains::geofencing::GeofenceResult,
-            > {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider,
-                    "geofencing",
-                ))
-            }
-
-            async fn delete_geofence(&self, _id: &str) -> everymap_core::error::EveryMapResult<()> {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider,
-                    "geofencing",
-                ))
-            }
-        }
-    };
-}
-
-/// Generates an unsupported `TripTracker` stub implementation (3 methods).
-#[macro_export]
-macro_rules! unsupported_trip_tracker {
-    ($struct_name:ident, $provider:expr) => {
-        pub struct $struct_name;
-
-        #[async_trait::async_trait]
-        impl everymap_core::domains::tracking::TripTracker for $struct_name {
-            async fn create_trip(
-                &self,
-                _options: &everymap_core::domains::tracking::TripCreateOptions,
-            ) -> everymap_core::error::EveryMapResult<everymap_core::domains::tracking::TripResult>
-            {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider, "tracking",
-                ))
-            }
-
-            async fn update_trip(
-                &self,
-                _options: &everymap_core::domains::tracking::TripUpdateOptions,
-            ) -> everymap_core::error::EveryMapResult<everymap_core::domains::tracking::TripResult>
-            {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider, "tracking",
-                ))
-            }
-
-            async fn get_trip(
-                &self,
-                _trip_id: &str,
-            ) -> everymap_core::error::EveryMapResult<everymap_core::domains::tracking::TripResult>
-            {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider, "tracking",
-                ))
-            }
-        }
-    };
-}
-
-/// Generates an unsupported `FraudDetector` stub implementation.
-#[macro_export]
-macro_rules! unsupported_fraud_detector {
-    ($struct_name:ident, $provider:expr) => {
-        pub struct $struct_name;
-
-        #[async_trait::async_trait]
-        impl everymap_core::domains::fraud::FraudDetector for $struct_name {
-            async fn check_fraud(
-                &self,
-                _options: &everymap_core::domains::fraud::FraudCheckOptions,
-            ) -> everymap_core::error::EveryMapResult<everymap_core::domains::fraud::FraudResult>
-            {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider, "fraud",
-                ))
             }
         }
     };

@@ -35,21 +35,6 @@ pub use domain::matching::RadarRouteMatcher;
 pub use domain::tour::types::{RadarOptimizeResponse, RadarOptimizedLeg, RadarOptimizedRoute};
 pub use domain::tour::RadarTourPlanner;
 
-// Geofencing
-pub use domain::geofencing::types::{
-    RadarGeofence, RadarGeofenceCreateResponse, RadarGeofenceGetResponse,
-    RadarGeofenceSearchResponse,
-};
-pub use domain::geofencing::RadarGeofenceProvider;
-
-// Tracking
-pub use domain::tracking::types::{RadarTrip, RadarTripCreateResponse, RadarTripGetResponse};
-pub use domain::tracking::RadarTripTracker;
-
-// Fraud
-pub use domain::fraud::types::{RadarFraudData, RadarTrackResponse, RadarTrackUser};
-pub use domain::fraud::RadarFraudDetector;
-
 // Unsupported domains (return UnsupportedDomain error)
 pub use domain::unsupported::{
     RadarAttributeProvider, RadarIsoline, RadarMapImageProvider, RadarPositioner,

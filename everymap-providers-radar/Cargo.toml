@@ -2,11 +2,11 @@
 name = "everymap-providers-radar"
 version.workspace = true
 edition.workspace = true
-description = "Radar provider for EveryMap — geocoding, routing, geofencing, trip tracking, fraud detection"
+description = "Radar provider for EveryMap — geocoding, routing"
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
-keywords = ["geospatial", "maps", "radar", "api", "geofencing"]
+keywords = ["geospatial", "maps", "radar", "api"]
 categories = ["api-bindings", "science::geo"]
 
 [dependencies]
