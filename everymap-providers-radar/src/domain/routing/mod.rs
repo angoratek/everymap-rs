@@ -128,7 +128,7 @@ impl everymap_core::domains::routing::Router for RadarRouter {
         }
 
         if let Some(departure_time) = &options.departure_time {
-            params.push(("departureTime", departure_time.clone()));
+            params.push(("departureTime", departure_time.to_string()));
         }
         if let Some(lang) = &options.language {
             params.push(("lang", lang.clone()));

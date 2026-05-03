@@ -95,10 +95,10 @@ impl Router for TomTomRouter {
             params.push(("language", lang.clone()));
         }
         if let Some(departure) = &options.departure_time {
-            params.push(("departAt", departure.clone()));
+            params.push(("departAt", departure.to_string()));
         }
         if let Some(arrival) = &options.arrival_time {
-            params.push(("arriveAt", arrival.clone()));
+            params.push(("arriveAt", arrival.to_string()));
         }
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {

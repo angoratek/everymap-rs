@@ -238,8 +238,11 @@ impl Geocoder for MapBoxGeocoder {
             params.push(("language", lang.clone()));
         }
         if let Some(radius) = options.radius {
-            // MapBox doesn't have a radius param for reverse geocode, skip
-            let _ = radius;
+            eprintln!(
+                "WARNING: MapBox Reverse Geocoding v6 does not support radius constraints; \
+                 radius ({}) will be ignored",
+                radius
+            );
         }
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {

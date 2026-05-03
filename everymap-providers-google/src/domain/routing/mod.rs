@@ -3,7 +3,7 @@ pub mod types;
 use crate::client::GoogleClient;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
+    DepartureTime, RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{BoundingBox, Coordinate, Polyline};
@@ -169,16 +169,18 @@ impl Router for GoogleRouter {
             let avoid_str: String = options
                 .avoid
                 .iter()
-                .map(|a| match a {
-                    everymap_core::domains::routing::AvoidType::Tolls => "tolls",
-                    everymap_core::domains::routing::AvoidType::Highways => "highways",
-                    everymap_core::domains::routing::AvoidType::Ferries => "ferries",
-                    everymap_core::domains::routing::AvoidType::Tunnels => "tunnels", // Not a valid Google avoid value, but pass through
-                    everymap_core::domains::routing::AvoidType::DirtRoads => "indoor", // Closest Google equivalent; indoor means avoid indoor walking
+                .filter_map(|a| match a {
+                    everymap_core::domains::routing::AvoidType::Tolls => Some("tolls"),
+                    everymap_core::domains::routing::AvoidType::Highways => Some("highways"),
+                    everymap_core::domains::routing::AvoidType::Ferries => Some("ferries"),
+                    // Tunnels and DirtRoads are not supported by Google Directions API
+                    _ => None,
                 })
                 .collect::<Vec<&str>>()
                 .join("|");
-            params.push(("avoid", avoid_str));
+            if !avoid_str.is_empty() {
+                params.push(("avoid", avoid_str));
+            }
         }
         if let Some(alternatives) = options.alternatives {
             if alternatives > 1 {
@@ -186,19 +188,14 @@ impl Router for GoogleRouter {
             }
         }
         if let Some(departure_time) = &options.departure_time {
-            // Google Directions API accepts "now" or Unix timestamp in seconds.
-            // If the value looks like an ISO 8601 date, try to convert it.
-            let departure_value = if departure_time == "now" {
-                "now".to_string()
-            } else if let Ok(ts) = departure_time.parse::<i64>() {
-                // Already a Unix timestamp
-                ts.to_string()
-            } else if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(departure_time) {
-                // ISO 8601 → convert to Unix timestamp
-                dt.timestamp().to_string()
-            } else {
-                // Pass through as-is (could be "now" or other format)
-                departure_time.clone()
+            let departure_value = match departure_time {
+                DepartureTime::Now => "now".to_string(),
+                DepartureTime::Timestamp(ts) => ts.to_string(),
+                DepartureTime::Iso8601(s) => {
+                    chrono::DateTime::parse_from_rfc3339(s)
+                        .map(|dt| dt.timestamp().to_string())
+                        .unwrap_or_else(|_| s.clone())
+                }
             };
             params.push(("departure_time", departure_value));
         }

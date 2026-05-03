@@ -1,4 +1,4 @@
-use crate::domains::routing::TransportMode;
+use crate::domains::routing::{DepartureTime, TransportMode};
 use crate::error::EveryMapResult;
 use crate::types::Coordinate;
 use async_trait::async_trait;
@@ -19,8 +19,8 @@ pub struct IsolineOptions {
     pub range_type: Option<RangeType>,
     /// Transport mode for the isoline calculation
     pub transport_mode: Option<TransportMode>,
-    /// Departure time (ISO 8601 string)
-    pub departure_time: Option<String>,
+    /// Departure time
+    pub departure_time: Option<DepartureTime>,
     /// Route restrictions
     pub avoid: Vec<crate::domains::routing::AvoidType>,
     /// Provider-specific options (HERE: routing_mode, optimize_for, vehicle params)
@@ -76,7 +76,7 @@ mod tests {
         let opts = IsolineOptions {
             range_type: Some(RangeType::Time),
             transport_mode: Some(crate::domains::routing::TransportMode::Car),
-            departure_time: Some("2024-01-01T08:00:00".to_string()),
+            departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Tolls],
             provider_extra: Some(serde_json::json!({"routing_mode": "fast"})),
         };
@@ -169,7 +169,7 @@ mod tests {
         let opts = IsolineOptions {
             range_type: Some(RangeType::Consumption),
             transport_mode: Some(crate::domains::routing::TransportMode::Truck),
-            departure_time: Some("2024-01-01T08:00:00".to_string()),
+            departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
             avoid: vec![
                 crate::domains::routing::AvoidType::Tolls,
                 crate::domains::routing::AvoidType::Highways,

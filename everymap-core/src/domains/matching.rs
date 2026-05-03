@@ -1,4 +1,4 @@
-use crate::domains::routing::TransportMode;
+use crate::domains::routing::{DepartureTime, TransportMode};
 use crate::error::EveryMapResult;
 use crate::types::Coordinate;
 use async_trait::async_trait;
@@ -11,8 +11,8 @@ pub struct MatchingOptions {
     pub transport_mode: Option<TransportMode>,
     /// Heading angle in degrees (0-360)
     pub heading: Option<f64>,
-    /// Departure time (ISO 8601 string)
-    pub departure_time: Option<String>,
+    /// Departure time
+    pub departure_time: Option<DepartureTime>,
     /// Route restrictions
     pub avoid: Vec<crate::domains::routing::AvoidType>,
     /// Provider-specific options (HERE: map_match_radius, route_match, vehicle params; Google: interpolation, snapping)
@@ -73,7 +73,7 @@ mod tests {
         let opts = MatchingOptions {
             transport_mode: Some(crate::domains::routing::TransportMode::Car),
             heading: Some(180.0),
-            departure_time: Some("2024-01-01T08:00:00".to_string()),
+            departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Tolls],
             provider_extra: Some(serde_json::json!({"map_match_radius": 50})),
         };
@@ -149,7 +149,7 @@ mod tests {
         let opts = MatchingOptions {
             transport_mode: Some(crate::domains::routing::TransportMode::Bicycle),
             heading: Some(270.0),
-            departure_time: Some("2024-03-15T10:00:00".to_string()),
+            departure_time: Some(DepartureTime::Iso8601("2024-03-15T10:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Highways],
             provider_extra: Some(serde_json::json!({"map_match_radius": 30})),
         };

@@ -337,7 +337,7 @@ fn route_options_from_core(opts: &RouteOptions) -> HereRouteOptions {
     let mut here_opts = HereRouteOptions {
         transport_mode,
         alternatives: opts.alternatives,
-        departure_time: opts.departure_time.clone(),
+        departure_time: opts.departure_time.as_ref().map(|dt| dt.to_string()),
         lang: opts.language.clone(),
         ..Default::default()
     };

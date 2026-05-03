@@ -66,7 +66,7 @@ impl IsolineProvider for TomTomIsoline {
         }
 
         if let Some(departure) = &options.departure_time {
-            params.push(("departAt", departure.clone()));
+            params.push(("departAt", departure.to_string()));
         }
 
         if let Some(extra) = &options.provider_extra {

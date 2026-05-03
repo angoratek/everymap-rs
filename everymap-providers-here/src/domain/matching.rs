@@ -216,7 +216,7 @@ fn add_option_ref(params: &mut Vec<(String, String)>, key: &str, value: Option<&
 fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
     let mut here_opts = HereMatchingOptions {
         heading: opts.heading,
-        departure: opts.departure_time.clone(),
+        departure: opts.departure_time.as_ref().map(|dt| dt.to_string()),
         ..Default::default()
     };
 
@@ -247,6 +247,11 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
                 Some(MatchMode::Pedestrian)
             }
             everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
+            everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Bus),
+            everymap_core::domains::routing::TransportMode::Scooter => {
+                Some(MatchMode::Motorcycle)
+            }
+            everymap_core::domains::routing::TransportMode::Taxi => Some(MatchMode::Taxi),
             _ => Some(MatchMode::Car),
         };
     }
@@ -515,12 +520,12 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
                         everymap_core::domains::routing::TransportMode::Bicycle => {
                             Some(MatchMode::Bicycle)
                         }
-                        everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Car),
+                        everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Bus),
                         everymap_core::domains::routing::TransportMode::Scooter => {
-                            Some(MatchMode::Car)
+                            Some(MatchMode::Motorcycle)
                         }
                         everymap_core::domains::routing::TransportMode::Taxi => {
-                            Some(MatchMode::Car)
+                            Some(MatchMode::Taxi)
                         }
                         everymap_core::domains::routing::TransportMode::Unknown => {
                             Some(MatchMode::Car)

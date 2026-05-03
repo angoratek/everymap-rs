@@ -202,7 +202,7 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
     let mut here_opts = HereIsolineOptions {
         range_type,
         transport_mode,
-        departure_time: opts.departure_time.clone(),
+        departure_time: opts.departure_time.as_ref().map(|dt| dt.to_string()),
         ..Default::default()
     };
 

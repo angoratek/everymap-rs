@@ -1,7 +1,56 @@
 use crate::error::EveryMapResult;
 use crate::types::{BoundingBox, Coordinate, Polyline};
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
+
+impl fmt::Display for DepartureTime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DepartureTime::Now => f.write_str("now"),
+            DepartureTime::Timestamp(ts) => write!(f, "{}", ts),
+            DepartureTime::Iso8601(s) => f.write_str(s),
+        }
+    }
+}
+
+/// Typed departure time for routing, matching, and isoline requests.
+///
+/// Replaces fragile `Option<String>` guessing with an explicit enum.
+/// Serializes as a plain string for backward compatibility.
+#[derive(Debug, Clone, PartialEq)]
+pub enum DepartureTime {
+    /// Depart now.
+    Now,
+    /// Unix timestamp in seconds.
+    Timestamp(i64),
+    /// ISO 8601 formatted date/time string.
+    Iso8601(String),
+}
+
+impl Serialize for DepartureTime {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let s = match self {
+            DepartureTime::Now => "now".to_string(),
+            DepartureTime::Timestamp(ts) => ts.to_string(),
+            DepartureTime::Iso8601(s) => s.clone(),
+        };
+        serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> Deserialize<'de> for DepartureTime {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let s = String::deserialize(deserializer)?;
+        if s == "now" {
+            Ok(DepartureTime::Now)
+        } else if let Ok(ts) = s.parse::<i64>() {
+            Ok(DepartureTime::Timestamp(ts))
+        } else {
+            Ok(DepartureTime::Iso8601(s))
+        }
+    }
+}
 
 /// Avoid types for routing restrictions.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -22,10 +71,10 @@ pub struct RouteOptions {
     pub alternatives: Option<u32>,
     /// Route restrictions (tolls, ferries, highways, etc.)
     pub avoid: Vec<AvoidType>,
-    /// Departure time (ISO 8601 string)
-    pub departure_time: Option<String>,
-    /// Arrival time (ISO 8601 string)
-    pub arrival_time: Option<String>,
+    /// Departure time
+    pub departure_time: Option<DepartureTime>,
+    /// Arrival time
+    pub arrival_time: Option<DepartureTime>,
     /// Preferred response language (BCP 47 language tag)
     pub language: Option<String>,
     /// Provider-specific options (HERE: routing_mode, spans, truck params; Google: waypoints, traffic_model)
@@ -281,7 +330,7 @@ mod tests {
             transport_mode: Some(TransportMode::Truck),
             alternatives: Some(2),
             avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
-            departure_time: Some("2024-06-01T08:00:00".to_string()),
+            departure_time: Some(DepartureTime::Iso8601("2024-06-01T08:00:00".to_string())),
             arrival_time: None,
             language: Some("en".to_string()),
             provider_extra: Some(
@@ -374,5 +423,33 @@ mod tests {
             ..Default::default()
         };
         assert_eq!(opts.avoid.len(), 5);
+    }
+
+    // --- DepartureTime serde ---
+
+    #[test]
+    fn test_departure_time_now_serde() {
+        let json = serde_json::to_string(&DepartureTime::Now).unwrap();
+        assert_eq!(json, "\"now\"");
+        let back: DepartureTime = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, DepartureTime::Now);
+    }
+
+    #[test]
+    fn test_departure_time_timestamp_serde() {
+        let dt = DepartureTime::Timestamp(1717200000);
+        let json = serde_json::to_string(&dt).unwrap();
+        assert_eq!(json, "\"1717200000\"");
+        let back: DepartureTime = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, DepartureTime::Timestamp(1717200000));
+    }
+
+    #[test]
+    fn test_departure_time_iso8601_serde() {
+        let dt = DepartureTime::Iso8601("2024-06-01T08:00:00Z".to_string());
+        let json = serde_json::to_string(&dt).unwrap();
+        assert_eq!(json, "\"2024-06-01T08:00:00Z\"");
+        let back: DepartureTime = serde_json::from_str(&json).unwrap();
+        assert_eq!(back, DepartureTime::Iso8601("2024-06-01T08:00:00Z".to_string()));
     }
 }
