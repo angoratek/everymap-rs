@@ -161,7 +161,7 @@ enum Commands {
         #[arg(long, default_value = "json")]
         format: String,
         /// Specific feature IDs to retrieve
-        #[arg(long)]
+        #[arg(long, num_args = 0..)]
         ids: Option<Vec<String>>,
         /// Include specific attribute fields (comma-separated)
         #[arg(long)]
