@@ -33,21 +33,21 @@ mod tests {
 
     #[test]
     fn test_attribute_options_default() {
-        let opts = AttributeOptions::default();
-        assert!(opts.bbox.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = AttributeOptions::default();
+        assert!(options.bbox.is_none());
+        assert!(options.language.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_attribute_options_with_fields() {
-        let opts = AttributeOptions {
+        let options = AttributeOptions {
             bbox: Some("52.0,13.0,52.5,13.5".to_string()),
             language: Some("en".to_string()),
             provider_extra: Some(serde_json::json!({"layer": "speed_limit"})),
         };
-        assert_eq!(opts.bbox, Some("52.0,13.0,52.5,13.5".to_string()));
-        assert_eq!(opts.language, Some("en".to_string()));
+        assert_eq!(options.bbox, Some("52.0,13.0,52.5,13.5".to_string()));
+        assert_eq!(options.language, Some("en".to_string()));
     }
 
     #[test]
@@ -92,12 +92,12 @@ mod tests {
 
     #[test]
     fn test_attribute_options_serde_roundtrip() {
-        let opts = AttributeOptions {
+        let options = AttributeOptions {
             bbox: Some("52.0,13.0,52.5,13.5".to_string()),
             language: Some("en".to_string()),
             provider_extra: Some(serde_json::json!({"layer": "speed_limit", "format": "json"})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: AttributeOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.bbox, Some("52.0,13.0,52.5,13.5".to_string()));
         assert!(back.provider_extra.is_some());

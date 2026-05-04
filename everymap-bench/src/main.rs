@@ -90,7 +90,7 @@ async fn run_scenario(
 ) -> benchmark::BenchmarkResult {
     match &scenario.params {
         ScenarioParams::Geocode { query } => benchmark::bench_geocode(providers, query).await,
-        ScenarioParams::ReverseGeocode { coord: coordinate } => {
+        ScenarioParams::ReverseGeocode { coordinate } => {
             benchmark::bench_reverse_geocode(providers, coordinate).await
         }
         ScenarioParams::Route { start, end } => benchmark::bench_route(providers, start, end).await,

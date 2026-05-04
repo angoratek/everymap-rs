@@ -38,6 +38,8 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - Provider crates define `const PROVIDER_NAME: &str` in their client module for consistent naming in errors and logs.
 - Workspace-level lints configured in root `Cargo.toml` (`[workspace.lints]`): `unsafe_code = "deny"`, clippy `all = warn`.
 - MSRV declared as 1.75 in `[workspace.package]`.
+- Use `DepartureTime` enum for departure/arrival time fields — never `Option<String>` guessing.
+- All variable names must be full words (no abbreviations). See "What NOT to Do" for the full list.
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
@@ -110,14 +112,23 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 ## Known Issues (from comprehensive provider review)
 - **Google routing**: Uses legacy Directions API (not the recommended Routes API v2).
 - **TomTom traffic severity**: "moderate" maps to `Minor` (core `IncidentSeverity` has no `Moderate` variant).
+- **MapBox/TomTom/Radar routing**: Core `avoid` field is silently ignored by these providers (they don't expose equivalent parameters).
+- **Multiple providers**: Several core option fields (`language`, `arrival_time`, `alternatives`) are silently ignored by providers that don't support them (logged as warnings where practical).
 
 ## Fixed Issues (previously known)
+- **Google routing avoid types**: Fixed — removed invalid `indoor` mapping for DirtRoads, removed unsupported Tunnels from avoid parameter list. Uses typed `DepartureTime` match instead of string guessing.
+- **HERE traffic incidents**: Fixed — `include_incidents` now actually fetches incidents (was always returning empty).
+- **CLI Attributes --layer**: Fixed — key changed from singular `"layer"` to plural `"layers"` matching HERE provider.
+- **HERE matching transport modes**: Fixed — Bus→Bus, Scooter→Motorcycle, Taxi→Taxi (were all mapped to Car).
+- **DepartureTime enum**: Fixed — replaced fragile `Option<String>` guessing with typed `DepartureTime` enum (Now, Timestamp, Iso8601) across RouteOptions, MatchingOptions, IsolineOptions.
+- **MapBox reverse geocode radius**: Fixed — now emits warning instead of silently ignoring radius.
+- **Code abbreviations**: Fixed — all 823+ occurrences eliminated (`opts`→`options`, `res`→`response`, `coord`→`coordinate`, etc.).
 - **HERE enum serialization**: Fixed — all 21 enums now use `camelCase` (or `lowercase`) `rename_all` to match HERE API expectations.
 - **HERE search `X-Request-ID`**: Fixed — now sent as HTTP header instead of query parameter.
 - **HERE matching `mode` parameter**: Fixed — now uses compound format `fastest;car;traffic:disabled`.
 - **HERE routing/isoline vehicle options**: Fixed — scooter, truck, ev, fuel, driver, taxi, tolls, max_speed_on_segment now serialized to query params.
 - **MapBox tour**: Fixed — now uses `transport_mode` from `TourOptions` instead of hardcoded `driving`.
-- **MapBox routing language**: Fixed — no longer sends unsupported `language` parameter to Directions API v5.
+- **MapBox routing language**: Fixed — no longer sends unsupported `language` parameter to Directions API v5 (now emits warning).
 - **TomTom traffic bbox**: Fixed — longitude offset now uses `cos(lat)` correction for meridian convergence.
 
 ## What NOT to Do

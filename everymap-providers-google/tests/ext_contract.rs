@@ -96,15 +96,15 @@ async fn test_attribute_ext_get_speed_limits_by_ids() {
 
     // Call through extension trait
     let place_ids = vec!["ChIJext_1".to_string(), "ChIJext_2".to_string()];
-    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, None)
+    let response = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, None)
         .await
         .unwrap();
 
-    assert_eq!(res.speed_limits.len(), 2);
-    assert_eq!(res.speed_limits[0].place_id.as_deref(), Some("ChIJext_1"));
-    assert_eq!(res.speed_limits[0].speed_limit, Some(50.0));
-    assert_eq!(res.speed_limits[1].place_id.as_deref(), Some("ChIJext_2"));
-    assert_eq!(res.speed_limits[1].speed_limit, Some(80.0));
+    assert_eq!(response.speed_limits.len(), 2);
+    assert_eq!(response.speed_limits[0].place_id.as_deref(), Some("ChIJext_1"));
+    assert_eq!(response.speed_limits[0].speed_limit, Some(50.0));
+    assert_eq!(response.speed_limits[1].place_id.as_deref(), Some("ChIJext_2"));
+    assert_eq!(response.speed_limits[1].speed_limit, Some(80.0));
 }
 
 #[tokio::test]
@@ -138,13 +138,13 @@ async fn test_attribute_ext_get_speed_limits_by_ids_with_units() {
 
     // Call through extension trait with units
     let place_ids = vec!["ChIJmph_1".to_string()];
-    let res = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, Some("MPH"))
+    let response = GoogleAttributeExt::get_speed_limits_by_ids(&provider, &place_ids, Some("MPH"))
         .await
         .unwrap();
 
-    assert_eq!(res.speed_limits.len(), 1);
-    assert_eq!(res.speed_limits[0].units.as_deref(), Some("MPH"));
-    assert_eq!(res.speed_limits[0].speed_limit, Some(55.0));
+    assert_eq!(response.speed_limits.len(), 1);
+    assert_eq!(response.speed_limits[0].units.as_deref(), Some("MPH"));
+    assert_eq!(response.speed_limits[0].speed_limit, Some(55.0));
 }
 
 #[tokio::test]
@@ -188,7 +188,7 @@ async fn test_attribute_ext_get_speed_limits_along_path() {
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = GoogleAttributeExt::get_speed_limits_along_path(
+    let response = GoogleAttributeExt::get_speed_limits_along_path(
         &provider,
         "52.52,13.405|52.53,13.41",
         None,
@@ -196,10 +196,10 @@ async fn test_attribute_ext_get_speed_limits_along_path() {
     .await
     .unwrap();
 
-    assert_eq!(res.speed_limits.len(), 1);
-    assert_eq!(res.speed_limits[0].speed_limit, Some(100.0));
-    assert!(!res.snapped_points.is_empty());
-    let snapped = &res.snapped_points;
+    assert_eq!(response.speed_limits.len(), 1);
+    assert_eq!(response.speed_limits[0].speed_limit, Some(100.0));
+    assert!(!response.snapped_points.is_empty());
+    let snapped = &response.snapped_points;
     assert_eq!(snapped.len(), 2);
     assert_eq!(snapped[0].original_index, Some(0));
     assert_eq!(snapped[1].original_index, Some(1));

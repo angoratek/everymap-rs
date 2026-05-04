@@ -36,14 +36,14 @@ async fn test_traffic_flow_contract() {
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = TrafficOptions::default();
-    let res = traffic.get_traffic(&coord, &opts).await.unwrap();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = TrafficOptions::default();
+    let response = traffic.get_traffic(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.flows.len(), 1);
-    assert_eq!(res.flows[0].speed, Some(65.0));
-    assert_eq!(res.flows[0].free_flow_speed, Some(80.0));
-    assert_eq!(res.flows[0].road_name, Some("A100".to_string()));
+    assert_eq!(response.flows.len(), 1);
+    assert_eq!(response.flows[0].speed, Some(65.0));
+    assert_eq!(response.flows[0].free_flow_speed, Some(80.0));
+    assert_eq!(response.flows[0].road_name, Some("A100".to_string()));
 }
 
 #[tokio::test]
@@ -98,21 +98,21 @@ async fn test_traffic_incidents_contract() {
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = TrafficOptions {
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = TrafficOptions {
         include_incidents: Some(true),
         radius: Some(5000.0),
         ..Default::default()
     };
-    let res = traffic.get_traffic(&coord, &opts).await.unwrap();
+    let response = traffic.get_traffic(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.flows.len(), 1);
-    assert_eq!(res.flows[0].speed, Some(30.0));
-    assert_eq!(res.incidents.len(), 1);
-    assert_eq!(res.incidents[0].id, Some("inc123".to_string()));
-    assert_eq!(res.incidents[0].severity, Some(IncidentSeverity::Major));
+    assert_eq!(response.flows.len(), 1);
+    assert_eq!(response.flows[0].speed, Some(30.0));
+    assert_eq!(response.incidents.len(), 1);
+    assert_eq!(response.incidents[0].id, Some("inc123".to_string()));
+    assert_eq!(response.incidents[0].severity, Some(IncidentSeverity::Major));
     assert_eq!(
-        res.incidents[0].description,
+        response.incidents[0].description,
         Some("Multi-vehicle accident on A100".to_string())
     );
 }

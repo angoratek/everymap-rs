@@ -28,9 +28,9 @@ async fn test_unsupported_isoline() {
 #[tokio::test]
 async fn test_unsupported_traffic() {
     let traffic = GoogleTraffic;
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
     let result = traffic
-        .get_traffic(&coord, &TrafficOptions::default())
+        .get_traffic(&coordinate, &TrafficOptions::default())
         .await;
     assert!(result.is_err());
     match result.unwrap_err() {

@@ -65,25 +65,25 @@ mod tests {
 
     #[test]
     fn test_tour_options_default() {
-        let opts = TourOptions::default();
-        assert!(opts.provider_extra.is_none());
-        assert!(opts.transport_mode.is_none());
+        let options = TourOptions::default();
+        assert!(options.provider_extra.is_none());
+        assert!(options.transport_mode.is_none());
     }
 
     #[test]
     fn test_tour_options_with_provider_extra() {
-        let opts = TourOptions {
+        let options = TourOptions {
             transport_mode: None,
             provider_extra: Some(serde_json::json!({"fleet": {"types": []}})),
         };
-        assert!(opts.provider_extra.is_some());
+        assert!(options.provider_extra.is_some());
     }
 
     #[test]
     fn test_tour_stop_construction() {
-        let coord = Coordinate::new(52.5, 13.4).unwrap();
+        let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let stop = TourStop {
-            coordinate: coord,
+            coordinate: coordinate,
             arrival_time: Some("2024-01-01T08:30:00".to_string()),
             departure_time: Some("2024-01-01T09:00:00".to_string()),
             duration: Some(1800.0),
@@ -168,14 +168,14 @@ mod tests {
 
     #[test]
     fn test_tour_options_serde_roundtrip() {
-        let opts = TourOptions {
+        let options = TourOptions {
             transport_mode: None,
             provider_extra: Some(serde_json::json!({
                 "fleet": {"types": [{"id": "truck"}]},
                 "plan": {"jobs": []}
             })),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: TourOptions = serde_json::from_str(&json).unwrap();
         assert!(back.provider_extra.is_some());
     }

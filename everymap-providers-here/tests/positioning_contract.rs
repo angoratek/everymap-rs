@@ -37,16 +37,16 @@ async fn test_positioning_contract() {
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
-    let opts = PositioningOptions::default();
+    let options = PositioningOptions::default();
 
-    let res = positioner.get_position(&opts).await.unwrap();
+    let response = positioner.get_position(&options).await.unwrap();
 
-    assert_eq!(res.coordinate.lat, 52.5201);
-    assert_eq!(res.coordinate.lng, 13.4051);
-    assert_eq!(res.accuracy, Some(50.0));
-    assert!(res.altitude.is_some());
-    assert_eq!(res.altitude, Some(34.0));
-    assert_eq!(res.altitude_accuracy, Some(10.0));
+    assert_eq!(response.coordinate.lat, 52.5201);
+    assert_eq!(response.coordinate.lng, 13.4051);
+    assert_eq!(response.accuracy, Some(50.0));
+    assert!(response.altitude.is_some());
+    assert_eq!(response.altitude, Some(34.0));
+    assert_eq!(response.altitude_accuracy, Some(10.0));
 }
 
 #[tokio::test]
@@ -87,16 +87,16 @@ async fn test_positioning_with_wlan() {
         bluetooth: None,
         fallback: None,
     };
-    let opts = PositioningOptions {
+    let options = PositioningOptions {
         provider_extra: Some(serde_json::to_value(wlan_opts).unwrap()),
     };
 
-    let res = positioner.get_position(&opts).await.unwrap();
+    let response = positioner.get_position(&options).await.unwrap();
 
-    assert_eq!(res.coordinate.lat, 52.52);
-    assert_eq!(res.coordinate.lng, 13.41);
-    assert_eq!(res.accuracy, Some(25.0));
-    assert!(res.altitude.is_none());
+    assert_eq!(response.coordinate.lat, 52.52);
+    assert_eq!(response.coordinate.lng, 13.41);
+    assert_eq!(response.accuracy, Some(25.0));
+    assert!(response.altitude.is_none());
 }
 
 #[tokio::test]
@@ -128,16 +128,16 @@ async fn test_positioning_locate() {
     let client = Arc::new(HereClient::new(auth));
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
-    let res = positioner
+    let response = positioner
         .locate(HerePositioningOptions::default())
         .await
         .unwrap();
 
-    assert_eq!(res.location.lat, 52.5201);
-    assert_eq!(res.location.lng, 13.4051);
-    assert_eq!(res.location.accuracy, Some(50.0));
-    assert!(res.altitude.is_some());
-    let alt = res.altitude.as_ref().unwrap();
+    assert_eq!(response.location.lat, 52.5201);
+    assert_eq!(response.location.lng, 13.4051);
+    assert_eq!(response.location.accuracy, Some(50.0));
+    assert!(response.altitude.is_some());
+    let alt = response.altitude.as_ref().unwrap();
     assert_eq!(alt.value, Some(34.0));
     assert_eq!(alt.accuracy, Some(10.0));
 }

@@ -153,19 +153,19 @@ mod tests {
 
     #[test]
     fn test_route_options_default() {
-        let opts = RouteOptions::default();
-        assert!(opts.transport_mode.is_none());
-        assert!(opts.alternatives.is_none());
-        assert!(opts.avoid.is_empty());
-        assert!(opts.departure_time.is_none());
-        assert!(opts.arrival_time.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = RouteOptions::default();
+        assert!(options.transport_mode.is_none());
+        assert!(options.alternatives.is_none());
+        assert!(options.avoid.is_empty());
+        assert!(options.departure_time.is_none());
+        assert!(options.arrival_time.is_none());
+        assert!(options.language.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_route_options_with_fields() {
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Car),
             alternatives: Some(3),
             avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
@@ -173,9 +173,9 @@ mod tests {
             provider_extra: Some(serde_json::json!({"routing_mode": "fast"})),
             ..Default::default()
         };
-        assert_eq!(opts.transport_mode, Some(TransportMode::Car));
-        assert_eq!(opts.alternatives, Some(3));
-        assert_eq!(opts.avoid.len(), 2);
+        assert_eq!(options.transport_mode, Some(TransportMode::Car));
+        assert_eq!(options.alternatives, Some(3));
+        assert_eq!(options.avoid.len(), 2);
     }
 
     #[test]
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn test_route_options_serde_roundtrip() {
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Truck),
             alternatives: Some(2),
             avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
@@ -337,7 +337,7 @@ mod tests {
                 serde_json::json!({"routing_mode": "fast", "truck": {"weight": 18}}),
             ),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: RouteOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.transport_mode, Some(TransportMode::Truck));
         assert_eq!(back.alternatives, Some(2));
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     fn test_route_options_all_avoid_types() {
-        let opts = RouteOptions {
+        let options = RouteOptions {
             avoid: vec![
                 AvoidType::Tolls,
                 AvoidType::Ferries,
@@ -422,7 +422,7 @@ mod tests {
             ],
             ..Default::default()
         };
-        assert_eq!(opts.avoid.len(), 5);
+        assert_eq!(options.avoid.len(), 5);
     }
 
     // --- DepartureTime serde ---

@@ -70,9 +70,9 @@ pub struct GooglePlusCode {
 }
 
 impl From<GoogleGeocodeResponse> for SearchResponse {
-    fn from(res: GoogleGeocodeResponse) -> Self {
+    fn from(response: GoogleGeocodeResponse) -> Self {
         SearchResponse {
-            items: res.results.into_iter().map(SearchResult::from).collect(),
+            items: response.results.into_iter().map(SearchResult::from).collect(),
         }
     }
 }

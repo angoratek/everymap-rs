@@ -295,73 +295,73 @@ mod tests {
     #[test]
     fn test_display_http_error() {
         let err = EveryMapError::http(404, "Not Found");
-        let msg = format!("{}", err);
-        assert!(msg.contains("404"));
-        assert!(msg.contains("Not Found"));
+        let message = format!("{}", err);
+        assert!(message.contains("404"));
+        assert!(message.contains("Not Found"));
     }
 
     #[test]
     fn test_display_auth_error() {
         let err = EveryMapError::auth("here", "Invalid key");
-        let msg = format!("{}", err);
-        assert!(msg.contains("Authentication failed"));
-        assert!(msg.contains("Invalid key"));
+        let message = format!("{}", err);
+        assert!(message.contains("Authentication failed"));
+        assert!(message.contains("Invalid key"));
     }
 
     #[test]
     fn test_display_provider_error() {
         let err = EveryMapError::provider("here", "E400", "Bad request");
-        let msg = format!("{}", err);
-        assert!(msg.contains("here"));
-        assert!(msg.contains("E400"));
-        assert!(msg.contains("Bad request"));
+        let message = format!("{}", err);
+        assert!(message.contains("here"));
+        assert!(message.contains("E400"));
+        assert!(message.contains("Bad request"));
     }
 
     #[test]
     fn test_display_rate_limited() {
         let err = EveryMapError::rate_limited("google", Some(60));
-        let msg = format!("{}", err);
-        assert!(msg.contains("Rate limited"));
-        assert!(msg.contains("google"));
-        assert!(msg.contains("60"));
+        let message = format!("{}", err);
+        assert!(message.contains("Rate limited"));
+        assert!(message.contains("google"));
+        assert!(message.contains("60"));
     }
 
     #[test]
     fn test_display_rate_limited_no_retry() {
         let err = EveryMapError::rate_limited("google", None);
-        let msg = format!("{}", err);
-        assert!(msg.contains("Rate limited"));
+        let message = format!("{}", err);
+        assert!(message.contains("Rate limited"));
     }
 
     #[test]
     fn test_display_validation_error() {
         let err = EveryMapError::ValidationError("bad input".to_string());
-        let msg = format!("{}", err);
-        assert!(msg.contains("Validation error"));
-        assert!(msg.contains("bad input"));
+        let message = format!("{}", err);
+        assert!(message.contains("Validation error"));
+        assert!(message.contains("bad input"));
     }
 
     #[test]
     fn test_display_serialization_error() {
         let serde_err = serde_json::from_str::<serde_json::Value>("{bad}").unwrap_err();
         let err = EveryMapError::from(serde_err);
-        let msg = format!("{}", err);
-        assert!(msg.contains("Failed to deserialize"));
+        let message = format!("{}", err);
+        assert!(message.contains("Failed to deserialize"));
     }
 
     #[test]
     fn test_display_unsupported_domain() {
         let err = EveryMapError::unsupported_domain("google", "traffic");
-        let msg = format!("{}", err);
-        assert!(msg.contains("google"));
-        assert!(msg.contains("traffic"));
+        let message = format!("{}", err);
+        assert!(message.contains("google"));
+        assert!(message.contains("traffic"));
     }
 
     #[test]
     fn test_display_unknown() {
         let err = EveryMapError::Unknown;
-        let msg = format!("{}", err);
-        assert!(msg.contains("Unknown"));
+        let message = format!("{}", err);
+        assert!(message.contains("Unknown"));
     }
 
     // --- is_status with various codes ---

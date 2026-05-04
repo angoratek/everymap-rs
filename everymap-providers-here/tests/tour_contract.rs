@@ -84,14 +84,14 @@ async fn test_tour_contract() {
         Coordinate::new(52.53, 13.41).unwrap(),
         Coordinate::new(52.54, 13.42).unwrap(),
     ];
-    let opts = TourOptions::default();
+    let options = TourOptions::default();
 
-    let res = planner.optimize_tour(&stops, &opts).await.unwrap();
+    let response = planner.optimize_tour(&stops, &options).await.unwrap();
 
     // Core trait returns the tour stops
-    assert!(!res.stops.is_empty());
-    assert_eq!(res.total_distance, Some(5000.0));
-    assert_eq!(res.total_duration, Some(600.0));
+    assert!(!response.stops.is_empty());
+    assert_eq!(response.total_distance, Some(5000.0));
+    assert_eq!(response.total_duration, Some(600.0));
 }
 
 #[tokio::test]

@@ -7,7 +7,7 @@ pub enum ScenarioParams {
         query: String,
     },
     ReverseGeocode {
-        coord: Coordinate,
+        coordinate: Coordinate,
     },
     Route {
         start: Coordinate,
@@ -93,7 +93,7 @@ pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
             name: "Reverse Berlin center".to_string(),
             description: "Reverse geocode at Berlin center (52.52,13.38)".to_string(),
             params: ScenarioParams::ReverseGeocode {
-                coord: Coordinate::new(52.5163, 13.3777).unwrap(),
+                coordinate: Coordinate::new(52.5163, 13.3777).unwrap(),
             },
         },
         // Routing

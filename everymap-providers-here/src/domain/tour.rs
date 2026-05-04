@@ -28,8 +28,8 @@ impl From<TourSolution> for TourResponse {
                             .map(|loc| {
                                 Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN)
                             })
-                            .map(|coord| CoreTourStop {
-                                coordinate: coord,
+                            .map(|coordinate| CoreTourStop {
+                                coordinate,
                                 arrival_time: s.time.as_ref().and_then(|t| t.arrival.clone()),
                                 departure_time: None,
                                 duration: None,
@@ -166,14 +166,14 @@ impl TourPlanner for HereTourPlanner {
             problem.plan.jobs = stops
                 .iter()
                 .enumerate()
-                .map(|(i, coord)| Job {
+                .map(|(i, coordinate)| Job {
                     id: format!("stop_{}", i),
                     tasks: JobTasks {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: TourLocation {
-                                    lat: coord.lat,
-                                    lng: coord.lng,
+                                    lat: coordinate.lat,
+                                    lng: coordinate.lng,
                                 },
                                 duration: 60,
                                 ..Default::default()

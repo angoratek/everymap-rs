@@ -90,7 +90,7 @@ impl From<TomTomSearchResult> for SearchResult {
             coordinate,
             address,
             result_type,
-            distance: r.dist,
+            distance: r.total_distance,
             confidence: r.score,
             categories: Vec::new(),
             bounding_box,
@@ -160,7 +160,7 @@ impl From<TomTomReverseGeocodeResult> for SearchResult {
             coordinate,
             address,
             result_type: SearchResultType::ExactMatch,
-            distance: r.dist,
+            distance: r.total_distance,
             confidence: None,
             categories: Vec::new(),
             bounding_box,
@@ -219,8 +219,8 @@ impl Geocoder for TomTomGeocoder {
                 if let Some(v) = obj.get("typeahead").and_then(|v| v.as_bool()) {
                     params.push(("typeahead", v.to_string()));
                 }
-                if let Some(v) = obj.get("idx").and_then(|v| v.as_str()) {
-                    params.push(("idx", v.to_string()));
+                if let Some(v) = obj.get("index").and_then(|v| v.as_str()) {
+                    params.push(("index", v.to_string()));
                 }
                 if let Some(v) = obj.get("view").and_then(|v| v.as_str()) {
                     params.push(("view", v.to_string()));

@@ -35,16 +35,16 @@ async fn test_isoline_contract() {
     let isoline_provider = HereIsoline::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = IsolineOptions {
+    let options = IsolineOptions {
         range_type: Some(CoreRangeType::Time),
         ..Default::default()
     };
 
-    let res = isoline_provider
-        .get_isoline(&center, 1000.0, &opts)
+    let response = isoline_provider
+        .get_isoline(&center, 1000.0, &options)
         .await
         .unwrap();
-    assert!(!res.isolines[0].polygon.is_empty());
+    assert!(!response.isolines[0].polygon.is_empty());
 }
 
 #[tokio::test]
@@ -74,7 +74,7 @@ async fn test_isoline_with_routing_mode() {
     let isoline_provider = HereIsoline::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = IsolineOptions {
+    let options = IsolineOptions {
         range_type: Some(CoreRangeType::Distance),
         provider_extra: Some(serde_json::json!({
             "routing_mode": "short"
@@ -82,9 +82,9 @@ async fn test_isoline_with_routing_mode() {
         ..Default::default()
     };
 
-    let res = isoline_provider
-        .get_isoline(&center, 5000.0, &opts)
+    let response = isoline_provider
+        .get_isoline(&center, 5000.0, &options)
         .await
         .unwrap();
-    assert!(!res.isolines[0].polygon.is_empty());
+    assert!(!response.isolines[0].polygon.is_empty());
 }

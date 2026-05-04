@@ -47,8 +47,8 @@ pub struct TomTomSearchResult {
     #[serde(default, rename = "boundingBox")]
     pub bounding_box: Option<TomTomBoundingBox>,
     /// Distance in meters from the query point (for reverse geocode).
-    #[serde(default)]
-    pub dist: Option<f64>,
+    #[serde(default, rename = "dist")]
+    pub total_distance: Option<f64>,
     /// Relevance score (0.0 to 1.0).
     #[serde(default)]
     pub score: Option<f64>,
@@ -107,8 +107,8 @@ pub struct TomTomReverseGeocodeResult {
     #[serde(default)]
     pub id: Option<String>,
     /// Distance in meters from the query point.
-    #[serde(default)]
-    pub dist: Option<f64>,
+    #[serde(default, rename = "dist")]
+    pub total_distance: Option<f64>,
 }
 
 /// Address details from TomTom reverse geocode API.

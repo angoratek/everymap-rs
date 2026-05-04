@@ -42,13 +42,13 @@ async fn test_isoline_contract() {
     let isoline = MapBoxIsoline::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = IsolineOptions {
+    let options = IsolineOptions {
         range_type: Some(RangeType::Time),
         ..Default::default()
     };
-    let res = isoline.get_isoline(&center, 1800.0, &opts).await.unwrap();
+    let response = isoline.get_isoline(&center, 1800.0, &options).await.unwrap();
 
-    assert_eq!(res.isolines.len(), 1);
-    assert_eq!(res.isolines[0].polygon.len(), 5); // 4 corners + closing
-    assert_eq!(res.isolines[0].range, Some(1800.0)); // 30 min * 60
+    assert_eq!(response.isolines.len(), 1);
+    assert_eq!(response.isolines[0].polygon.len(), 5); // 4 corners + closing
+    assert_eq!(response.isolines[0].range, Some(1800.0)); // 30 min * 60
 }

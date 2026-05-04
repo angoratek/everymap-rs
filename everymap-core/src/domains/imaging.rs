@@ -46,20 +46,20 @@ mod tests {
 
     #[test]
     fn test_image_options_default() {
-        let opts = ImageOptions::default();
-        assert!(opts.format.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = ImageOptions::default();
+        assert!(options.format.is_none());
+        assert!(options.language.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_image_options_with_fields() {
-        let opts = ImageOptions {
+        let options = ImageOptions {
             format: Some("png".to_string()),
             language: Some("en".to_string()),
             provider_extra: Some(serde_json::json!({"style": "default"})),
         };
-        assert_eq!(opts.format, Some("png".to_string()));
+        assert_eq!(options.format, Some("png".to_string()));
     }
 
     #[test]
@@ -74,14 +74,14 @@ mod tests {
 
     #[test]
     fn test_image_options_serde_roundtrip() {
-        let opts = ImageOptions {
+        let options = ImageOptions {
             format: Some("jpg".to_string()),
             language: Some("ja".to_string()),
             provider_extra: Some(
                 serde_json::json!({"maptype": "satellite", "markers": [{"lat": 35.6762, "lng": 139.6503}]}),
             ),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: ImageOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.format, Some("jpg".to_string()));
         assert!(back.provider_extra.is_some());

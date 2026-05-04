@@ -64,11 +64,11 @@ async fn test_geocoder_ext_discover() {
         },
     };
 
-    let res = HereGeocoderExt::discover(&geocoder, req).await.unwrap();
+    let response = HereGeocoderExt::discover(&geocoder, req).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].title.as_ref().unwrap(), "Brandenburg Gate");
-    assert_eq!(res.items[0].distance.unwrap(), 450.0);
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].title.as_ref().unwrap(), "Brandenburg Gate");
+    assert_eq!(response.items[0].distance.unwrap(), 450.0);
 }
 
 // --- HereTrafficExt tests ---
@@ -114,7 +114,7 @@ async fn test_traffic_ext_get_flow() {
     let traffic = HereTraffic::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTrafficExt::get_flow(
+    let response = HereTrafficExt::get_flow(
         &traffic,
         Coordinate::new(52.52, 13.405).unwrap(),
         &HereFlowOptions::default(),
@@ -122,10 +122,10 @@ async fn test_traffic_ext_get_flow() {
     .await
     .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    assert_eq!(res.results[0].current_flow.speed.unwrap(), 55.0);
+    assert_eq!(response.results.len(), 1);
+    assert_eq!(response.results[0].current_flow.speed.unwrap(), 55.0);
     // Verify the serde rename fixes work: roadName and roadShield
-    let road_info = res.results[0].road_info.as_ref().unwrap();
+    let road_info = response.results[0].road_info.as_ref().unwrap();
     assert_eq!(road_info.road_name.as_deref(), Some("A100 Stadtring"));
     assert_eq!(road_info.road_shield.as_deref(), Some("A100"));
 }
@@ -164,7 +164,7 @@ async fn test_traffic_ext_get_incidents() {
     let traffic = HereTraffic::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTrafficExt::get_incidents(
+    let response = HereTrafficExt::get_incidents(
         &traffic,
         &HereIncidentsOptions {
             in_filter: Some("bbox:13.0,52.0,14.0,53.0".to_string()),
@@ -174,8 +174,8 @@ async fn test_traffic_ext_get_incidents() {
     .await
     .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    assert_eq!(res.results[0].incident.id.as_deref(), Some("INC_EXT_1"));
+    assert_eq!(response.results.len(), 1);
+    assert_eq!(response.results[0].incident.id.as_deref(), Some("INC_EXT_1"));
 }
 
 // --- HerePositionerExt tests ---
@@ -210,7 +210,7 @@ async fn test_positioner_ext_locate() {
     let positioner = HerePositioner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let opts = HerePositioningOptions {
+    let options = HerePositioningOptions {
         wlan: Some(vec![WlanAccessPoint {
             mac: "AA:BB:CC:DD:EE:FF".to_string(),
             signal_strength: Some(-60),
@@ -222,13 +222,13 @@ async fn test_positioner_ext_locate() {
         ..Default::default()
     };
 
-    let res = HerePositionerExt::locate(&positioner, opts).await.unwrap();
+    let response = HerePositionerExt::locate(&positioner, options).await.unwrap();
 
-    assert_eq!(res.location.lat, 52.5201);
-    assert_eq!(res.location.lng, 13.4051);
-    assert_eq!(res.location.accuracy, Some(30.0));
-    assert!(res.altitude.is_some());
-    let alt = res.altitude.as_ref().unwrap();
+    assert_eq!(response.location.lat, 52.5201);
+    assert_eq!(response.location.lng, 13.4051);
+    assert_eq!(response.location.accuracy, Some(30.0));
+    assert!(response.altitude.is_some());
+    let alt = response.altitude.as_ref().unwrap();
     assert_eq!(alt.value, Some(42.0));
 }
 
@@ -284,12 +284,12 @@ async fn test_tour_ext_solve() {
 
     // Call through extension trait
     use everymap_providers_here::TourProblem;
-    let res = HereTourPlannerExt::solve(&planner, TourProblem::default())
+    let response = HereTourPlannerExt::solve(&planner, TourProblem::default())
         .await
         .unwrap();
 
-    assert_eq!(res.statistic.cost, 75.0);
-    assert_eq!(res.tours.len(), 1);
+    assert_eq!(response.statistic.cost, 75.0);
+    assert_eq!(response.tours.len(), 1);
 }
 
 #[tokio::test]
@@ -318,13 +318,13 @@ async fn test_tour_ext_get_async_status() {
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::get_async_status(&planner, "status-abc-123")
+    let response = HereTourPlannerExt::get_async_status(&planner, "status-abc-123")
         .await
         .unwrap();
 
-    assert!(res.status.is_some());
-    assert!(res.resource.is_some());
-    let resource = res.resource.as_ref().unwrap();
+    assert!(response.status.is_some());
+    assert!(response.resource.is_some());
+    let resource = response.resource.as_ref().unwrap();
     assert_eq!(resource.resource_id.as_deref(), Some("sol-789"));
 }
 
@@ -360,12 +360,12 @@ async fn test_tour_ext_get_solution() {
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::get_solution(&planner, "prob-456")
+    let response = HereTourPlannerExt::get_solution(&planner, "prob-456")
         .await
         .unwrap();
 
-    assert_eq!(res.statistic.cost, 200.0);
-    assert_eq!(res.statistic.distance, 10000.0);
+    assert_eq!(response.statistic.cost, 200.0);
+    assert_eq!(response.statistic.distance, 10000.0);
 }
 
 #[tokio::test]
@@ -393,12 +393,12 @@ async fn test_tour_ext_cancel() {
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::cancel(&planner, "prob-789")
+    let response = HereTourPlannerExt::cancel(&planner, "prob-789")
         .await
         .unwrap();
 
-    assert_eq!(res.id.as_deref(), Some("prob-789"));
-    assert_eq!(res.status.as_deref(), Some("canceled"));
+    assert_eq!(response.id.as_deref(), Some("prob-789"));
+    assert_eq!(response.status.as_deref(), Some("canceled"));
 }
 
 #[tokio::test]
@@ -421,9 +421,9 @@ async fn test_tour_ext_health() {
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::health(&planner).await.unwrap();
+    let response = HereTourPlannerExt::health(&planner).await.unwrap();
 
-    assert_eq!(res.status.as_deref(), Some("ok"));
+    assert_eq!(response.status.as_deref(), Some("ok"));
 }
 
 #[tokio::test]
@@ -446,9 +446,9 @@ async fn test_tour_ext_version() {
     let planner = HereTourPlanner::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res = HereTourPlannerExt::version(&planner).await.unwrap();
+    let response = HereTourPlannerExt::version(&planner).await.unwrap();
 
-    assert_eq!(res.api_version.as_deref(), Some("3.6.0"));
+    assert_eq!(response.api_version.as_deref(), Some("3.6.0"));
 }
 
 // --- HereAttributeExt tests ---
@@ -490,17 +490,17 @@ async fn test_attribute_ext_get_road_attributes() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereRoadAttributesResponse =
+    let response: HereRoadAttributesResponse =
         HereAttributeExt::get_road_attributes(&provider, "52.5,13.4,52.6,13.5", None)
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
+    assert_eq!(response.features.len(), 1);
     assert_eq!(
-        res.features[0].properties.link_id.as_deref(),
+        response.features[0].properties.link_id.as_deref(),
         Some("ext_road_1")
     );
-    assert_eq!(res.features[0].properties.speed_limit, Some(80.0));
+    assert_eq!(response.features[0].properties.speed_limit, Some(80.0));
 }
 
 #[tokio::test]
@@ -539,18 +539,18 @@ async fn test_attribute_ext_get_segment_attributes() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereSegmentAttributesResponse =
+    let response: HereSegmentAttributesResponse =
         HereAttributeExt::get_segment_attributes(&provider, "52.5,13.4;52.6,13.5", None)
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
+    assert_eq!(response.features.len(), 1);
     assert_eq!(
-        res.features[0].properties.link_id.as_deref(),
+        response.features[0].properties.link_id.as_deref(),
         Some("ext_seg_1")
     );
     assert_eq!(
-        res.features[0].properties.ref_node.as_deref(),
+        response.features[0].properties.ref_node.as_deref(),
         Some("node_x")
     );
 }
@@ -588,14 +588,14 @@ async fn test_attribute_ext_get_admin_areas() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereAdminAreasResponse =
+    let response: HereAdminAreasResponse =
         HereAttributeExt::get_admin_areas(&provider, "52.4,13.3;52.6,13.5")
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
+    assert_eq!(response.features.len(), 1);
     assert_eq!(
-        res.features[0].properties.admin_place_id.as_deref(),
+        response.features[0].properties.admin_place_id.as_deref(),
         Some("ext_admin_1")
     );
 }
@@ -633,17 +633,17 @@ async fn test_attribute_ext_get_buildings() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereBuildingsResponse =
+    let response: HereBuildingsResponse =
         HereAttributeExt::get_buildings(&provider, "52.5,13.4;52.6,13.5")
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
+    assert_eq!(response.features.len(), 1);
     assert_eq!(
-        res.features[0].properties.building_id.as_deref(),
+        response.features[0].properties.building_id.as_deref(),
         Some("ext_bldg_1")
     );
-    assert_eq!(res.features[0].properties.building_height, Some(30.0));
+    assert_eq!(response.features[0].properties.building_height, Some(30.0));
 }
 
 #[tokio::test]
@@ -679,14 +679,14 @@ async fn test_attribute_ext_get_landmarks() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereLandmarksResponse =
+    let response: HereLandmarksResponse =
         HereAttributeExt::get_landmarks(&provider, "52.5,13.3;52.6,13.5")
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
+    assert_eq!(response.features.len(), 1);
     assert_eq!(
-        res.features[0].properties.landmark_id.as_deref(),
+        response.features[0].properties.landmark_id.as_deref(),
         Some("ext_lm_1")
     );
 }
@@ -725,13 +725,13 @@ async fn test_attribute_ext_get_road_attributes_by_ids() {
 
     // Call through extension trait
     let ids = vec!["ext_id_1".to_string()];
-    let res: HereRoadAttributesResponse =
+    let response: HereRoadAttributesResponse =
         HereAttributeExt::get_road_attributes_by_ids(&provider, &ids)
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].properties.speed_limit, Some(100.0));
+    assert_eq!(response.features.len(), 1);
+    assert_eq!(response.features[0].properties.speed_limit, Some(100.0));
 }
 
 #[tokio::test]
@@ -772,13 +772,13 @@ async fn test_attribute_ext_get_speed_limits() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     // Call through extension trait
-    let res: HereRoadAttributesResponse =
+    let response: HereRoadAttributesResponse =
         HereAttributeExt::get_speed_limits(&provider, "52.5,13.4;52.6,13.5")
             .await
             .unwrap();
 
-    assert_eq!(res.features.len(), 1);
-    let road = &res.features[0].properties;
+    assert_eq!(response.features.len(), 1);
+    let road = &response.features[0].properties;
     assert_eq!(road.speed_limit, Some(50.0));
     let dir_limits = road.speed_limits_by_direction.as_ref().unwrap();
     assert_eq!(dir_limits.len(), 2);

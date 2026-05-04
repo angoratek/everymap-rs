@@ -527,7 +527,7 @@ async fn run_commands(
         } => {
             let attr_provider = registry.attribute_provider();
             let mut provider_extra = serde_json::json!({
-                "layer": layer,
+                "layers": layer,
                 "format": format,
             });
             if let Some(ids) = ids {

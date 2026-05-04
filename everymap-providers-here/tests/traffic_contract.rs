@@ -44,14 +44,14 @@ async fn test_traffic_contract() {
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = TrafficOptions::default();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = TrafficOptions::default();
 
-    let res = traffic_provider.get_traffic(&coord, &opts).await.unwrap();
+    let response = traffic_provider.get_traffic(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.flows.len(), 1);
-    assert_eq!(res.flows[0].jam_factor.unwrap(), 2.5);
-    assert!(res.incidents.is_empty());
+    assert_eq!(response.flows.len(), 1);
+    assert_eq!(response.flows[0].jam_factor.unwrap(), 2.5);
+    assert!(response.incidents.is_empty());
 }
 
 #[tokio::test]
@@ -91,7 +91,7 @@ async fn test_traffic_flow_with_rich_types() {
     let client = Arc::new(HereClient::new(auth));
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
-    let res = traffic_provider
+    let response = traffic_provider
         .get_flow(
             Coordinate::new(52.52, 13.405).unwrap(),
             &HereFlowOptions::default(),
@@ -99,8 +99,8 @@ async fn test_traffic_flow_with_rich_types() {
         .await
         .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    let item = &res.results[0];
+    assert_eq!(response.results.len(), 1);
+    let item = &response.results[0];
     assert_eq!(item.current_flow.speed.unwrap(), 85.0);
     assert_eq!(item.current_flow.jam_factor.unwrap(), 1.2);
     assert_eq!(item.current_flow.free_flow.unwrap(), 130.0);
@@ -150,7 +150,7 @@ async fn test_traffic_incidents() {
     let traffic_provider = HereTraffic::with_base_url(client, server.uri());
 
     use everymap_providers_here::domain::traffic::HereIncidentsOptions;
-    let res = traffic_provider
+    let response = traffic_provider
         .get_incidents(&HereIncidentsOptions {
             in_filter: Some("bbox:13.0,52.0,14.0,53.0".to_string()),
             ..Default::default()
@@ -158,8 +158,8 @@ async fn test_traffic_incidents() {
         .await
         .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    let incident = &res.results[0].incident;
+    assert_eq!(response.results.len(), 1);
+    let incident = &response.results[0].incident;
     assert_eq!(incident.id.as_ref().unwrap(), "INC_123");
     assert_eq!(incident.incident_type.as_ref().unwrap(), "accident");
     assert_eq!(incident.criticality.as_ref().unwrap(), "major");

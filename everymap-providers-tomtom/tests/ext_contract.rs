@@ -45,14 +45,14 @@ async fn test_nearby_search_contract() {
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
     let location = Coordinate::new(52.52, 13.405).unwrap();
-    let res = geocoder
+    let response = geocoder
         .nearby_search(&location, 5000, "restaurant", None, None)
         .await
         .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    assert_eq!(res.results[0].id, Some("tomtom_poi_1".to_string()));
-    assert_eq!(res.results[0].dist, Some(150.0));
+    assert_eq!(response.results.len(), 1);
+    assert_eq!(response.results[0].id, Some("tomtom_poi_1".to_string()));
+    assert_eq!(response.results[0].total_distance, Some(150.0));
 }
 
 #[tokio::test]
@@ -90,13 +90,13 @@ async fn test_category_search_contract() {
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
     let location = Coordinate::new(52.52, 13.405).unwrap();
-    let res = geocoder
+    let response = geocoder
         .category_search("RESTAURANT", &location, Some(3000), Some(5), None)
         .await
         .unwrap();
 
-    assert_eq!(res.results.len(), 1);
-    assert_eq!(res.results[0].id, Some("tomtom_poi_2".to_string()));
+    assert_eq!(response.results.len(), 1);
+    assert_eq!(response.results[0].id, Some("tomtom_poi_2".to_string()));
 }
 
 #[tokio::test]
@@ -135,10 +135,10 @@ async fn test_traffic_ext_get_flow() {
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
     let location = Coordinate::new(52.52, 13.405).unwrap();
-    let res = traffic.get_flow(&location, None).await.unwrap();
+    let response = traffic.get_flow(&location, None).await.unwrap();
 
-    assert!(res.flow_segment_data.is_some());
-    let flow = res.flow_segment_data.unwrap();
+    assert!(response.flow_segment_data.is_some());
+    let flow = response.flow_segment_data.unwrap();
     assert_eq!(flow.current_speed, 45.0);
     assert_eq!(flow.free_flow_speed, 80.0);
     assert_eq!(flow.road_name, Some("A100".to_string()));
@@ -181,19 +181,19 @@ async fn test_traffic_ext_get_incidents() {
     let client = Arc::new(TomTomClient::new(auth));
     let traffic = TomTomTraffic::with_base_url(client, server.uri());
 
-    let res = traffic
+    let response = traffic
         .get_incidents("52.4,13.3,52.6,13.5", None)
         .await
         .unwrap();
 
-    assert_eq!(res.incidents.len(), 1);
-    assert_eq!(res.incidents[0].id, Some("inc456".to_string()));
+    assert_eq!(response.incidents.len(), 1);
+    assert_eq!(response.incidents[0].id, Some("inc456".to_string()));
     assert_eq!(
-        res.incidents[0].start_time,
+        response.incidents[0].start_time,
         Some("2026-04-12T10:00:00Z".to_string())
     );
     assert_eq!(
-        res.incidents[0].end_time,
+        response.incidents[0].end_time,
         Some("2026-04-12T11:00:00Z".to_string())
     );
 }

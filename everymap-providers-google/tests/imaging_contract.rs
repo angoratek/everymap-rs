@@ -32,15 +32,15 @@ async fn test_imaging_contract() {
     let provider = GoogleMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ImageOptions::default();
+    let options = ImageOptions::default();
 
-    let res = provider
-        .get_image(&center, 14, (800, 600), &opts)
+    let response = provider
+        .get_image(&center, 14, (800, 600), &options)
         .await
         .unwrap();
 
-    assert!(!res.data.is_empty());
-    assert_eq!(res.content_type, Some("image/png".to_string()));
+    assert!(!response.data.is_empty());
+    assert_eq!(response.content_type, Some("image/png".to_string()));
 }
 
 #[tokio::test]
@@ -66,17 +66,17 @@ async fn test_imaging_with_format_and_language() {
     let provider = GoogleMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(40.7128, -74.006).unwrap();
-    let opts = ImageOptions {
+    let options = ImageOptions {
         format: Some("jpg".to_string()),
         language: Some("en".to_string()),
         provider_extra: None,
     };
 
-    let res = provider
-        .get_image(&center, 10, (600, 400), &opts)
+    let response = provider
+        .get_image(&center, 10, (600, 400), &options)
         .await
         .unwrap();
 
-    assert!(!res.data.is_empty());
-    assert_eq!(res.content_type, Some("image/jpeg".to_string()));
+    assert!(!response.data.is_empty());
+    assert_eq!(response.content_type, Some("image/jpeg".to_string()));
 }

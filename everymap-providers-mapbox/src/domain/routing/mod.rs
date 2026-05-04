@@ -116,8 +116,18 @@ impl Router for MapBoxRouter {
         if let Some(alternatives) = options.alternatives {
             params.push(("alternatives", alternatives.to_string()));
         }
-        // Note: MapBox Directions API v5 does not support a `language` parameter.
-        // The `options.language` field is intentionally not forwarded here.
+        if !options.avoid.is_empty() {
+            eprintln!(
+                "WARNING: MapBox Directions API v5 does not support avoid restrictions; \
+                 avoid will be ignored"
+            );
+        }
+        if options.language.is_some() {
+            eprintln!(
+                "WARNING: MapBox Directions API v5 does not support a language parameter; \
+                 language will be ignored"
+            );
+        }
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("annotations").and_then(|v| v.as_str()) {

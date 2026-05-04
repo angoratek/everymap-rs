@@ -43,24 +43,24 @@ async fn test_matching_contract() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.53, 13.41).unwrap(),
     ];
-    let opts = MatchingOptions::default();
+    let options = MatchingOptions::default();
 
-    let res = matcher.match_route(&points, &opts).await.unwrap();
+    let response = matcher.match_route(&points, &options).await.unwrap();
 
-    assert_eq!(res.matched_points.len(), 2);
+    assert_eq!(response.matched_points.len(), 2);
     assert_eq!(
-        res.matched_points[0].coordinate,
+        response.matched_points[0].coordinate,
         Coordinate::new(52.5201, 13.4051).unwrap()
     );
     assert_eq!(
-        res.matched_points[0].road_name,
+        response.matched_points[0].road_name,
         Some("ChIJxxxxxxxx".to_string())
     );
     assert_eq!(
-        res.matched_points[1].coordinate,
+        response.matched_points[1].coordinate,
         Coordinate::new(52.5301, 13.4101).unwrap()
     );
-    assert_eq!(res.distance, 0.0); // Google doesn't provide distance
+    assert_eq!(response.distance, 0.0); // Google doesn't provide distance
 }
 
 #[tokio::test]
@@ -103,17 +103,17 @@ async fn test_matching_with_interpolate() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.53, 13.41).unwrap(),
     ];
-    let opts = MatchingOptions {
+    let options = MatchingOptions {
         provider_extra: Some(serde_json::json!({
             "interpolate": true
         })),
         ..Default::default()
     };
 
-    let res = matcher.match_route(&points, &opts).await.unwrap();
+    let response = matcher.match_route(&points, &options).await.unwrap();
 
     // 3 points: 2 original + 1 interpolated (no originalIndex)
-    assert_eq!(res.matched_points.len(), 3);
+    assert_eq!(response.matched_points.len(), 3);
     // Interpolated point has no original_index → road_name should still be present
-    assert!(res.matched_points[1].road_name.is_some());
+    assert!(response.matched_points[1].road_name.is_some());
 }

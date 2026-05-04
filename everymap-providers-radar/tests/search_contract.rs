@@ -83,9 +83,9 @@ async fn test_reverse_geocode_contract() {
         .mount(&server)
         .await;
 
-    let coord = everymap_core::types::Coordinate::new(52.5163, 13.3777).unwrap();
+    let coordinate = everymap_core::types::Coordinate::new(52.5163, 13.3777).unwrap();
     let result = geocoder
-        .reverse_geocode(&coord, &ReverseGeocodeOptions::default())
+        .reverse_geocode(&coordinate, &ReverseGeocodeOptions::default())
         .await
         .unwrap();
     assert_eq!(result.items.len(), 1);
@@ -111,11 +111,11 @@ async fn test_geocode_with_options() {
         .mount(&server)
         .await;
 
-    let opts = GeocodeOptions {
+    let options = GeocodeOptions {
         limit: Some(5),
         country_codes: vec!["DE".to_string()],
         ..Default::default()
     };
-    let result = geocoder.geocode("Berlin", &opts).await.unwrap();
+    let result = geocoder.geocode("Berlin", &options).await.unwrap();
     assert_eq!(result.items.len(), 2);
 }

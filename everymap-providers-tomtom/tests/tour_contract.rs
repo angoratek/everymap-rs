@@ -40,14 +40,14 @@ async fn test_tour_optimization_contract() {
         Coordinate::new(52.55, 13.45).unwrap(),
         Coordinate::new(52.52, 13.405).unwrap(),
     ];
-    let opts = TourOptions::default();
+    let options = TourOptions::default();
 
-    let res = tour.optimize_tour(&stops, &opts).await.unwrap();
+    let response = tour.optimize_tour(&stops, &options).await.unwrap();
 
-    assert_eq!(res.stops.len(), 3);
+    assert_eq!(response.stops.len(), 3);
     // First optimized stop is index 2 → (52.52, 13.405)
-    assert_eq!(res.stops[0].coordinate.lat, 52.52);
-    assert_eq!(res.stops[0].coordinate.lng, 13.405);
-    assert_eq!(res.total_distance, Some(12500.0));
-    assert_eq!(res.total_duration, Some(900.0));
+    assert_eq!(response.stops[0].coordinate.lat, 52.52);
+    assert_eq!(response.stops[0].coordinate.lng, 13.405);
+    assert_eq!(response.total_distance, Some(12500.0));
+    assert_eq!(response.total_duration, Some(900.0));
 }

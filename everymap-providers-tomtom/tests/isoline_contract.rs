@@ -42,14 +42,14 @@ async fn test_isoline_contract() {
     let isoline = TomTomIsoline::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = IsolineOptions {
+    let options = IsolineOptions {
         range_type: Some(RangeType::Distance),
         ..Default::default()
     };
 
-    let res = isoline.get_isoline(&center, 5000.0, &opts).await.unwrap();
+    let response = isoline.get_isoline(&center, 5000.0, &options).await.unwrap();
 
-    assert_eq!(res.isolines.len(), 1);
-    assert_eq!(res.isolines[0].polygon.len(), 6);
-    assert_eq!(res.isolines[0].range, Some(5000.0));
+    assert_eq!(response.isolines.len(), 1);
+    assert_eq!(response.isolines[0].polygon.len(), 6);
+    assert_eq!(response.isolines[0].range, Some(5000.0));
 }

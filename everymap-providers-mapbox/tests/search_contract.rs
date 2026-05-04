@@ -62,19 +62,19 @@ async fn test_geocode_contract() {
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
-    let opts = GeocodeOptions::default();
-    let res = geocoder.geocode("Berlin", &opts).await.unwrap();
+    let options = GeocodeOptions::default();
+    let response = geocoder.geocode("Berlin", &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].coordinate.lat, 52.517389);
-    assert_eq!(res.items[0].coordinate.lng, 13.395131);
-    assert_eq!(res.items[0].title, Some("Berlin, Germany".to_string()));
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].coordinate.lat, 52.517389);
+    assert_eq!(response.items[0].coordinate.lng, 13.395131);
+    assert_eq!(response.items[0].title, Some("Berlin, Germany".to_string()));
     assert_eq!(
-        res.items[0].result_type,
+        response.items[0].result_type,
         everymap_core::domains::search::SearchResultType::Approximate
     );
-    assert_eq!(res.items[0].address.country.as_deref(), Some("Germany"));
-    assert_eq!(res.items[0].address.country_code.as_deref(), Some("DE"));
+    assert_eq!(response.items[0].address.country.as_deref(), Some("Germany"));
+    assert_eq!(response.items[0].address.country_code.as_deref(), Some("DE"));
 }
 
 #[tokio::test]
@@ -125,17 +125,17 @@ async fn test_reverse_geocode_contract() {
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ReverseGeocodeOptions::default();
-    let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ReverseGeocodeOptions::default();
+    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
+    assert_eq!(response.items.len(), 1);
     assert_eq!(
-        res.items[0].title,
+        response.items[0].title,
         Some("Bodestraße 1, 10178 Berlin, Germany".to_string())
     );
     assert_eq!(
-        res.items[0].result_type,
+        response.items[0].result_type,
         everymap_core::domains::search::SearchResultType::ExactMatch
     );
 }

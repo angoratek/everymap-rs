@@ -61,11 +61,11 @@ async fn test_tour_optimization_contract() {
         Coordinate::new(52.50, 13.35).unwrap(),
         Coordinate::new(52.55, 13.45).unwrap(),
     ];
-    let opts = TourOptions::default();
+    let options = TourOptions::default();
 
-    let res = tour.optimize_tour(&stops, &opts).await.unwrap();
+    let response = tour.optimize_tour(&stops, &options).await.unwrap();
 
-    assert_eq!(res.stops.len(), 3);
-    assert_eq!(res.total_distance, Some(25000.0));
-    assert_eq!(res.total_duration, Some(1800.0));
+    assert_eq!(response.stops.len(), 3);
+    assert_eq!(response.total_distance, Some(25000.0));
+    assert_eq!(response.total_duration, Some(1800.0));
 }

@@ -27,11 +27,11 @@ struct GeolocationRequestBody {
 }
 
 impl From<GooglePositioningOptions> for GeolocationRequestBody {
-    fn from(opts: GooglePositioningOptions) -> Self {
+    fn from(options: GooglePositioningOptions) -> Self {
         Self {
-            consider_ip: opts.consider_ip,
-            wifi_access_points: opts.wifi_access_points,
-            cell_towers: opts.cell_towers,
+            consider_ip: options.consider_ip,
+            wifi_access_points: options.wifi_access_points,
+            cell_towers: options.cell_towers,
         }
     }
 }

@@ -106,8 +106,8 @@ fn decode_google_polyline(encoded: &str) -> Polyline {
 
         let latitude = lat as f64 / 1e5;
         let longitude = lng as f64 / 1e5;
-        if let Ok(coord) = Coordinate::new(latitude, longitude) {
-            points.push(coord);
+        if let Ok(coordinate) = Coordinate::new(latitude, longitude) {
+            points.push(coordinate);
         }
     }
 

@@ -31,14 +31,14 @@ async fn test_positioning_contract() {
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 
-    let opts = PositioningOptions::default();
+    let options = PositioningOptions::default();
 
-    let res = positioner.get_position(&opts).await.unwrap();
+    let response = positioner.get_position(&options).await.unwrap();
 
-    assert_eq!(res.coordinate.lat, 52.5200);
-    assert_eq!(res.coordinate.lng, 13.4050);
-    assert_eq!(res.accuracy, Some(50.0));
-    assert!(res.altitude.is_none());
+    assert_eq!(response.coordinate.lat, 52.5200);
+    assert_eq!(response.coordinate.lng, 13.4050);
+    assert_eq!(response.accuracy, Some(50.0));
+    assert!(response.altitude.is_none());
 }
 
 #[tokio::test]
@@ -66,7 +66,7 @@ async fn test_positioning_with_wifi() {
     let client = Arc::new(GoogleClient::new(auth));
     let positioner = GooglePositioner::with_base_url(client, server.uri());
 
-    let opts = PositioningOptions {
+    let options = PositioningOptions {
         provider_extra: Some(serde_json::json!({
             "considerIp": true,
             "wifiAccessPoints": [
@@ -79,11 +79,11 @@ async fn test_positioning_with_wifi() {
         })),
     };
 
-    let res = positioner.get_position(&opts).await.unwrap();
+    let response = positioner.get_position(&options).await.unwrap();
 
-    assert_eq!(res.coordinate.lat, 37.4220);
-    assert_eq!(res.coordinate.lng, -122.0841);
-    assert_eq!(res.accuracy, Some(25.0));
+    assert_eq!(response.coordinate.lat, 37.4220);
+    assert_eq!(response.coordinate.lng, -122.0841);
+    assert_eq!(response.accuracy, Some(25.0));
 }
 
 #[tokio::test]

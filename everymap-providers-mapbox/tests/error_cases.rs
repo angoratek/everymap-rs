@@ -7,9 +7,9 @@ use everymap_providers_mapbox::{MapBoxAttributeProvider, MapBoxPositioner, MapBo
 #[tokio::test]
 async fn test_unsupported_traffic() {
     let provider = MapBoxTraffic;
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = TrafficOptions::default();
-    let result = provider.get_traffic(&coord, &opts).await;
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = TrafficOptions::default();
+    let result = provider.get_traffic(&coordinate, &options).await;
     assert!(result.is_err());
     let err = format!("{}", result.unwrap_err());
     assert!(err.contains("mapbox") && err.contains("traffic"));
@@ -18,8 +18,8 @@ async fn test_unsupported_traffic() {
 #[tokio::test]
 async fn test_unsupported_positioning() {
     let positioner = MapBoxPositioner;
-    let opts = PositioningOptions::default();
-    let result = positioner.get_position(&opts).await;
+    let options = PositioningOptions::default();
+    let result = positioner.get_position(&options).await;
     assert!(result.is_err());
     let err = format!("{}", result.unwrap_err());
     assert!(err.contains("mapbox") && err.contains("positioning"));
@@ -28,8 +28,8 @@ async fn test_unsupported_positioning() {
 #[tokio::test]
 async fn test_unsupported_attributes() {
     let provider = MapBoxAttributeProvider;
-    let opts = AttributeOptions::default();
-    let result = provider.get_attributes(&opts).await;
+    let options = AttributeOptions::default();
+    let result = provider.get_attributes(&options).await;
     assert!(result.is_err());
     let err = format!("{}", result.unwrap_err());
     assert!(err.contains("mapbox") && err.contains("attributes"));

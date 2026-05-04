@@ -28,12 +28,12 @@ struct PositionRequestBody {
 }
 
 impl From<HerePositioningOptions> for PositionRequestBody {
-    fn from(opts: HerePositioningOptions) -> Self {
+    fn from(options: HerePositioningOptions) -> Self {
         Self {
-            wlan: opts.wlan,
-            cell: opts.cell,
-            bluetooth: opts.bluetooth,
-            fallback: opts.fallback,
+            wlan: options.wlan,
+            cell: options.cell,
+            bluetooth: options.bluetooth,
+            fallback: options.fallback,
         }
     }
 }
@@ -76,10 +76,10 @@ impl HerePositioner {
 
 /// Convert core `PositioningOptions` to HERE-specific `HerePositioningOptions`,
 /// extracting fields from `provider_extra`.
-fn positioning_options_from_core(opts: &PositioningOptions) -> HerePositioningOptions {
+fn positioning_options_from_core(options: &PositioningOptions) -> HerePositioningOptions {
     let mut here_opts = HerePositioningOptions::default();
 
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Ok(parsed) = serde_json::from_value::<HerePositioningOptions>(extra.clone()) {
             here_opts = parsed;
         }

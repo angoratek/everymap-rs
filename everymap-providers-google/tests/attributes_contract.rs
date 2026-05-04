@@ -38,16 +38,16 @@ async fn test_attributes_by_place_ids() {
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
-    let opts = AttributeOptions {
+    let options = AttributeOptions {
         provider_extra: Some(serde_json::json!({
             "place_ids": ["ChIJxxxxxxxx", "ChIJyyyyyyyy"]
         })),
         ..Default::default()
     };
 
-    let res = provider.get_attributes(&opts).await.unwrap();
+    let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = res.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
     assert_eq!(limits.len(), 2);
     assert_eq!(limits[0]["speedLimit"], 50.0);
     assert_eq!(limits[1]["speedLimit"], 30.0);
@@ -92,19 +92,19 @@ async fn test_attributes_along_path() {
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
-    let opts = AttributeOptions {
+    let options = AttributeOptions {
         provider_extra: Some(serde_json::json!({
             "path": "52.52,13.405|52.53,13.41"
         })),
         ..Default::default()
     };
 
-    let res = provider.get_attributes(&opts).await.unwrap();
+    let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = res.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
     assert_eq!(limits.len(), 1);
     assert_eq!(limits[0]["speedLimit"], 80.0);
-    let snapped = res.data.get("snappedPoints").unwrap().as_array().unwrap();
+    let snapped = response.data.get("snappedPoints").unwrap().as_array().unwrap();
     assert_eq!(snapped.len(), 2);
 }
 
@@ -119,11 +119,11 @@ async fn test_attributes_missing_params() {
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
-    let opts = AttributeOptions::default();
+    let options = AttributeOptions::default();
 
-    let res = provider.get_attributes(&opts).await;
-    assert!(res.is_err());
-    let err_msg = format!("{}", res.unwrap_err());
+    let response = provider.get_attributes(&options).await;
+    assert!(response.is_err());
+    let err_msg = format!("{}", response.unwrap_err());
     assert!(err_msg.contains("place_ids") || err_msg.contains("path"));
 }
 
@@ -154,7 +154,7 @@ async fn test_attributes_with_units() {
     let client = Arc::new(GoogleClient::new(auth));
     let provider = GoogleAttributeProvider::with_base_url(client, server.uri());
 
-    let opts = AttributeOptions {
+    let options = AttributeOptions {
         provider_extra: Some(serde_json::json!({
             "place_ids": ["road_mph"],
             "units": "MPH"
@@ -162,9 +162,9 @@ async fn test_attributes_with_units() {
         ..Default::default()
     };
 
-    let res = provider.get_attributes(&opts).await.unwrap();
+    let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = res.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
     assert_eq!(limits[0]["units"], "MPH");
     assert_eq!(limits[0]["speedLimit"], 55.0);
 }

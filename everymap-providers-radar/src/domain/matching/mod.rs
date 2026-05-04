@@ -29,10 +29,10 @@ impl RadarRouteMatcher {
 }
 
 impl From<RadarRouteMatchResponse> for TraceResponse {
-    fn from(res: RadarRouteMatchResponse) -> Self {
-        let raw = serde_json::to_value(&res).unwrap_or_default();
+    fn from(response: RadarRouteMatchResponse) -> Self {
+        let raw = serde_json::to_value(&response).unwrap_or_default();
 
-        let matched_points: Vec<MatchedPoint> = res
+        let matched_points: Vec<MatchedPoint> = response
             .matched_path
             .into_iter()
             .map(|p| MatchedPoint {
@@ -42,7 +42,7 @@ impl From<RadarRouteMatchResponse> for TraceResponse {
             })
             .collect();
 
-        let distance = res.distance.as_ref().map(|d| d.value).unwrap_or(0.0);
+        let distance = response.distance.as_ref().map(|d| d.value).unwrap_or(0.0);
 
         Self {
             matched_points,
@@ -78,7 +78,7 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
         let mode = options
             .transport_mode
             .as_ref()
-            .map(|tm| match tm {
+            .map(|transport_mode| match transport_mode {
                 everymap_core::domains::routing::TransportMode::Car => "car",
                 everymap_core::domains::routing::TransportMode::Pedestrian => "foot",
                 everymap_core::domains::routing::TransportMode::Bicycle => "bike",

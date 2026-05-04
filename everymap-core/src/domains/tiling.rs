@@ -43,18 +43,18 @@ mod tests {
 
     #[test]
     fn test_tile_options_default() {
-        let opts = TileOptions::default();
-        assert!(opts.format.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = TileOptions::default();
+        assert!(options.format.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_tile_options_with_fields() {
-        let opts = TileOptions {
+        let options = TileOptions {
             format: Some("protobuf".to_string()),
             provider_extra: Some(serde_json::json!({"layer": "base"})),
         };
-        assert_eq!(opts.format, Some("protobuf".to_string()));
+        assert_eq!(options.format, Some("protobuf".to_string()));
     }
 
     #[test]
@@ -71,11 +71,11 @@ mod tests {
 
     #[test]
     fn test_tile_options_serde_roundtrip() {
-        let opts = TileOptions {
+        let options = TileOptions {
             format: Some("json".to_string()),
             provider_extra: Some(serde_json::json!({"layer": "base", "political_view": "ARG"})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: TileOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.format, Some("json".to_string()));
         assert!(back.provider_extra.is_some());

@@ -124,15 +124,15 @@ impl HereGeocoder {
 
 /// Convert core `GeocodeOptions` to HERE-specific `HereGeocodeOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
+fn geocode_options_from_core(options: &GeocodeOptions) -> HereGeocodeOptions {
     let mut here_opts = HereGeocodeOptions {
-        limit: opts.limit,
-        lang: opts.language.clone(),
+        limit: options.limit,
+        lang: options.language.clone(),
         ..Default::default()
     };
 
     // Convert bounding_box to HERE's `at` + `in_filter` convention if present
-    if let Some(bb) = &opts.bounding_box {
+    if let Some(bb) = &options.bounding_box {
         // Use center of bounding box as `at`
         if let Ok(center) = Coordinate::new(
             (bb.north_east.lat + bb.south_west.lat) / 2.0,
@@ -148,8 +148,8 @@ fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
     }
 
     // Convert country_codes to HERE's `in_filter` if not already set
-    if !opts.country_codes.is_empty() {
-        let countries = opts.country_codes.join(",");
+    if !options.country_codes.is_empty() {
+        let countries = options.country_codes.join(",");
         if let Some(existing) = &mut here_opts.in_filter {
             // Append country filter to existing in_filter
             *existing = format!("{}+countryCode:{}", existing, countries);
@@ -159,7 +159,7 @@ fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
     }
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             extract_here_geocode_extra(obj, &mut here_opts);
         }
@@ -170,15 +170,15 @@ fn geocode_options_from_core(opts: &GeocodeOptions) -> HereGeocodeOptions {
 
 /// Convert core `ReverseGeocodeOptions` to HERE-specific `HereGeocodeOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn reverse_geocode_options_from_core(opts: &ReverseGeocodeOptions) -> HereGeocodeOptions {
+fn reverse_geocode_options_from_core(options: &ReverseGeocodeOptions) -> HereGeocodeOptions {
     let mut here_opts = HereGeocodeOptions {
-        limit: opts.limit,
-        lang: opts.language.clone(),
+        limit: options.limit,
+        lang: options.language.clone(),
         ..Default::default()
     };
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             extract_here_geocode_extra(obj, &mut here_opts);
         }
@@ -193,8 +193,8 @@ fn extract_here_geocode_extra(
     here_opts: &mut HereGeocodeOptions,
 ) {
     if let Some(v) = obj.get("at") {
-        if let Ok(coord) = serde_json::from_value::<Coordinate>(v.clone()) {
-            here_opts.at = Some(coord);
+        if let Ok(coordinate) = serde_json::from_value::<Coordinate>(v.clone()) {
+            here_opts.at = Some(coordinate);
         }
     }
     if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
@@ -294,37 +294,37 @@ fn extract_here_geocode_extra(
 }
 
 /// Helper to apply geocode options to query params.
-fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, String)>) {
-    if let Some(at) = &opts.at {
+fn apply_geocode_options(options: &HereGeocodeOptions, params: &mut Vec<(&str, String)>) {
+    if let Some(at) = &options.at {
         params.push(("at", format!("{},{}", at.lat, at.lng)));
     }
-    if let Some(in_filter) = &opts.in_filter {
+    if let Some(in_filter) = &options.in_filter {
         params.push(("in", in_filter.clone()));
     }
-    if let Some(qq) = &opts.qq {
+    if let Some(qq) = &options.qq {
         params.push(("qq", qq.clone()));
     }
-    if let Some(lang) = &opts.lang {
+    if let Some(lang) = &options.lang {
         params.push(("lang", lang.clone()));
     }
-    if let Some(limit) = opts.limit {
+    if let Some(limit) = options.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(political_view) = &opts.political_view {
+    if let Some(political_view) = &options.political_view {
         params.push(("politicalView", political_view.clone()));
     }
-    if let Some(address_names_mode) = &opts.address_names_mode {
+    if let Some(address_names_mode) = &options.address_names_mode {
         let value = crate::util::enum_as_str(address_names_mode);
         params.push(("addressNamesMode", value));
     }
-    if let Some(address_names_variant) = &opts.address_names_variant {
+    if let Some(address_names_variant) = &options.address_names_variant {
         params.push(("addressNamesVariant", address_names_variant.clone()));
     }
-    if let Some(postal_code_mode) = &opts.postal_code_mode {
+    if let Some(postal_code_mode) = &options.postal_code_mode {
         let value = crate::util::enum_as_str(postal_code_mode);
         params.push(("postalCodeMode", value));
     }
-    if let Some(types) = &opts.types {
+    if let Some(types) = &options.types {
         let value = types
             .iter()
             .map(crate::util::enum_as_str)
@@ -332,7 +332,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("types", value));
     }
-    if let Some(with) = &opts.with {
+    if let Some(with) = &options.with {
         let value = with
             .iter()
             .map(crate::util::enum_as_str)
@@ -340,7 +340,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("with", value));
     }
-    if let Some(show) = &opts.show {
+    if let Some(show) = &options.show {
         let value = show
             .iter()
             .map(crate::util::enum_as_str)
@@ -348,7 +348,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("show", value));
     }
-    if let Some(show_map_references) = &opts.show_map_references {
+    if let Some(show_map_references) = &options.show_map_references {
         let value = show_map_references
             .iter()
             .map(crate::util::enum_as_str)
@@ -356,7 +356,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("showMapReferences", value));
     }
-    if let Some(show_nav_attributes) = &opts.show_nav_attributes {
+    if let Some(show_nav_attributes) = &options.show_nav_attributes {
         let value = show_nav_attributes
             .iter()
             .map(crate::util::enum_as_str)
@@ -364,7 +364,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("showNavAttributes", value));
     }
-    if let Some(show_related) = &opts.show_related {
+    if let Some(show_related) = &options.show_related {
         let value = show_related
             .iter()
             .map(crate::util::enum_as_str)
@@ -372,7 +372,7 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
             .join(",");
         params.push(("showRelated", value));
     }
-    if let Some(show_translations) = &opts.show_translations {
+    if let Some(show_translations) = &options.show_translations {
         let value = show_translations
             .iter()
             .map(crate::util::enum_as_str)
@@ -383,23 +383,23 @@ fn apply_geocode_options(opts: &HereGeocodeOptions, params: &mut Vec<(&str, Stri
 }
 
 /// Helper to apply discover options to query params.
-fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, String)>) {
-    if let Some(at) = &opts.at {
+fn apply_discover_options(options: &HereDiscoverOptions, params: &mut Vec<(&str, String)>) {
+    if let Some(at) = &options.at {
         params.push(("at", format!("{},{}", at.lat, at.lng)));
     }
-    if let Some(in_filter) = &opts.in_filter {
+    if let Some(in_filter) = &options.in_filter {
         params.push(("in", in_filter.clone()));
     }
-    if let Some(lang) = &opts.lang {
+    if let Some(lang) = &options.lang {
         params.push(("lang", lang.clone()));
     }
-    if let Some(limit) = opts.limit {
+    if let Some(limit) = options.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(political_view) = &opts.political_view {
+    if let Some(political_view) = &options.political_view {
         params.push(("politicalView", political_view.clone()));
     }
-    if let Some(types) = &opts.types {
+    if let Some(types) = &options.types {
         let value = types
             .iter()
             .map(crate::util::enum_as_str)
@@ -407,7 +407,7 @@ fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, St
             .join(",");
         params.push(("types", value));
     }
-    if let Some(with) = &opts.with {
+    if let Some(with) = &options.with {
         let value = with
             .iter()
             .map(crate::util::enum_as_str)
@@ -415,7 +415,7 @@ fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, St
             .join(",");
         params.push(("with", value));
     }
-    if let Some(show) = &opts.show {
+    if let Some(show) = &options.show {
         let value = show
             .iter()
             .map(crate::util::enum_as_str)
@@ -423,37 +423,37 @@ fn apply_discover_options(opts: &HereDiscoverOptions, params: &mut Vec<(&str, St
             .join(",");
         params.push(("show", value));
     }
-    if let Some(mobility) = &opts.mobility_mode {
+    if let Some(mobility) = &options.mobility_mode {
         let value = crate::util::enum_as_str(mobility);
         params.push(("mobilityMode", value));
     }
-    if let Some(ranking) = &opts.ranking {
+    if let Some(ranking) = &options.ranking {
         let value = crate::util::enum_as_str(ranking);
         params.push(("ranking", value));
     }
-    if let Some(offset) = opts.offset {
+    if let Some(offset) = options.offset {
         params.push(("offset", offset.to_string()));
     }
 }
 
 /// Helper to apply autosuggest options to query params.
-fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&str, String)>) {
-    if let Some(at) = &opts.at {
+fn apply_autosuggest_options(options: &HereAutosuggestOptions, params: &mut Vec<(&str, String)>) {
+    if let Some(at) = &options.at {
         params.push(("at", format!("{},{}", at.lat, at.lng)));
     }
-    if let Some(in_filter) = &opts.in_filter {
+    if let Some(in_filter) = &options.in_filter {
         params.push(("in", in_filter.clone()));
     }
-    if let Some(lang) = &opts.lang {
+    if let Some(lang) = &options.lang {
         params.push(("lang", lang.clone()));
     }
-    if let Some(limit) = opts.limit {
+    if let Some(limit) = options.limit {
         params.push(("limit", limit.to_string()));
     }
-    if let Some(political_view) = &opts.political_view {
+    if let Some(political_view) = &options.political_view {
         params.push(("politicalView", political_view.clone()));
     }
-    if let Some(types) = &opts.types {
+    if let Some(types) = &options.types {
         let value = types
             .iter()
             .map(crate::util::enum_as_str)
@@ -461,7 +461,7 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
             .join(",");
         params.push(("types", value));
     }
-    if let Some(with) = &opts.with {
+    if let Some(with) = &options.with {
         let value = with
             .iter()
             .map(crate::util::enum_as_str)
@@ -469,7 +469,7 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
             .join(",");
         params.push(("with", value));
     }
-    if let Some(show) = &opts.show {
+    if let Some(show) = &options.show {
         let value = show
             .iter()
             .map(crate::util::enum_as_str)
@@ -477,7 +477,7 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
             .join(",");
         params.push(("show", value));
     }
-    if let Some(show_map_references) = &opts.show_map_references {
+    if let Some(show_map_references) = &options.show_map_references {
         let value = show_map_references
             .iter()
             .map(crate::util::enum_as_str)
@@ -485,18 +485,18 @@ fn apply_autosuggest_options(opts: &HereAutosuggestOptions, params: &mut Vec<(&s
             .join(",");
         params.push(("showMapReferences", value));
     }
-    if let Some(mobility) = &opts.mobility_mode {
+    if let Some(mobility) = &options.mobility_mode {
         let value = crate::util::enum_as_str(mobility);
         params.push(("mobilityMode", value));
     }
-    if let Some(ranking) = &opts.ranking {
+    if let Some(ranking) = &options.ranking {
         let value = crate::util::enum_as_str(ranking);
         params.push(("ranking", value));
     }
-    if let Some(terms_limit) = opts.terms_limit {
+    if let Some(terms_limit) = options.terms_limit {
         params.push(("termsLimit", terms_limit.to_string()));
     }
-    if let Some(offset) = opts.offset {
+    if let Some(offset) = options.offset {
         params.push(("offset", offset.to_string()));
     }
 }

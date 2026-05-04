@@ -194,14 +194,14 @@ impl HereAttributeProvider {
 
 /// Convert core `AttributeOptions` to HERE-specific `HereAttributeOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn attribute_options_from_core(opts: &AttributeOptions) -> HereAttributeOptions {
+fn attribute_options_from_core(options: &AttributeOptions) -> HereAttributeOptions {
     let mut here_opts = HereAttributeOptions {
-        lang: opts.language.clone(),
+        lang: options.language.clone(),
         ..Default::default()
     };
 
     // Convert bbox to the HERE `in` filter format
-    if let Some(bbox) = &opts.bbox {
+    if let Some(bbox) = &options.bbox {
         // If bbox already starts with "bbox:", "proximity:", or "tile:", use as-is
         if bbox.starts_with("bbox:") || bbox.starts_with("proximity:") || bbox.starts_with("tile:")
         {
@@ -213,7 +213,7 @@ fn attribute_options_from_core(opts: &AttributeOptions) -> HereAttributeOptions 
     }
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("layers").and_then(|v| v.as_array()) {
                 here_opts.layers = Some(

@@ -213,17 +213,17 @@ fn add_option_ref(params: &mut Vec<(String, String)>, key: &str, value: Option<&
 
 /// Convert core `MatchingOptions` to HERE-specific `HereMatchingOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
+fn matching_options_from_core(options: &MatchingOptions) -> HereMatchingOptions {
     let mut here_opts = HereMatchingOptions {
-        heading: opts.heading,
-        departure: opts.departure_time.as_ref().map(|dt| dt.to_string()),
+        heading: options.heading,
+        departure: options.departure_time.as_ref().map(|dt| dt.to_string()),
         ..Default::default()
     };
 
     // Convert avoid types
-    if !opts.avoid.is_empty() {
+    if !options.avoid.is_empty() {
         here_opts.avoid_features = Some(
-            opts.avoid
+            options.avoid
                 .iter()
                 .map(|a| match a {
                     everymap_core::domains::routing::AvoidType::Tolls => AvoidFeature::TollRoad,
@@ -239,7 +239,7 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
     }
 
     // Convert core transport_mode to HERE match mode (provider_extra can still override)
-    if let Some(transport_mode) = &opts.transport_mode {
+    if let Some(transport_mode) = &options.transport_mode {
         here_opts.mode = match transport_mode {
             everymap_core::domains::routing::TransportMode::Car => Some(MatchMode::Car),
             everymap_core::domains::routing::TransportMode::Truck => Some(MatchMode::Truck),
@@ -257,7 +257,7 @@ fn matching_options_from_core(opts: &MatchingOptions) -> HereMatchingOptions {
     }
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("route_match").and_then(|v| v.as_u64()) {
                 here_opts.route_match = Some(v as u8);
@@ -559,7 +559,7 @@ impl RouteMatcher for HereRouteMatcher {
         points: &[Coordinate],
         options: &MatchingOptions,
     ) -> EveryMapResult<TraceResponse> {
-        let opts = matching_options_from_core(options);
+        let options = matching_options_from_core(options);
 
         // Use waypointN format: waypoint0=lat,lng&waypoint1=lat,lng&...
         let mut params: Vec<(String, String)> = vec![];
@@ -568,89 +568,89 @@ impl RouteMatcher for HereRouteMatcher {
         }
 
         // Default to routeMatch=1 if not specified
-        if opts.route_match.is_none() {
+        if options.route_match.is_none() {
             params.push(("routeMatch".to_string(), "1".to_string()));
         }
 
-        let opts = &opts;
+        let options = &options;
 
         // Match mode — compound format: {routing_type};{transport_mode}[;traffic:{enabled|disabled}]
-        add_option(&mut params, "routeMatch", opts.route_match);
+        add_option(&mut params, "routeMatch", options.route_match);
         {
-            let routing = match &opts.routing_mode {
+            let routing = match &options.routing_mode {
                 Some(MatchRoutingMode::Shortest) => "shortest",
                 _ => "fastest",
             };
-            let transport = match &opts.mode {
+            let transport = match &options.mode {
                 Some(m) => crate::util::enum_as_str(m),
                 None => "car".to_string(),
             };
-            let traffic = match &opts.traffic {
+            let traffic = match &options.traffic {
                 Some(MatchTrafficMode::Enabled) => ";traffic:enabled",
                 _ => ";traffic:disabled",
             };
             params.push(("mode".to_string(), format!("{};{}{}", routing, transport, traffic)));
         }
-        if let Some(legal) = &opts.legal {
+        if let Some(legal) = &options.legal {
             params.push(("legal".to_string(), crate::util::enum_as_str(legal)));
         }
-        add_option(&mut params, "traverseGates", opts.traverse_gates);
-        add_option(&mut params, "oneway", opts.oneway);
+        add_option(&mut params, "traverseGates", options.traverse_gates);
+        add_option(&mut params, "oneway", options.oneway);
 
         // Matching parameters
-        add_option(&mut params, "mapMatchRadius", opts.map_match_radius);
-        add_option(&mut params, "alignToGpsTime", opts.align_to_gps_time);
+        add_option(&mut params, "mapMatchRadius", options.map_match_radius);
+        add_option(&mut params, "alignToGpsTime", options.align_to_gps_time);
         add_option(
             &mut params,
             "ignoreZeroSpeedPoints",
-            opts.ignore_zero_speed_points,
+            options.ignore_zero_speed_points,
         );
-        add_option(&mut params, "wpDist", opts.wp_dist);
-        add_option_ref(&mut params, "speedFcCat", opts.speed_fc_cat.as_ref());
-        add_option(&mut params, "mapMatchTolerance", opts.map_match_tolerance);
-        add_option(&mut params, "heading", opts.heading);
+        add_option(&mut params, "wpDist", options.wp_dist);
+        add_option_ref(&mut params, "speedFcCat", options.speed_fc_cat.as_ref());
+        add_option(&mut params, "mapMatchTolerance", options.map_match_tolerance);
+        add_option(&mut params, "heading", options.heading);
 
         // Vehicle dimensions
-        add_option(&mut params, "limitedWeight", opts.limited_weight);
-        add_option(&mut params, "height", opts.height);
-        add_option(&mut params, "length", opts.length);
-        add_option(&mut params, "width", opts.width);
-        add_option(&mut params, "vehicleNumberAxles", opts.vehicle_number_axles);
-        add_option(&mut params, "trailerNumberAxles", opts.trailer_number_axles);
-        if let Some(tt) = &opts.trailer_type {
+        add_option(&mut params, "limitedWeight", options.limited_weight);
+        add_option(&mut params, "height", options.height);
+        add_option(&mut params, "length", options.length);
+        add_option(&mut params, "width", options.width);
+        add_option(&mut params, "vehicleNumberAxles", options.vehicle_number_axles);
+        add_option(&mut params, "trailerNumberAxles", options.trailer_number_axles);
+        if let Some(tt) = &options.trailer_type {
             params.push(("trailerType".to_string(), crate::util::enum_as_str(tt)));
         }
-        add_option(&mut params, "vehicleWeight", opts.vehicle_weight);
-        add_option(&mut params, "trailerWeight", opts.trailer_weight);
-        add_option(&mut params, "weightPerAxle", opts.weight_per_axle);
+        add_option(&mut params, "vehicleWeight", options.vehicle_weight);
+        add_option(&mut params, "trailerWeight", options.trailer_weight);
+        add_option(&mut params, "weightPerAxle", options.weight_per_axle);
         add_option(
             &mut params,
             "heightAbove1stAxle",
-            opts.height_above_1st_axle,
+            options.height_above_1st_axle,
         );
-        add_option(&mut params, "trailersCount", opts.trailers_count);
+        add_option(&mut params, "trailersCount", options.trailers_count);
 
         // Emission & fuel
-        if let Some(et) = &opts.emission_type {
+        if let Some(et) = &options.emission_type {
             params.push(("emissionType".to_string(), crate::util::enum_as_str(et)));
         }
-        add_option(&mut params, "co2EmissionClass", opts.co2_emission_class);
-        if let Some(ft) = &opts.fuel_type {
+        add_option(&mut params, "co2EmissionClass", options.co2_emission_class);
+        if let Some(ft) = &options.fuel_type {
             params.push(("fuelType".to_string(), crate::util::enum_as_str(ft)));
         }
-        add_option(&mut params, "hybrid", opts.hybrid);
+        add_option(&mut params, "hybrid", options.hybrid);
 
         // Restrictions
-        if let Some(links) = &opts.avoid_links {
+        if let Some(links) = &options.avoid_links {
             params.push(("avoidLinks".to_string(), links.join(",")));
         }
-        if let Some(areas) = &opts.avoid_areas {
+        if let Some(areas) = &options.avoid_areas {
             params.push(("avoidAreas".to_string(), areas.join(",")));
         }
-        if let Some(turns) = &opts.avoid_turns {
+        if let Some(turns) = &options.avoid_turns {
             params.push(("avoidTurns".to_string(), turns.join(",")));
         }
-        if let Some(af) = &opts.avoid_features {
+        if let Some(af) = &options.avoid_features {
             params.push((
                 "avoidFeatures".to_string(),
                 af.iter()
@@ -659,9 +659,9 @@ impl RouteMatcher for HereRouteMatcher {
                     .join(","),
             ));
         }
-        add_option(&mut params, "avoidPrivate", opts.avoid_private);
-        add_option(&mut params, "avoidCountryChange", opts.avoid_country_change);
-        if let Some(hg) = &opts.shipped_hazardous_goods {
+        add_option(&mut params, "avoidPrivate", options.avoid_private);
+        add_option(&mut params, "avoidCountryChange", options.avoid_country_change);
+        if let Some(hg) = &options.shipped_hazardous_goods {
             params.push((
                 "shippedHazardousGoods".to_string(),
                 hg.iter()
@@ -670,108 +670,108 @@ impl RouteMatcher for HereRouteMatcher {
                     .join(","),
             ));
         }
-        if let Some(tc) = &opts.tunnel_category {
+        if let Some(tc) = &options.tunnel_category {
             params.push(("tunnelCategory".to_string(), crate::util::enum_as_str(tc)));
         }
 
         // Commercial
-        add_option(&mut params, "commercial", opts.commercial);
-        add_option(&mut params, "passengersCount", opts.passengers_count);
-        add_option(&mut params, "tiresCount", opts.tires_count);
-        add_option(&mut params, "disabledEquipped", opts.disabled_equipped);
-        add_option_ref(&mut params, "licensePlate", opts.license_plate.as_ref());
+        add_option(&mut params, "commercial", options.commercial);
+        add_option(&mut params, "passengersCount", options.passengers_count);
+        add_option(&mut params, "tiresCount", options.tires_count);
+        add_option(&mut params, "disabledEquipped", options.disabled_equipped);
+        add_option_ref(&mut params, "licensePlate", options.license_plate.as_ref());
 
         // Time
-        add_option_ref(&mut params, "departure", opts.departure.as_ref());
-        add_option_ref(&mut params, "arrival", opts.arrival.as_ref());
+        add_option_ref(&mut params, "departure", options.departure.as_ref());
+        add_option_ref(&mut params, "arrival", options.arrival.as_ref());
 
         // Response attributes
-        add_option_ref(&mut params, "legAttributes", opts.leg_attributes.as_ref());
-        add_option_ref(&mut params, "linkAttributes", opts.link_attributes.as_ref());
+        add_option_ref(&mut params, "legAttributes", options.leg_attributes.as_ref());
+        add_option_ref(&mut params, "linkAttributes", options.link_attributes.as_ref());
         add_option_ref(
             &mut params,
             "responseAttributes",
-            opts.response_attributes.as_ref(),
+            options.response_attributes.as_ref(),
         );
         add_option_ref(
             &mut params,
             "routeAttributes",
-            opts.route_attributes.as_ref(),
+            options.route_attributes.as_ref(),
         );
-        add_option_ref(&mut params, "metaAttributes", opts.meta_attributes.as_ref());
+        add_option_ref(&mut params, "metaAttributes", options.meta_attributes.as_ref());
         add_option_ref(
             &mut params,
             "maneuverAttributes",
-            opts.maneuver_attributes.as_ref(),
+            options.maneuver_attributes.as_ref(),
         );
-        if let Some(fmt) = &opts.instruction_format {
+        if let Some(fmt) = &options.instruction_format {
             params.push((
                 "instructionFormat".to_string(),
                 crate::util::enum_as_str(fmt),
             ));
         }
-        add_option_ref(&mut params, "language", opts.language.as_ref());
+        add_option_ref(&mut params, "language", options.language.as_ref());
 
         // Toll
-        add_option(&mut params, "tollVehicleType", opts.toll_vehicle_type);
-        add_option_ref(&mut params, "tollPass", opts.toll_pass.as_ref());
-        add_option_ref(&mut params, "currency", opts.currency.as_ref());
-        add_option_ref(&mut params, "driverCost", opts.driver_cost.as_ref());
-        add_option_ref(&mut params, "vehicleCost", opts.vehicle_cost.as_ref());
+        add_option(&mut params, "tollVehicleType", options.toll_vehicle_type);
+        add_option_ref(&mut params, "tollPass", options.toll_pass.as_ref());
+        add_option_ref(&mut params, "currency", options.currency.as_ref());
+        add_option_ref(&mut params, "driverCost", options.driver_cost.as_ref());
+        add_option_ref(&mut params, "vehicleCost", options.vehicle_cost.as_ref());
         add_option_ref(
             &mut params,
             "vehicleCostOnFerry",
-            opts.vehicle_cost_on_ferry.as_ref(),
+            options.vehicle_cost_on_ferry.as_ref(),
         );
         add_option_ref(
             &mut params,
             "costPerConsumptionUnit",
-            opts.cost_per_consumption_unit.as_ref(),
+            options.cost_per_consumption_unit.as_ref(),
         );
 
         // Advanced
-        add_option(&mut params, "maxSpeed", opts.max_speed);
-        add_option(&mut params, "alternatives", opts.alternatives);
-        add_option(&mut params, "truckVerified", opts.truck_verified);
+        add_option(&mut params, "maxSpeed", options.max_speed);
+        add_option(&mut params, "alternatives", options.alternatives);
+        add_option(&mut params, "truckVerified", options.truck_verified);
         add_option(
             &mut params,
             "ignoreWaypointVehicleRestriction",
-            opts.ignore_waypoint_vehicle_restriction,
+            options.ignore_waypoint_vehicle_restriction,
         );
         add_option(
             &mut params,
             "adminTruckRestrictions",
-            opts.admin_truck_restrictions,
+            options.admin_truck_restrictions,
         );
         add_option(
             &mut params,
             "ignorePreferredRoutes",
-            opts.ignore_preferred_routes,
+            options.ignore_preferred_routes,
         );
         add_option_ref(
             &mut params,
             "excludeZoneTypes",
-            opts.exclude_zone_types.as_ref(),
+            options.exclude_zone_types.as_ref(),
         );
-        add_option_ref(&mut params, "overlays", opts.overlays.as_ref());
+        add_option_ref(&mut params, "overlays", options.overlays.as_ref());
         add_option_ref(
             &mut params,
             "customRestrLimit",
-            opts.custom_restrict_limit.as_ref(),
+            options.custom_restrict_limit.as_ref(),
         );
         add_option_ref(
             &mut params,
             "customAttributes",
-            opts.custom_attributes.as_ref(),
+            options.custom_attributes.as_ref(),
         );
         add_option_ref(
             &mut params,
             "customConsumptionDetails",
-            opts.custom_consumption_details.as_ref(),
+            options.custom_consumption_details.as_ref(),
         );
-        add_option(&mut params, "timeout", opts.timeout);
-        add_option(&mut params, "drivingReport", opts.driving_report);
-        add_option_ref(&mut params, "ehorizonLimits", opts.ehorizon_limits.as_ref());
+        add_option(&mut params, "timeout", options.timeout);
+        add_option(&mut params, "drivingReport", options.driving_report);
+        add_option_ref(&mut params, "ehorizonLimits", options.ehorizon_limits.as_ref());
 
         let url = format!("{}/match/routelinks", self.base_url);
         let builder = self

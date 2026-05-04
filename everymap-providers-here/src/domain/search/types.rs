@@ -126,9 +126,9 @@ pub struct HereSearchResponse {
 }
 
 impl From<HereSearchResponse> for SearchResponse {
-    fn from(res: HereSearchResponse) -> Self {
+    fn from(response: HereSearchResponse) -> Self {
         SearchResponse {
-            items: res.items.into_iter().map(SearchResult::from).collect(),
+            items: response.items.into_iter().map(SearchResult::from).collect(),
         }
     }
 }

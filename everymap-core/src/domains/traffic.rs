@@ -88,11 +88,11 @@ mod tests {
 
     #[test]
     fn test_traffic_options_default() {
-        let opts = TrafficOptions::default();
-        assert!(opts.radius.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.include_incidents.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = TrafficOptions::default();
+        assert!(options.radius.is_none());
+        assert!(options.language.is_none());
+        assert!(options.include_incidents.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
@@ -220,13 +220,13 @@ mod tests {
 
     #[test]
     fn test_traffic_options_serde_roundtrip() {
-        let opts = TrafficOptions {
+        let options = TrafficOptions {
             radius: Some(5000.0),
             language: Some("de".to_string()),
             include_incidents: Some(true),
             provider_extra: Some(serde_json::json!({"min_jam_factor": 4.0})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: TrafficOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.radius, Some(5000.0));
         assert_eq!(back.include_incidents, Some(true));

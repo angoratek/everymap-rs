@@ -42,12 +42,12 @@ async fn test_geocode_contract() {
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
-    let opts = GeocodeOptions::default();
-    let res = geocoder.geocode("Brandenburg Gate", &opts).await.unwrap();
+    let options = GeocodeOptions::default();
+    let response = geocoder.geocode("Brandenburg Gate", &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].coordinate.lat, 52.5200);
-    assert_eq!(res.items[0].coordinate.lng, 13.4050);
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].coordinate.lat, 52.5200);
+    assert_eq!(response.items[0].coordinate.lng, 13.4050);
 }
 
 #[tokio::test]
@@ -90,13 +90,13 @@ async fn test_reverse_geocode_contract() {
     let client = Arc::new(TomTomClient::new(auth));
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ReverseGeocodeOptions::default();
-    let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ReverseGeocodeOptions::default();
+    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].coordinate.lat, 52.520264);
-    assert_eq!(res.items[0].coordinate.lng, 13.399690);
-    assert_eq!(res.items[0].address.street.as_deref(), Some("Bodestraße"));
-    assert_eq!(res.items[0].address.city.as_deref(), Some("Berlin"));
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].coordinate.lat, 52.520264);
+    assert_eq!(response.items[0].coordinate.lng, 13.399690);
+    assert_eq!(response.items[0].address.street.as_deref(), Some("Bodestraße"));
+    assert_eq!(response.items[0].address.city.as_deref(), Some("Berlin"));
 }

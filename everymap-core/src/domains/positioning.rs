@@ -45,23 +45,23 @@ mod tests {
 
     #[test]
     fn test_positioning_options_default() {
-        let opts = PositioningOptions::default();
-        assert!(opts.provider_extra.is_none());
+        let options = PositioningOptions::default();
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_positioning_options_with_provider_extra() {
-        let opts = PositioningOptions {
+        let options = PositioningOptions {
             provider_extra: Some(serde_json::json!({"wlan": [{"mac": "aa:bb:cc:dd:ee:ff"}]})),
         };
-        assert!(opts.provider_extra.is_some());
+        assert!(options.provider_extra.is_some());
     }
 
     #[test]
     fn test_positioning_response_construction() {
-        let coord = Coordinate::new(52.5, 13.4).unwrap();
+        let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let response = PositioningResponse {
-            coordinate: coord,
+            coordinate: coordinate,
             accuracy: Some(50.0),
             altitude: Some(34.0),
             altitude_accuracy: Some(10.0),
@@ -76,9 +76,9 @@ mod tests {
 
     #[test]
     fn test_positioning_response_serde_roundtrip() {
-        let coord = Coordinate::new(52.5, 13.4).unwrap();
+        let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let response = PositioningResponse {
-            coordinate: coord,
+            coordinate: coordinate,
             accuracy: Some(50.0),
             altitude: Some(34.0),
             altitude_accuracy: Some(10.0),
@@ -94,9 +94,9 @@ mod tests {
 
     #[test]
     fn test_positioning_response_minimal_serde_roundtrip() {
-        let coord = Coordinate::ORIGIN;
+        let coordinate = Coordinate::ORIGIN;
         let response = PositioningResponse {
-            coordinate: coord,
+            coordinate: coordinate,
             accuracy: None,
             altitude: None,
             altitude_accuracy: None,
@@ -104,7 +104,7 @@ mod tests {
         };
         let json = serde_json::to_string(&response).unwrap();
         let back: PositioningResponse = serde_json::from_str(&json).unwrap();
-        assert_eq!(back.coordinate, coord);
+        assert_eq!(back.coordinate, coordinate);
         assert!(back.accuracy.is_none());
     }
 
@@ -112,13 +112,13 @@ mod tests {
 
     #[test]
     fn test_positioning_options_serde_roundtrip() {
-        let opts = PositioningOptions {
+        let options = PositioningOptions {
             provider_extra: Some(serde_json::json!({
                 "wlan": [{"mac": "aa:bb:cc:dd:ee:ff", "signalStrength": -70}],
                 "cell": [{"mcc": 262, "mnc": 1, "cid": 12345}]
             })),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: PositioningOptions = serde_json::from_str(&json).unwrap();
         assert!(back.provider_extra.is_some());
     }
@@ -127,9 +127,9 @@ mod tests {
 
     #[test]
     fn test_positioning_response_boundary_coordinates() {
-        let coord = Coordinate::new(90.0, 180.0).unwrap();
+        let coordinate = Coordinate::new(90.0, 180.0).unwrap();
         let response = PositioningResponse {
-            coordinate: coord,
+            coordinate: coordinate,
             accuracy: Some(0.0),
             altitude: Some(0.0),
             altitude_accuracy: Some(0.0),
@@ -141,9 +141,9 @@ mod tests {
 
     #[test]
     fn test_positioning_response_negative_altitude() {
-        let coord = Coordinate::new(-33.8688, 151.2093).unwrap();
+        let coordinate = Coordinate::new(-33.8688, 151.2093).unwrap();
         let response = PositioningResponse {
-            coordinate: coord,
+            coordinate: coordinate,
             accuracy: Some(15.0),
             altitude: Some(-11.0),
             altitude_accuracy: Some(5.0),

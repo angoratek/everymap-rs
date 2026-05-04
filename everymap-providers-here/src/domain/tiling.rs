@@ -42,11 +42,11 @@ impl HereTileProvider {
 
 /// Convert core `TileOptions` to HERE-specific `HereTileOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn tile_options_from_core(opts: &TileOptions) -> HereTileOptions {
+fn tile_options_from_core(options: &TileOptions) -> HereTileOptions {
     let mut here_opts = HereTileOptions::default();
 
     // Common fields
-    if let Some(format) = &opts.format {
+    if let Some(format) = &options.format {
         here_opts.format = match format.as_str() {
             "omv" | "protobuf" => TileFormat::OmnichannelVector,
             "pbf" => TileFormat::Protobuf,
@@ -55,7 +55,7 @@ fn tile_options_from_core(opts: &TileOptions) -> HereTileOptions {
     }
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("layer").and_then(|v| v.as_str()) {
                 here_opts.layer = match v {

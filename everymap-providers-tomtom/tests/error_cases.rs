@@ -5,8 +5,8 @@ use everymap_providers_tomtom::{TomTomAttributeProvider, TomTomPositioner};
 #[tokio::test]
 async fn test_unsupported_positioning() {
     let positioner = TomTomPositioner;
-    let opts = PositioningOptions::default();
-    let result = positioner.get_position(&opts).await;
+    let options = PositioningOptions::default();
+    let result = positioner.get_position(&options).await;
     assert!(result.is_err());
     let err = format!("{}", result.unwrap_err());
     assert!(err.contains("tomtom") && err.contains("positioning"));
@@ -15,8 +15,8 @@ async fn test_unsupported_positioning() {
 #[tokio::test]
 async fn test_unsupported_attributes() {
     let provider = TomTomAttributeProvider;
-    let opts = AttributeOptions::default();
-    let result = provider.get_attributes(&opts).await;
+    let options = AttributeOptions::default();
+    let result = provider.get_attributes(&options).await;
     assert!(result.is_err());
     let err = format!("{}", result.unwrap_err());
     assert!(err.contains("tomtom") && err.contains("attributes"));

@@ -101,6 +101,17 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - Supports 5 providers: HERE, Google, TomTom, MapBox, Radar
 - Output formats: table (default), json, markdown
 
+### Phase 17: API Accuracy & Precision Hardening ✅
+- **`DepartureTime` enum**: Typed departure time (Now, Timestamp, Iso8601) replacing fragile `Option<String>` across RouteOptions, MatchingOptions, and IsolineOptions. All 5 providers updated with typed matching.
+- **Google routing avoids**: Removed invalid `indoor` mapping for DirtRoads and unsupported Tunnels. Unsupported avoid types now filtered with `filter_map`.
+- **HERE matching transport modes**: Bus→Bus, Scooter→Motorcycle, Taxi→Taxi (were all incorrectly mapped to Car). Both primary and provider_extra mappings fixed.
+- **MapBox reverse geocode radius**: Replaced silent ignore with `eprintln!` warning. MapBox v6 does not support radius/bbox constraints.
+- **HERE traffic incidents**: `include_incidents` now actually fetches incidents (was always returning empty vec). Builds bounding box from location+radius, calls incidents API, merges results.
+- **CLI Attributes --layer**: Key fixed from singular `"layer"` to plural `"layers"` matching HERE provider's `provider_extra` parsing.
+- **Code abbreviations eliminated**: 823+ occurrences fixed (`opts`→`options`, `res`→`response`, `coord`→`coordinate`, `msg`→`message`, `dist`→`total_distance`, `dur`→`total_duration`, `tm`→`transport_mode`, `idx`→`index`).
+- **OSS readiness**: Added SECURITY.md, CHANGELOG.md, fixed CODE_OF_CONDUCT.md placeholder, fixed LICENSE year to 2025-2026, removed Cargo.lock from .gitignore (needed for binary crate).
+- **Silent parameter drops**: Added `eprintln!` warnings for MapBox routing (unsupported `avoid`, `language`), MapBox reverse geocode (unsupported `radius`).
+
 ---
 
 ## Current Metrics
@@ -122,12 +133,20 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
+- **Typed time**: `DepartureTime` enum eliminates string-guessing across all departure/arrival time fields
+- **No abbreviations**: All code uses full descriptive variable names
 
 ---
 
 ## Future Work
 - [ ] OAuth2 auth provider implementation
+- [ ] Upgrade Google routing from legacy Directions API to Routes API v2
+- [ ] Add `Moderate` variant to core `IncidentSeverity` (TomTom traffic)
+- [ ] Wire `avoid` parameter for TomTom routing (API supports it)
+- [ ] Add missing CLI flags: `--language`, `--limit`, `--avoid`, `--radius`, `--arrival-time`, `--alternatives`
+- [ ] Configurable image size for `map-image` command
 - [x] CI/CD pipeline (GitHub Actions with clippy, fmt, nextest) — 3 parallel jobs, nextest via taiki-e/install-action
 - [x] Config file permission check (`~/.everymap/config.toml` world-readable warning) — Unix-only, warning on stderr
 - [x] Zeroize API keys in memory (`zeroize` crate) — `#[zeroize(drop)]` on ApiKeyProvider and HeaderAuthProvider
 - [x] Avoid redundant serialization in CLI — `write_output()` uses `serde_json::to_writer` for direct stdout write
+- [x] OSS documentation: SECURITY.md, CHANGELOG.md, CODE_OF_CONDUCT.md contact method

@@ -29,18 +29,18 @@ async fn test_tiling_contract() {
     let client = Arc::new(MapBoxClient::new(auth));
     let tiling = MapBoxTileProvider::with_base_url(client, server.uri());
 
-    let opts = TileOptions {
+    let options = TileOptions {
         format: Some("mvt".to_string()),
         provider_extra: Some(serde_json::json!({
             "tileset_id": "mapbox.mapbox-streets-v8"
         })),
     };
 
-    let res = tiling.get_tile(10, 523, 335, &opts).await.unwrap();
+    let response = tiling.get_tile(10, 523, 335, &options).await.unwrap();
 
-    assert_eq!(res.data.len(), 6);
+    assert_eq!(response.data.len(), 6);
     assert_eq!(
-        res.content_type,
+        response.content_type,
         Some("application/vnd.mapbox-vector-tile".to_string())
     );
 }

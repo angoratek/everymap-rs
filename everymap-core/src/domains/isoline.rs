@@ -63,25 +63,25 @@ mod tests {
 
     #[test]
     fn test_isoline_options_default() {
-        let opts = IsolineOptions::default();
-        assert!(opts.range_type.is_none());
-        assert!(opts.transport_mode.is_none());
-        assert!(opts.departure_time.is_none());
-        assert!(opts.avoid.is_empty());
-        assert!(opts.provider_extra.is_none());
+        let options = IsolineOptions::default();
+        assert!(options.range_type.is_none());
+        assert!(options.transport_mode.is_none());
+        assert!(options.departure_time.is_none());
+        assert!(options.avoid.is_empty());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_isoline_options_with_fields() {
-        let opts = IsolineOptions {
+        let options = IsolineOptions {
             range_type: Some(RangeType::Time),
             transport_mode: Some(crate::domains::routing::TransportMode::Car),
             departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Tolls],
             provider_extra: Some(serde_json::json!({"routing_mode": "fast"})),
         };
-        assert_eq!(opts.range_type, Some(RangeType::Time));
-        assert!(opts.avoid.len() == 1);
+        assert_eq!(options.range_type, Some(RangeType::Time));
+        assert!(options.avoid.len() == 1);
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
 
     #[test]
     fn test_isoline_options_serde_roundtrip() {
-        let opts = IsolineOptions {
+        let options = IsolineOptions {
             range_type: Some(RangeType::Consumption),
             transport_mode: Some(crate::domains::routing::TransportMode::Truck),
             departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
@@ -176,7 +176,7 @@ mod tests {
             ],
             provider_extra: Some(serde_json::json!({"optimize_for": "quality"})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: IsolineOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.range_type, Some(RangeType::Consumption));
         assert_eq!(back.avoid.len(), 2);

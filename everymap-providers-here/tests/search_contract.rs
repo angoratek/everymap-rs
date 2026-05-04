@@ -39,19 +39,19 @@ async fn test_geocode_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let opts = GeocodeOptions::default();
-    let res = geocoder.geocode("Berlin", &opts).await.unwrap();
+    let options = GeocodeOptions::default();
+    let response = geocoder.geocode("Berlin", &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
+    assert_eq!(response.items.len(), 1);
     assert_eq!(
-        res.items[0].coordinate,
+        response.items[0].coordinate,
         Coordinate::new(52.5200, 13.4050).unwrap()
     );
     assert_eq!(
-        res.items[0].address.label.as_deref(),
+        response.items[0].address.label.as_deref(),
         Some("Berlin, Germany")
     );
-    assert_eq!(res.items[0].title.as_ref().unwrap(), "Berlin");
+    assert_eq!(response.items[0].title.as_ref().unwrap(), "Berlin");
 }
 
 #[tokio::test]
@@ -86,15 +86,15 @@ async fn test_geocode_with_options() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let opts = GeocodeOptions {
+    let options = GeocodeOptions {
         limit: Some(5),
         language: Some("en".to_string()),
         ..Default::default()
     };
-    let res = geocoder.geocode("Paris", &opts).await.unwrap();
+    let response = geocoder.geocode("Paris", &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].address.label.as_deref(), Some("Paris, France"));
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].address.label.as_deref(), Some("Paris, France"));
 }
 
 #[tokio::test]
@@ -124,17 +124,17 @@ async fn test_reverse_geocode_contract() {
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ReverseGeocodeOptions::default();
-    let res = geocoder.reverse_geocode(&coord, &opts).await.unwrap();
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ReverseGeocodeOptions::default();
+    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
+    assert_eq!(response.items.len(), 1);
     assert_eq!(
-        res.items[0].coordinate,
+        response.items[0].coordinate,
         Coordinate::new(52.5200, 13.4050).unwrap()
     );
     assert_eq!(
-        res.items[0].address.label.as_deref(),
+        response.items[0].address.label.as_deref(),
         Some("Berlin, Germany")
     );
 }
@@ -188,10 +188,10 @@ async fn test_discover_contract() {
         },
     };
 
-    let res = geocoder.discover(req).await.unwrap();
+    let response = geocoder.discover(req).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    let item = &res.items[0];
+    assert_eq!(response.items.len(), 1);
+    let item = &response.items[0];
     assert_eq!(item.title.as_ref().unwrap(), "Brandenburg Gate");
     assert_eq!(item.result_type.as_ref().unwrap(), "place");
     assert_eq!(item.distance.unwrap(), 450.0);
@@ -253,11 +253,11 @@ async fn test_autosuggest_contract() {
         },
     };
 
-    let res = geocoder.autosuggest(req).await.unwrap();
+    let response = geocoder.autosuggest(req).await.unwrap();
 
-    assert_eq!(res.items.len(), 1);
-    assert_eq!(res.items[0].title.as_ref().unwrap(), "Berlin");
-    assert_eq!(res.items[0].result_type.as_ref().unwrap(), "locality");
-    assert_eq!(res.query_terms.len(), 1);
-    assert_eq!(res.query_terms[0].term.as_ref().unwrap(), "berlin");
+    assert_eq!(response.items.len(), 1);
+    assert_eq!(response.items[0].title.as_ref().unwrap(), "Berlin");
+    assert_eq!(response.items[0].result_type.as_ref().unwrap(), "locality");
+    assert_eq!(response.query_terms.len(), 1);
+    assert_eq!(response.query_terms[0].term.as_ref().unwrap(), "berlin");
 }

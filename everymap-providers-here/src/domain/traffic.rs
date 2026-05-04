@@ -193,13 +193,13 @@ impl HereTraffic {
 
 /// Convert core `TrafficOptions` to HERE-specific `HereFlowOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn flow_options_from_core(opts: &TrafficOptions) -> HereFlowOptions {
+fn flow_options_from_core(options: &TrafficOptions) -> HereFlowOptions {
     let mut here_opts = HereFlowOptions {
         ..Default::default()
     };
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
                 here_opts.in_filter = Some(v.to_string());
@@ -257,13 +257,37 @@ impl TrafficProvider for HereTraffic {
         let here_opts = flow_options_from_core(options);
 
         // Use the rich flow API and extract simplified data
-        let flow_res = self.get_flow(*location, &here_opts).await?;
+        let flow_response = self.get_flow(*location, &here_opts).await?;
 
-        let flows: Vec<TrafficFlow> = flow_res.results.into_iter().map(Into::into).collect();
+        let flows: Vec<TrafficFlow> = flow_response.results.into_iter().map(Into::into).collect();
+
+        // Fetch incidents when requested
+        let mut incidents = vec![];
+        if options.include_incidents.unwrap_or(false) {
+            // Build a bounding box around the location using the radius or a default
+            let radius_km = options.radius.unwrap_or(10.0);
+            let lat_offset = radius_km / 111.32;
+            let lng_offset = radius_km / (111.32 * location.lat.to_radians().cos());
+            let bbox = format!(
+                "bbox:{},{},{},{}",
+                location.lng - lng_offset,
+                location.lat - lat_offset,
+                location.lng + lng_offset,
+                location.lat + lat_offset,
+            );
+            let incidents_options = HereIncidentsOptions {
+                in_filter: Some(bbox),
+                location_referencing: Some(vec![LocationReferencing::None]),
+                ..Default::default()
+            };
+            if let Ok(incident_response) = self.get_incidents(&incidents_options).await {
+                incidents = incident_response.results.into_iter().map(|item| item.incident.into()).collect();
+            }
+        }
 
         Ok(TrafficResponse {
             flows,
-            incidents: vec![],
+            incidents,
             raw: None,
         })
     }

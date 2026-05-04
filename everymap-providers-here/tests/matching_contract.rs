@@ -52,17 +52,17 @@ async fn test_matching_contract() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.53, 13.41).unwrap(),
     ];
-    let opts = MatchingOptions::default();
+    let options = MatchingOptions::default();
 
-    let res = matcher.match_route(&points, &opts).await.unwrap();
+    let response = matcher.match_route(&points, &options).await.unwrap();
 
-    assert_eq!(res.distance, 120.0);
-    assert_eq!(res.matched_points.len(), 2);
+    assert_eq!(response.distance, 120.0);
+    assert_eq!(response.matched_points.len(), 2);
     assert_eq!(
-        res.matched_points[0].coordinate,
+        response.matched_points[0].coordinate,
         Coordinate::new(52.5201, 13.4051).unwrap()
     );
-    assert_eq!(res.matched_points[0].confidence, Some(0.9));
+    assert_eq!(response.matched_points[0].confidence, Some(0.9));
 }
 
 #[tokio::test]
@@ -112,7 +112,7 @@ async fn test_matching_with_options() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.53, 13.41).unwrap(),
     ];
-    let opts = MatchingOptions {
+    let options = MatchingOptions {
         provider_extra: Some(serde_json::json!({
             "mode": "car",
             "map_match_radius": 50
@@ -120,8 +120,8 @@ async fn test_matching_with_options() {
         ..Default::default()
     };
 
-    let res = matcher.match_route(&points, &opts).await.unwrap();
+    let response = matcher.match_route(&points, &options).await.unwrap();
 
-    assert_eq!(res.distance, 250.0);
-    assert_eq!(res.matched_points.len(), 2);
+    assert_eq!(response.distance, 250.0);
+    assert_eq!(response.matched_points.len(), 2);
 }

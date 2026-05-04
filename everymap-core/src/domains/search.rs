@@ -108,50 +108,50 @@ mod tests {
 
     #[test]
     fn test_geocode_options_default() {
-        let opts = GeocodeOptions::default();
-        assert!(opts.limit.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.country_codes.is_empty());
-        assert!(opts.bounding_box.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = GeocodeOptions::default();
+        assert!(options.limit.is_none());
+        assert!(options.language.is_none());
+        assert!(options.country_codes.is_empty());
+        assert!(options.bounding_box.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_geocode_options_with_fields() {
-        let opts = GeocodeOptions {
+        let options = GeocodeOptions {
             limit: Some(10),
             language: Some("en-US".to_string()),
             country_codes: vec!["DEU".to_string(), "FRA".to_string()],
             provider_extra: Some(serde_json::json!({"political_view": "ARG"})),
             ..Default::default()
         };
-        assert_eq!(opts.limit, Some(10));
-        assert_eq!(opts.language.as_deref(), Some("en-US"));
-        assert_eq!(opts.country_codes.len(), 2);
-        assert!(opts.provider_extra.is_some());
+        assert_eq!(options.limit, Some(10));
+        assert_eq!(options.language.as_deref(), Some("en-US"));
+        assert_eq!(options.country_codes.len(), 2);
+        assert!(options.provider_extra.is_some());
     }
 
     #[test]
     fn test_geocode_options_provider_extra_json() {
-        let opts = GeocodeOptions {
+        let options = GeocodeOptions {
             provider_extra: Some(serde_json::json!({
                 "show": ["streetInfo", "mapReference"],
                 "qq": "city=Berlin"
             })),
             ..Default::default()
         };
-        let extra = opts.provider_extra.unwrap();
+        let extra = options.provider_extra.unwrap();
         assert!(extra.get("show").is_some());
         assert_eq!(extra["qq"], "city=Berlin");
     }
 
     #[test]
     fn test_reverse_geocode_options_default() {
-        let opts = ReverseGeocodeOptions::default();
-        assert!(opts.limit.is_none());
-        assert!(opts.language.is_none());
-        assert!(opts.radius.is_none());
-        assert!(opts.provider_extra.is_none());
+        let options = ReverseGeocodeOptions::default();
+        assert!(options.limit.is_none());
+        assert!(options.language.is_none());
+        assert!(options.radius.is_none());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
@@ -293,7 +293,7 @@ mod tests {
 
     #[test]
     fn test_geocode_options_serde_roundtrip() {
-        let opts = GeocodeOptions {
+        let options = GeocodeOptions {
             limit: Some(5),
             language: Some("de-DE".to_string()),
             country_codes: vec!["DEU".to_string()],
@@ -303,7 +303,7 @@ mod tests {
             )),
             provider_extra: Some(serde_json::json!({"political_view": "ARG"})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: GeocodeOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.limit, Some(5));
         assert_eq!(back.language.as_deref(), Some("de-DE"));
@@ -316,13 +316,13 @@ mod tests {
 
     #[test]
     fn test_reverse_geocode_options_serde_roundtrip() {
-        let opts = ReverseGeocodeOptions {
+        let options = ReverseGeocodeOptions {
             limit: Some(1),
             language: Some("fr".to_string()),
             radius: Some(500.0),
             provider_extra: Some(serde_json::json!({"include_shapes": true})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: ReverseGeocodeOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(back.limit, Some(1));
         assert_eq!(back.radius, Some(500.0));

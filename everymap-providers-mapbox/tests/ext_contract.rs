@@ -48,14 +48,14 @@ async fn test_permanent_geocode_contract() {
     let client = Arc::new(MapBoxClient::new(auth));
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
-    let res = geocoder
+    let response = geocoder
         .permanent_geocode("Brandenburg Gate", Some(1), None)
         .await
         .unwrap();
 
-    assert_eq!(res.features.len(), 1);
-    assert_eq!(res.features[0].id, Some("dXJuOm1ieHBsYzpBY1E2".to_string()));
-    let props = res.features[0].properties.as_ref().unwrap();
+    assert_eq!(response.features.len(), 1);
+    assert_eq!(response.features[0].id, Some("dXJuOm1ieHBsYzpBY1E2".to_string()));
+    let props = response.features[0].properties.as_ref().unwrap();
     assert_eq!(
         props.full_address,
         Some("Brandenburg Gate, Berlin, Germany".to_string())
@@ -128,15 +128,15 @@ async fn test_batch_geocode_contract() {
     let geocoder = MapBoxGeocoder::with_base_url(client, server.uri());
 
     let queries = vec!["Berlin".to_string(), "Paris".to_string()];
-    let res = geocoder.batch_geocode(&queries, None).await.unwrap();
+    let response = geocoder.batch_geocode(&queries, None).await.unwrap();
 
-    assert_eq!(res.len(), 2);
+    assert_eq!(response.len(), 2);
     assert_eq!(
-        res[0].features[0].properties.as_ref().unwrap().name,
+        response[0].features[0].properties.as_ref().unwrap().name,
         Some("Berlin".to_string())
     );
     assert_eq!(
-        res[1].features[0].properties.as_ref().unwrap().name,
+        response[1].features[0].properties.as_ref().unwrap().name,
         Some("Paris".to_string())
     );
 }
@@ -195,17 +195,17 @@ async fn test_route_with_profile_contract() {
         Coordinate::new(52.5163, 13.3777).unwrap(),
         Coordinate::new(48.8566, 2.3522).unwrap(),
     ];
-    let res = router
+    let response = router
         .route_with_profile(&coords, "driving", None)
         .await
         .unwrap();
 
-    assert_eq!(res.code, Some("Ok".to_string()));
-    assert_eq!(res.routes.len(), 1);
-    assert_eq!(res.routes[0].distance, 1052000.0);
-    assert_eq!(res.routes[0].duration, 36720.0);
-    assert_eq!(res.routes[0].legs.len(), 1);
-    assert_eq!(res.routes[0].legs[0].steps.len(), 1);
+    assert_eq!(response.code, Some("Ok".to_string()));
+    assert_eq!(response.routes.len(), 1);
+    assert_eq!(response.routes[0].distance, 1052000.0);
+    assert_eq!(response.routes[0].duration, 36720.0);
+    assert_eq!(response.routes[0].legs.len(), 1);
+    assert_eq!(response.routes[0].legs[0].steps.len(), 1);
 }
 
 #[tokio::test]
@@ -220,7 +220,7 @@ async fn test_route_with_profile_insufficient_coords() {
     let router = MapBoxRouter::with_base_url(client, server.uri());
 
     let coords = vec![Coordinate::new(52.5163, 13.3777).unwrap()];
-    let res = router.route_with_profile(&coords, "driving", None).await;
+    let response = router.route_with_profile(&coords, "driving", None).await;
 
-    assert!(res.is_err());
+    assert!(response.is_err());
 }

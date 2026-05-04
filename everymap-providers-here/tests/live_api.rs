@@ -61,17 +61,17 @@ async fn live_geocode_berlin() {
     let client = make_client(&api_key);
     let geocoder = HereGeocoder::new(client);
 
-    let opts = GeocodeOptions::default();
-    let res = geocoder.geocode("Berlin", &opts).await;
+    let options = GeocodeOptions::default();
+    let response = geocoder.geocode("Berlin", &options).await;
 
-    match res {
-        Ok(res) => {
-            println!("[geocode] items: {}", res.items.len());
+    match response {
+        Ok(response) => {
+            println!("[geocode] items: {}", response.items.len());
             assert!(
-                !res.items.is_empty(),
+                !response.items.is_empty(),
                 "Geocode should return at least one result"
             );
-            let first = &res.items[0];
+            let first = &response.items[0];
             assert!(
                 first.coordinate.lat > 52.0 && first.coordinate.lat < 53.0,
                 "Berlin latitude should be around 52.5, got {}",
@@ -104,18 +104,18 @@ async fn live_reverse_geocode_berlin() {
     let client = make_client(&api_key);
     let geocoder = HereGeocoder::new(client);
 
-    let coord = Coordinate::new(52.51604, 13.37691).unwrap();
-    let opts = ReverseGeocodeOptions::default();
-    let res = geocoder.reverse_geocode(&coord, &opts).await;
+    let coordinate = Coordinate::new(52.51604, 13.37691).unwrap();
+    let options = ReverseGeocodeOptions::default();
+    let response = geocoder.reverse_geocode(&coordinate, &options).await;
 
-    match res {
-        Ok(res) => {
-            println!("[reverse-geocode] items: {}", res.items.len());
+    match response {
+        Ok(response) => {
+            println!("[reverse-geocode] items: {}", response.items.len());
             assert!(
-                !res.items.is_empty(),
+                !response.items.is_empty(),
                 "Reverse geocode should return at least one result"
             );
-            let first = &res.items[0];
+            let first = &response.items[0];
             println!(
                 "[reverse-geocode] first result: {:?} at {}",
                 first.address.label.as_deref().unwrap_or("(no label)"),
@@ -145,21 +145,21 @@ async fn live_route_berlin_to_munich() {
 
     let berlin = Coordinate::new(52.5200, 13.4050).unwrap();
     let munich = Coordinate::new(48.1351, 11.5820).unwrap();
-    let opts = RouteOptions {
+    let options = RouteOptions {
         transport_mode: Some(TransportMode::Car),
         ..Default::default()
     };
 
-    let res = router.calculate_route(&berlin, &munich, &opts).await;
+    let response = router.calculate_route(&berlin, &munich, &options).await;
 
-    match res {
-        Ok(res) => {
-            println!("[route] routes: {}", res.routes.len());
+    match response {
+        Ok(response) => {
+            println!("[route] routes: {}", response.routes.len());
             assert!(
-                !res.routes.is_empty(),
+                !response.routes.is_empty(),
                 "Route calculation should return at least one route"
             );
-            let route = &res.routes[0];
+            let route = &response.routes[0];
             assert!(
                 route.distance > 0.0,
                 "Route distance should be > 0, got {}",
@@ -205,21 +205,21 @@ async fn live_isoline_berlin_5km() {
     let isoline_provider = HereIsoline::new(client);
 
     let center = Coordinate::new(52.5200, 13.4050).unwrap();
-    let opts = IsolineOptions {
+    let options = IsolineOptions {
         range_type: Some(CoreRangeType::Distance),
         ..Default::default()
     };
 
-    let res = isoline_provider.get_isoline(&center, 5000.0, &opts).await;
+    let response = isoline_provider.get_isoline(&center, 5000.0, &options).await;
 
-    match res {
-        Ok(res) => {
-            println!("[isoline] isolines: {}", res.isolines.len());
+    match response {
+        Ok(response) => {
+            println!("[isoline] isolines: {}", response.isolines.len());
             assert!(
-                !res.isolines.is_empty(),
+                !response.isolines.is_empty(),
                 "Isoline should return at least one result"
             );
-            let iso = &res.isolines[0];
+            let iso = &response.isolines[0];
             assert!(
                 !iso.polygon.is_empty(),
                 "Isoline polygon should not be empty"
@@ -257,7 +257,7 @@ async fn live_matching_gps_trace() {
         Coordinate::new(52.5170, 13.3900).unwrap(),
         Coordinate::new(52.5180, 13.4000).unwrap(),
     ];
-    let opts = MatchingOptions {
+    let options = MatchingOptions {
         provider_extra: Some(serde_json::json!({
             "mode": "car",
             "map_match_radius": 50
@@ -265,20 +265,20 @@ async fn live_matching_gps_trace() {
         ..Default::default()
     };
 
-    let res = matcher.match_route(&points, &opts).await;
+    let response = matcher.match_route(&points, &options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[matching] matched points: {}, distance: {:.1} m",
-                res.matched_points.len(),
-                res.distance
+                response.matched_points.len(),
+                response.distance
             );
             assert!(
-                !res.matched_points.is_empty(),
+                !response.matched_points.is_empty(),
                 "Matching should return matched points"
             );
-            assert!(res.distance > 0.0, "Matched distance should be > 0");
+            assert!(response.distance > 0.0, "Matched distance should be > 0");
         }
         Err(e) => {
             eprintln!("[matching] ERROR: {:?}", e);
@@ -301,21 +301,21 @@ async fn live_traffic_berlin() {
     let client = make_client(&api_key);
     let traffic = HereTraffic::new(client);
 
-    let coord = Coordinate::new(52.5200, 13.4050).unwrap();
-    let opts = TrafficOptions::default();
+    let coordinate = Coordinate::new(52.5200, 13.4050).unwrap();
+    let options = TrafficOptions::default();
 
-    let res = traffic.get_traffic(&coord, &opts).await;
+    let response = traffic.get_traffic(&coordinate, &options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[traffic] flows: {}, incidents: {}",
-                res.flows.len(),
-                res.incidents.len()
+                response.flows.len(),
+                response.incidents.len()
             );
             // Traffic may return empty flows for small bbox, but the call itself should succeed
-            if !res.flows.is_empty() {
-                let flow = &res.flows[0];
+            if !response.flows.is_empty() {
+                let flow = &response.flows[0];
                 println!(
                     "[traffic] first flow - speed: {:?}, jam_factor: {:?}",
                     flow.speed, flow.jam_factor
@@ -343,15 +343,15 @@ async fn live_positioning_empty_observations() {
     let client = make_client(&api_key);
     let positioner = HerePositioner::new(client);
 
-    let opts = PositioningOptions::default();
+    let options = PositioningOptions::default();
 
-    let res = positioner.get_position(&opts).await;
+    let response = positioner.get_position(&options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[positioning] coordinate: {}, accuracy: {:?}",
-                res.coordinate, res.accuracy
+                response.coordinate, response.accuracy
             );
             // With empty observations the API may still return an IP-based position
             // or return an error. Both are acceptable.
@@ -426,14 +426,14 @@ async fn live_tour_3_stops_berlin() {
             jobs: stops
                 .iter()
                 .enumerate()
-                .map(|(i, coord)| Job {
+                .map(|(i, coordinate)| Job {
                     id: format!("stop_{}", i),
                     tasks: JobTasks {
                         deliveries: Some(vec![JobTask {
                             places: vec![JobPlace {
                                 location: TourLocation {
-                                    lat: coord.lat,
-                                    lng: coord.lng,
+                                    lat: coordinate.lat,
+                                    lng: coordinate.lng,
                                 },
                                 duration: 60,
                                 ..Default::default()
@@ -452,30 +452,30 @@ async fn live_tour_3_stops_berlin() {
         ..Default::default()
     };
 
-    let opts = TourOptions {
+    let options = TourOptions {
         transport_mode: None,
         provider_extra: Some(serde_json::to_value(problem).unwrap()),
     };
 
-    let res = planner.optimize_tour(&stops, &opts).await;
+    let response = planner.optimize_tour(&stops, &options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[tour] stops: {}, total_distance: {:?}, total_duration: {:?}",
-                res.stops.len(),
-                res.total_distance,
-                res.total_duration
+                response.stops.len(),
+                response.total_distance,
+                response.total_duration
             );
             assert!(
-                !res.stops.is_empty(),
+                !response.stops.is_empty(),
                 "Tour should return at least one stop"
             );
-            if let Some(dist) = res.total_distance {
+            if let Some(total_distance) = response.total_distance {
                 assert!(
-                    dist > 0.0,
+                    total_distance > 0.0,
                     "Tour total distance should be > 0, got {}",
-                    dist
+                    total_distance
                 );
             }
         }
@@ -502,25 +502,25 @@ async fn live_tiling_zoom14_berlin() {
 
     // Zoom 14, tile coords around Berlin
     // At zoom 14, Berlin center (52.52, 13.405) maps to roughly x=4494, y=2832
-    let opts = TileOptions {
+    let options = TileOptions {
         provider_extra: Some(serde_json::json!({
             "layer": "base"
         })),
         ..Default::default()
     };
 
-    let res = provider.get_tile(14, 4494, 2832, &opts).await;
+    let response = provider.get_tile(14, 4494, 2832, &options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[tiling] data bytes: {}, content_type: {:?}",
-                res.data.len(),
-                res.content_type
+                response.data.len(),
+                response.content_type
             );
-            assert!(!res.data.is_empty(), "Tile data should not be empty");
+            assert!(!response.data.is_empty(), "Tile data should not be empty");
             assert!(
-                res.content_type.is_some(),
+                response.content_type.is_some(),
                 "Tile should have a content-type"
             );
         }
@@ -547,7 +547,7 @@ async fn live_attributes_roads_berlin() {
 
     // Bounding box around Berlin center with layers parameter
     // The real API requires the 'layers' parameter
-    let opts = AttributeOptions {
+    let options = AttributeOptions {
         bbox: Some("52.51,13.37;52.53,13.41".to_string()),
         provider_extra: Some(serde_json::json!({
             "layers": ["ROAD_GEOM_FCn", "SPEED_LIMITS_FCn"]
@@ -555,22 +555,22 @@ async fn live_attributes_roads_berlin() {
         ..Default::default()
     };
 
-    let res = provider.get_attributes(&opts).await;
+    let response = provider.get_attributes(&options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[attributes] response keys: {:?}",
-                res.data.as_object().map(|o| o.keys().collect::<Vec<_>>())
+                response.data.as_object().map(|o| o.keys().collect::<Vec<_>>())
             );
             // The response should be a valid JSON object.
             // The real HERE v8 API returns {"geometries": [...], "meta": {...}},
             // not GeoJSON FeatureCollection format.
             assert!(
-                res.data.is_object(),
+                response.data.is_object(),
                 "Attributes response should be a JSON object"
             );
-            if let Some(obj) = res.data.as_object() {
+            if let Some(obj) = response.data.as_object() {
                 assert!(
                     obj.contains_key("geometries")
                         || obj.contains_key("features")
@@ -601,23 +601,23 @@ async fn live_imaging_static_map_berlin() {
     let provider = HereMapImageProvider::new(client);
 
     let center = Coordinate::new(52.5200, 13.4050).unwrap();
-    let opts = ImageOptions::default();
+    let options = ImageOptions::default();
 
-    let res = provider.get_image(&center, 10, (512, 512), &opts).await;
+    let response = provider.get_image(&center, 10, (512, 512), &options).await;
 
-    match res {
-        Ok(res) => {
+    match response {
+        Ok(response) => {
             println!(
                 "[imaging] data bytes: {}, content_type: {:?}",
-                res.data.len(),
-                res.content_type
+                response.data.len(),
+                response.content_type
             );
-            assert!(!res.data.is_empty(), "Image data should not be empty");
+            assert!(!response.data.is_empty(), "Image data should not be empty");
             assert!(
-                res.content_type.is_some(),
+                response.content_type.is_some(),
                 "Image should have a content-type"
             );
-            let ct = res.content_type.as_deref().unwrap_or("");
+            let ct = response.content_type.as_deref().unwrap_or("");
             assert!(
                 ct.starts_with("image/"),
                 "Content type should be an image type, got: {}",

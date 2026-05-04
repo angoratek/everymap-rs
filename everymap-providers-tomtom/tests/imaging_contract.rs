@@ -28,17 +28,17 @@ async fn test_imaging_contract() {
     let imaging = TomTomMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ImageOptions {
+    let options = ImageOptions {
         format: Some("png".to_string()),
         language: None,
         provider_extra: None,
     };
 
-    let res = imaging
-        .get_image(&center, 10, (512, 512), &opts)
+    let response = imaging
+        .get_image(&center, 10, (512, 512), &options)
         .await
         .unwrap();
 
-    assert_eq!(res.data.len(), 8);
-    assert_eq!(res.content_type, Some("image/png".to_string()));
+    assert_eq!(response.data.len(), 8);
+    assert_eq!(response.content_type, Some("image/png".to_string()));
 }

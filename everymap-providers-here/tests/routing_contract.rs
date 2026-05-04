@@ -40,13 +40,13 @@ async fn test_routing_contract() {
 
     let start = Coordinate::new(52.52, 13.405).unwrap();
     let end = Coordinate::new(52.53, 13.41).unwrap();
-    let opts = RouteOptions {
+    let options = RouteOptions {
         transport_mode: Some(TransportMode::Car),
         ..Default::default()
     };
 
-    let res = router.calculate_route(&start, &end, &opts).await.unwrap();
+    let response = router.calculate_route(&start, &end, &options).await.unwrap();
 
-    assert_eq!(res.routes[0].distance, 1500.0);
-    assert_eq!(res.routes[0].duration, 300.0);
+    assert_eq!(response.routes[0].distance, 1500.0);
+    assert_eq!(response.routes[0].duration, 300.0);
 }

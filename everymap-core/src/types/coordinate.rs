@@ -261,14 +261,14 @@ mod tests {
     #[test]
     fn test_coordinate_error_display() {
         let err = CoordinateError::InvalidLatitude(91.0);
-        let msg = format!("{}", err);
-        assert!(msg.contains("91"));
-        assert!(msg.contains("latitude"));
+        let message = format!("{}", err);
+        assert!(message.contains("91"));
+        assert!(message.contains("latitude"));
 
         let err = CoordinateError::InvalidLongitude(200.0);
-        let msg = format!("{}", err);
-        assert!(msg.contains("200"));
-        assert!(msg.contains("longitude"));
+        let message = format!("{}", err);
+        assert!(message.contains("200"));
+        assert!(message.contains("longitude"));
     }
 
     // --- Both lat and lng invalid: lat checked first ---

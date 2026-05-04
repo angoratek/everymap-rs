@@ -230,15 +230,15 @@ mod tests {
 
     #[test]
     fn test_radar_autocomplete_options_default() {
-        let opts = RadarAutocompleteOptions::default();
-        assert!(opts.layers.is_none());
-        assert!(opts.limit.is_none());
-        assert!(opts.country_code.is_none());
+        let options = RadarAutocompleteOptions::default();
+        assert!(options.layers.is_none());
+        assert!(options.limit.is_none());
+        assert!(options.country_code.is_none());
     }
 
     #[test]
     fn test_radar_address_validation_options() {
-        let opts = RadarAddressValidationOptions {
+        let options = RadarAddressValidationOptions {
             city: "New York".to_string(),
             state_code: "NY".to_string(),
             postal_code: "10018".to_string(),
@@ -248,8 +248,8 @@ mod tests {
             unit: None,
             address_label: None,
         };
-        assert_eq!(opts.city, "New York");
-        assert_eq!(opts.number.as_deref(), Some("350"));
+        assert_eq!(options.city, "New York");
+        assert_eq!(options.number.as_deref(), Some("350"));
     }
 
     #[test]

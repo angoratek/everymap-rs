@@ -80,12 +80,12 @@ async fn test_routing_contract() {
 
     let start = Coordinate::new(52.5163, 13.3777).unwrap();
     let end = Coordinate::new(48.8566, 2.3522).unwrap();
-    let opts = RouteOptions {
+    let options = RouteOptions {
         transport_mode: Some(TransportMode::Car),
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &opts).await.unwrap();
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
     assert_eq!(result.routes.len(), 1);
 
     let route = &result.routes[0];
@@ -145,12 +145,12 @@ async fn test_routing_with_pedestrian_mode() {
 
     let start = Coordinate::new(52.5163, 13.3777).unwrap();
     let end = Coordinate::new(48.8566, 2.3522).unwrap();
-    let opts = RouteOptions {
+    let options = RouteOptions {
         transport_mode: Some(TransportMode::Pedestrian),
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &opts).await.unwrap();
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
     assert_eq!(result.routes.len(), 1);
     assert_eq!(result.routes[0].distance, 800000.0);
     assert_eq!(result.routes[0].duration, 576000.0);
@@ -180,8 +180,8 @@ async fn test_routing_error_response() {
 
     let start = Coordinate::new(52.52, 13.405).unwrap();
     let end = Coordinate::new(48.856, 2.352).unwrap();
-    let opts = RouteOptions::default();
+    let options = RouteOptions::default();
 
-    let result = router.calculate_route(&start, &end, &opts).await;
+    let result = router.calculate_route(&start, &end, &options).await;
     assert!(result.is_err());
 }

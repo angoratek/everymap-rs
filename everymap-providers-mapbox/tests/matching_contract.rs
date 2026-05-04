@@ -57,14 +57,14 @@ async fn test_matching_contract() {
         Coordinate::new(52.52, 13.405).unwrap(),
         Coordinate::new(52.55, 13.45).unwrap(),
     ];
-    let opts = MatchingOptions::default();
+    let options = MatchingOptions::default();
 
-    let res = matcher.match_route(&points, &opts).await.unwrap();
+    let response = matcher.match_route(&points, &options).await.unwrap();
 
-    assert_eq!(res.matched_points.len(), 2);
-    assert_eq!(res.distance, 1500.0);
+    assert_eq!(response.matched_points.len(), 2);
+    assert_eq!(response.distance, 1500.0);
     assert_eq!(
-        res.matched_points[0].road_name,
+        response.matched_points[0].road_name,
         Some("Unter den Linden".to_string())
     );
 }

@@ -60,32 +60,32 @@ mod tests {
 
     #[test]
     fn test_matching_options_default() {
-        let opts = MatchingOptions::default();
-        assert!(opts.transport_mode.is_none());
-        assert!(opts.heading.is_none());
-        assert!(opts.departure_time.is_none());
-        assert!(opts.avoid.is_empty());
-        assert!(opts.provider_extra.is_none());
+        let options = MatchingOptions::default();
+        assert!(options.transport_mode.is_none());
+        assert!(options.heading.is_none());
+        assert!(options.departure_time.is_none());
+        assert!(options.avoid.is_empty());
+        assert!(options.provider_extra.is_none());
     }
 
     #[test]
     fn test_matching_options_with_fields() {
-        let opts = MatchingOptions {
+        let options = MatchingOptions {
             transport_mode: Some(crate::domains::routing::TransportMode::Car),
             heading: Some(180.0),
             departure_time: Some(DepartureTime::Iso8601("2024-01-01T08:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Tolls],
             provider_extra: Some(serde_json::json!({"map_match_radius": 50})),
         };
-        assert_eq!(opts.heading, Some(180.0));
-        assert!(opts.avoid.len() == 1);
+        assert_eq!(options.heading, Some(180.0));
+        assert!(options.avoid.len() == 1);
     }
 
     #[test]
     fn test_matched_point_construction() {
-        let coord = Coordinate::new(52.5, 13.4).unwrap();
+        let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let point = MatchedPoint {
-            coordinate: coord,
+            coordinate: coordinate,
             confidence: Some(0.95),
             road_name: Some("Main Street".to_string()),
         };
@@ -146,14 +146,14 @@ mod tests {
 
     #[test]
     fn test_matching_options_serde_roundtrip() {
-        let opts = MatchingOptions {
+        let options = MatchingOptions {
             transport_mode: Some(crate::domains::routing::TransportMode::Bicycle),
             heading: Some(270.0),
             departure_time: Some(DepartureTime::Iso8601("2024-03-15T10:00:00".to_string())),
             avoid: vec![crate::domains::routing::AvoidType::Highways],
             provider_extra: Some(serde_json::json!({"map_match_radius": 30})),
         };
-        let json = serde_json::to_string(&opts).unwrap();
+        let json = serde_json::to_string(&options).unwrap();
         let back: MatchingOptions = serde_json::from_str(&json).unwrap();
         assert_eq!(
             back.transport_mode,

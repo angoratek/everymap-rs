@@ -52,14 +52,14 @@ impl HereMapImageProvider {
 
 /// Convert core `ImageOptions` to HERE-specific `HereImageOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn image_options_from_core(opts: &ImageOptions) -> HereImageOptions {
+fn image_options_from_core(options: &ImageOptions) -> HereImageOptions {
     let mut here_opts = HereImageOptions {
-        lang: opts.language.clone(),
+        lang: options.language.clone(),
         ..Default::default()
     };
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("format").and_then(|v| v.as_str()) {
                 here_opts.format = match v {

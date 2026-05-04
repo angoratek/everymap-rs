@@ -30,15 +30,15 @@ async fn test_imaging_contract() {
     let provider = HereMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ImageOptions::default();
+    let options = ImageOptions::default();
 
-    let res = provider
-        .get_image(&center, 10, (512, 512), &opts)
+    let response = provider
+        .get_image(&center, 10, (512, 512), &options)
         .await
         .unwrap();
 
-    assert_eq!(res.data, image_data.to_vec());
-    assert_eq!(res.content_type.as_deref(), Some("image/png"));
+    assert_eq!(response.data, image_data.to_vec());
+    assert_eq!(response.content_type.as_deref(), Some("image/png"));
 }
 
 #[tokio::test]
@@ -64,7 +64,7 @@ async fn test_imaging_with_options() {
     let provider = HereMapImageProvider::with_base_url(client, server.uri());
 
     let center = Coordinate::new(52.52, 13.405).unwrap();
-    let opts = ImageOptions {
+    let options = ImageOptions {
         format: Some("jpg".to_string()),
         provider_extra: Some(serde_json::json!({
             "style": "default"
@@ -72,11 +72,11 @@ async fn test_imaging_with_options() {
         ..Default::default()
     };
 
-    let res = provider
-        .get_image(&center, 12, (256, 256), &opts)
+    let response = provider
+        .get_image(&center, 12, (256, 256), &options)
         .await
         .unwrap();
 
-    assert_eq!(res.data, image_data.to_vec());
-    assert_eq!(res.content_type.as_deref(), Some("image/jpeg"));
+    assert_eq!(response.data, image_data.to_vec());
+    assert_eq!(response.content_type.as_deref(), Some("image/jpeg"));
 }

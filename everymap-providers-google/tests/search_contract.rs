@@ -103,12 +103,12 @@ async fn test_geocode_with_options() {
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
-    let opts = GeocodeOptions {
+    let options = GeocodeOptions {
         language: Some("fr".to_string()),
         ..Default::default()
     };
 
-    let result = geocoder.geocode("Paris", &opts).await.unwrap();
+    let result = geocoder.geocode("Paris", &options).await.unwrap();
     assert_eq!(result.items.len(), 1);
     assert!(result.items[0].address.city.is_some());
 }
@@ -150,9 +150,9 @@ async fn test_reverse_geocode_contract() {
     let client = Arc::new(GoogleClient::new(auth));
     let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
 
-    let coord = Coordinate::new(52.5163, 13.3777).unwrap();
+    let coordinate = Coordinate::new(52.5163, 13.3777).unwrap();
     let result = geocoder
-        .reverse_geocode(&coord, &ReverseGeocodeOptions::default())
+        .reverse_geocode(&coordinate, &ReverseGeocodeOptions::default())
         .await
         .unwrap();
 

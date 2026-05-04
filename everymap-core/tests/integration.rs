@@ -54,14 +54,14 @@ mod tests {
         let client = Arc::new(everymap_providers_here::client::HereClient::new(auth));
         let geocoder = everymap_providers_here::domain::search::HereGeocoder::new(client);
 
-        let opts = GeocodeOptions::default();
-        let res = geocoder
-            .geocode("Brandenburg Gate, Berlin", &opts)
+        let options = GeocodeOptions::default();
+        let response = geocoder
+            .geocode("Brandenburg Gate, Berlin", &options)
             .await
             .expect("HERE geocode request failed");
 
-        assert!(!res.items.is_empty(), "Expected at least one result");
-        let first = &res.items[0];
+        assert!(!response.items.is_empty(), "Expected at least one result");
+        let first = &response.items[0];
         assert!(
             first.coordinate.lat > 52.0 && first.coordinate.lat < 53.0,
             "Expected Berlin latitude"
@@ -76,14 +76,14 @@ mod tests {
         let client = Arc::new(everymap_providers_here::client::HereClient::new(auth));
         let geocoder = everymap_providers_here::domain::search::HereGeocoder::new(client);
 
-        let coord = Coordinate::new(52.5163, 13.3777).unwrap();
-        let opts = everymap_core::domains::search::ReverseGeocodeOptions::default();
-        let res = geocoder
-            .reverse_geocode(&coord, &opts)
+        let coordinate = Coordinate::new(52.5163, 13.3777).unwrap();
+        let options = everymap_core::domains::search::ReverseGeocodeOptions::default();
+        let response = geocoder
+            .reverse_geocode(&coordinate, &options)
             .await
             .expect("HERE reverse geocode failed");
 
-        assert!(!res.items.is_empty());
+        assert!(!response.items.is_empty());
     }
 
     #[tokio::test]
@@ -96,18 +96,18 @@ mod tests {
 
         let start = Coordinate::new(52.5163, 13.3777).unwrap();
         let end = Coordinate::new(48.8566, 2.3522).unwrap();
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Car),
             ..Default::default()
         };
-        let res = router
-            .calculate_route(&start, &end, &opts)
+        let response = router
+            .calculate_route(&start, &end, &options)
             .await
             .expect("HERE routing failed");
 
-        assert!(!res.routes.is_empty());
+        assert!(!response.routes.is_empty());
         assert!(
-            res.routes[0].distance > 100_000.0,
+            response.routes[0].distance > 100_000.0,
             "Berlin-Paris should be >100km"
         );
     }
@@ -122,13 +122,13 @@ mod tests {
         let client = Arc::new(everymap_providers_google::client::GoogleClient::new(auth));
         let geocoder = everymap_providers_google::GoogleGeocoder::new(client);
 
-        let opts = GeocodeOptions::default();
-        let res = geocoder
-            .geocode("Brandenburg Gate, Berlin", &opts)
+        let options = GeocodeOptions::default();
+        let response = geocoder
+            .geocode("Brandenburg Gate, Berlin", &options)
             .await
             .expect("Google geocode request failed");
 
-        assert!(!res.items.is_empty());
+        assert!(!response.items.is_empty());
     }
 
     #[tokio::test]
@@ -141,16 +141,16 @@ mod tests {
 
         let start = Coordinate::new(52.5163, 13.3777).unwrap();
         let end = Coordinate::new(48.8566, 2.3522).unwrap();
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Car),
             ..Default::default()
         };
-        let res = router
-            .calculate_route(&start, &end, &opts)
+        let response = router
+            .calculate_route(&start, &end, &options)
             .await
             .expect("Google routing failed");
 
-        assert!(!res.routes.is_empty());
+        assert!(!response.routes.is_empty());
     }
 
     // --- TomTom Integration Tests ---
@@ -163,13 +163,13 @@ mod tests {
         let client = Arc::new(everymap_providers_tomtom::client::TomTomClient::new(auth));
         let geocoder = everymap_providers_tomtom::TomTomGeocoder::new(client);
 
-        let opts = GeocodeOptions::default();
-        let res = geocoder
-            .geocode("Brandenburg Gate, Berlin", &opts)
+        let options = GeocodeOptions::default();
+        let response = geocoder
+            .geocode("Brandenburg Gate, Berlin", &options)
             .await
             .expect("TomTom geocode request failed");
 
-        assert!(!res.items.is_empty());
+        assert!(!response.items.is_empty());
     }
 
     #[tokio::test]
@@ -182,16 +182,16 @@ mod tests {
 
         let start = Coordinate::new(52.5163, 13.3777).unwrap();
         let end = Coordinate::new(48.8566, 2.3522).unwrap();
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Car),
             ..Default::default()
         };
-        let res = router
-            .calculate_route(&start, &end, &opts)
+        let response = router
+            .calculate_route(&start, &end, &options)
             .await
             .expect("TomTom routing failed");
 
-        assert!(!res.routes.is_empty());
+        assert!(!response.routes.is_empty());
     }
 
     // --- MapBox Integration Tests ---
@@ -204,13 +204,13 @@ mod tests {
         let client = Arc::new(everymap_providers_mapbox::client::MapBoxClient::new(auth));
         let geocoder = everymap_providers_mapbox::MapBoxGeocoder::new(client);
 
-        let opts = GeocodeOptions::default();
-        let res = geocoder
-            .geocode("Brandenburg Gate, Berlin", &opts)
+        let options = GeocodeOptions::default();
+        let response = geocoder
+            .geocode("Brandenburg Gate, Berlin", &options)
             .await
             .expect("MapBox geocode request failed");
 
-        assert!(!res.items.is_empty());
+        assert!(!response.items.is_empty());
     }
 
     #[tokio::test]
@@ -223,15 +223,15 @@ mod tests {
 
         let start = Coordinate::new(52.5163, 13.3777).unwrap();
         let end = Coordinate::new(48.8566, 2.3522).unwrap();
-        let opts = RouteOptions {
+        let options = RouteOptions {
             transport_mode: Some(TransportMode::Car),
             ..Default::default()
         };
-        let res = router
-            .calculate_route(&start, &end, &opts)
+        let response = router
+            .calculate_route(&start, &end, &options)
             .await
             .expect("MapBox routing failed");
 
-        assert!(!res.routes.is_empty());
+        assert!(!response.routes.is_empty());
     }
 }

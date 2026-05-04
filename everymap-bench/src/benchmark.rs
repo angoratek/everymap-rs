@@ -748,8 +748,8 @@ fn percentile(sorted: &[u64], p: f64) -> u64 {
     if sorted.is_empty() {
         return 0;
     }
-    let idx = ((p / 100.0) * (sorted.len() - 1) as f64).round() as usize;
-    sorted[idx.min(sorted.len() - 1)]
+    let index = ((p / 100.0) * (sorted.len() - 1) as f64).round() as usize;
+    sorted[index.min(sorted.len() - 1)]
 }
 
 /// Build a benchmark report from a set of results.

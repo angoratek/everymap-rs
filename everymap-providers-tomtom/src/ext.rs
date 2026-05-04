@@ -9,7 +9,7 @@ use everymap_core::types::Coordinate;
 ///
 /// ```ignore
 /// use everymap_providers_tomtom::TomTomGeocoderExt;
-/// let results = geocoder.nearby_search(coord, 5000, &options).await?;
+/// let results = geocoder.nearby_search(coordinate, 5000, &options).await?;
 /// ```
 #[async_trait]
 pub trait TomTomGeocoderExt: Send + Sync {

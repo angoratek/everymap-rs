@@ -26,7 +26,7 @@ async fn test_tiling_contract() {
     let client = Arc::new(TomTomClient::new(auth));
     let tiling = TomTomTileProvider::with_base_url(client, server.uri());
 
-    let opts = TileOptions {
+    let options = TileOptions {
         format: Some("png".to_string()),
         provider_extra: Some(serde_json::json!({
             "layer": "basic",
@@ -34,8 +34,8 @@ async fn test_tiling_contract() {
         })),
     };
 
-    let res = tiling.get_tile(10, 523, 335, &opts).await.unwrap();
+    let response = tiling.get_tile(10, 523, 335, &options).await.unwrap();
 
-    assert_eq!(res.data.len(), 8);
-    assert_eq!(res.content_type, Some("image/png".to_string()));
+    assert_eq!(response.data.len(), 8);
+    assert_eq!(response.content_type, Some("image/png".to_string()));
 }

@@ -30,17 +30,17 @@ async fn test_tiling_contract() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereTileProvider::with_base_url(client, server.uri());
 
-    let opts = TileOptions {
+    let options = TileOptions {
         provider_extra: Some(serde_json::json!({
             "layer": "mapbox"
         })),
         ..Default::default()
     };
 
-    let res = provider.get_tile(10, 511, 340, &opts).await.unwrap();
+    let response = provider.get_tile(10, 511, 340, &options).await.unwrap();
 
-    assert_eq!(res.data, tile_data.to_vec());
-    assert_eq!(res.content_type.as_deref(), Some("application/x-protobuf"));
+    assert_eq!(response.data, tile_data.to_vec());
+    assert_eq!(response.content_type.as_deref(), Some("application/x-protobuf"));
 }
 
 #[tokio::test]
@@ -66,16 +66,16 @@ async fn test_tiling_with_different_layer() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereTileProvider::with_base_url(client, server.uri());
 
-    let opts = TileOptions {
+    let options = TileOptions {
         provider_extra: Some(serde_json::json!({
             "layer": "base"
         })),
         ..Default::default()
     };
 
-    let res = provider.get_tile(12, 2047, 1361, &opts).await.unwrap();
+    let response = provider.get_tile(12, 2047, 1361, &options).await.unwrap();
 
-    assert_eq!(res.data, tile_data.to_vec());
+    assert_eq!(response.data, tile_data.to_vec());
 }
 
 #[tokio::test]
@@ -101,7 +101,7 @@ async fn test_tiling_with_optional_params() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereTileProvider::with_base_url(client, server.uri());
 
-    let opts = TileOptions {
+    let options = TileOptions {
         provider_extra: Some(serde_json::json!({
             "layer": "mapbox",
             "political_view": "CHN"
@@ -109,6 +109,6 @@ async fn test_tiling_with_optional_params() {
         ..Default::default()
     };
 
-    let res = provider.get_tile(10, 511, 340, &opts).await.unwrap();
-    assert_eq!(res.data, tile_data.to_vec());
+    let response = provider.get_tile(10, 511, 340, &options).await.unwrap();
+    assert_eq!(response.data, tile_data.to_vec());
 }

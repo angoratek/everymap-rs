@@ -173,14 +173,14 @@ impl From<HereIsolineLegacy> for IsolineResult {
 
 /// Convert core `IsolineOptions` to HERE-specific `HereIsolineOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
-    let range_type = match opts.range_type {
+fn isoline_options_from_core(options: &IsolineOptions) -> HereIsolineOptions {
+    let range_type = match options.range_type {
         Some(everymap_core::domains::isoline::RangeType::Distance) | None => RangeType::Distance,
         Some(everymap_core::domains::isoline::RangeType::Time) => RangeType::Time,
         Some(everymap_core::domains::isoline::RangeType::Consumption) => RangeType::Consumption,
     };
 
-    let transport_mode = match opts.transport_mode {
+    let transport_mode = match options.transport_mode {
         Some(everymap_core::domains::routing::TransportMode::Car) | None => {
             IsolineTransportMode::Car
         }
@@ -202,14 +202,14 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
     let mut here_opts = HereIsolineOptions {
         range_type,
         transport_mode,
-        departure_time: opts.departure_time.as_ref().map(|dt| dt.to_string()),
+        departure_time: options.departure_time.as_ref().map(|dt| dt.to_string()),
         ..Default::default()
     };
 
     // Convert avoid types
-    if !opts.avoid.is_empty() {
+    if !options.avoid.is_empty() {
         here_opts.avoid = Some(
-            opts.avoid
+            options.avoid
                 .iter()
                 .map(|a| match a {
                     everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
@@ -225,7 +225,7 @@ fn isoline_options_from_core(opts: &IsolineOptions) -> HereIsolineOptions {
     }
 
     // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &opts.provider_extra {
+    if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("routing_mode").and_then(|v| v.as_str()) {
                 here_opts.routing_mode = match v {
