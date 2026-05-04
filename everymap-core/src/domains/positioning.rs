@@ -61,7 +61,7 @@ mod tests {
     fn test_positioning_response_construction() {
         let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let response = PositioningResponse {
-            coordinate: coordinate,
+            coordinate,
             accuracy: Some(50.0),
             altitude: Some(34.0),
             altitude_accuracy: Some(10.0),
@@ -78,7 +78,7 @@ mod tests {
     fn test_positioning_response_serde_roundtrip() {
         let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let response = PositioningResponse {
-            coordinate: coordinate,
+            coordinate,
             accuracy: Some(50.0),
             altitude: Some(34.0),
             altitude_accuracy: Some(10.0),
@@ -96,7 +96,7 @@ mod tests {
     fn test_positioning_response_minimal_serde_roundtrip() {
         let coordinate = Coordinate::ORIGIN;
         let response = PositioningResponse {
-            coordinate: coordinate,
+            coordinate,
             accuracy: None,
             altitude: None,
             altitude_accuracy: None,
@@ -129,7 +129,7 @@ mod tests {
     fn test_positioning_response_boundary_coordinates() {
         let coordinate = Coordinate::new(90.0, 180.0).unwrap();
         let response = PositioningResponse {
-            coordinate: coordinate,
+            coordinate,
             accuracy: Some(0.0),
             altitude: Some(0.0),
             altitude_accuracy: Some(0.0),
@@ -143,7 +143,7 @@ mod tests {
     fn test_positioning_response_negative_altitude() {
         let coordinate = Coordinate::new(-33.8688, 151.2093).unwrap();
         let response = PositioningResponse {
-            coordinate: coordinate,
+            coordinate,
             accuracy: Some(15.0),
             altitude: Some(-11.0),
             altitude_accuracy: Some(5.0),

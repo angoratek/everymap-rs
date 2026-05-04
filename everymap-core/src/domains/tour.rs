@@ -83,7 +83,7 @@ mod tests {
     fn test_tour_stop_construction() {
         let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let stop = TourStop {
-            coordinate: coordinate,
+            coordinate,
             arrival_time: Some("2024-01-01T08:30:00".to_string()),
             departure_time: Some("2024-01-01T09:00:00".to_string()),
             duration: Some(1800.0),

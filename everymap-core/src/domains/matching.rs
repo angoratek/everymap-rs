@@ -85,7 +85,7 @@ mod tests {
     fn test_matched_point_construction() {
         let coordinate = Coordinate::new(52.5, 13.4).unwrap();
         let point = MatchedPoint {
-            coordinate: coordinate,
+            coordinate,
             confidence: Some(0.95),
             road_name: Some("Main Street".to_string()),
         };

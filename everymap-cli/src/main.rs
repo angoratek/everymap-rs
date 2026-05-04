@@ -229,8 +229,8 @@ fn exit_with_error(message: &str) -> ! {
 async fn main() {
     let cli = Cli::parse();
 
-    let api_key = match cli.api_key.clone() {
-        Some(key) => key,
+    let api_key = match &cli.api_key {
+        Some(key) => key.clone(),
         None => {
             let config = config::Config::load();
             match config.resolve_api_key(&None, &cli.provider, "EVERYMAP_API_KEY") {
