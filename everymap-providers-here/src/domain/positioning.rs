@@ -77,15 +77,15 @@ impl HerePositioner {
 /// Convert core `PositioningOptions` to HERE-specific `HerePositioningOptions`,
 /// extracting fields from `provider_extra`.
 fn positioning_options_from_core(options: &PositioningOptions) -> HerePositioningOptions {
-    let mut here_opts = HerePositioningOptions::default();
+    let mut here_options = HerePositioningOptions::default();
 
     if let Some(extra) = &options.provider_extra {
         if let Ok(parsed) = serde_json::from_value::<HerePositioningOptions>(extra.clone()) {
-            here_opts = parsed;
+            here_options = parsed;
         }
     }
 
-    here_opts
+    here_options
 }
 
 impl From<PositioningResponse> for CorePositioningResponse {
@@ -109,8 +109,8 @@ impl NetworkPositionerTrait for HerePositioner {
         &self,
         options: &PositioningOptions,
     ) -> EveryMapResult<CorePositioningResponse> {
-        let here_opts = positioning_options_from_core(options);
-        let result = self.locate(here_opts).await?;
+        let here_options = positioning_options_from_core(options);
+        let result = self.locate(here_options).await?;
         Ok(result.into())
     }
 }

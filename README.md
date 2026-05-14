@@ -45,7 +45,7 @@ everymap-rs/
 | Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — |
 | Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — |
 
-✅ = real implementation, — = unsupported (stub or N/A). **31 real implementations** across 5 providers.
+✅ = real implementation, — = unsupported (stub or N/A). **35 real implementations** across 5 providers.
 
 Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
@@ -185,7 +185,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 575+ tests (unit + contract + CLI integration + error cases), all passing with nextest.
+- **TDD**: 578 tests (unit + contract + CLI integration + error cases), all passing with nextest.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
@@ -195,8 +195,8 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 
 ```bash
 cargo build                              # Build all 8 workspace crates
-cargo nextest run --all-features         # Run 575+ tests (install: cargo install cargo-nextest)
-cargo test                               # Or use cargo test
+cargo nextest run --all-features         # Run 578 tests (install: cargo install cargo-nextest)
+cargo test                               # Alternative: standard test runner
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
 ```
@@ -219,7 +219,7 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide including live API 
 ## Future Work
 
 - OAuth2 authentication provider
-- Google Roads API (route matching), Static Maps API (imaging)
+- Upgrade Google routing from legacy Directions API to Routes API v2
 - HERE routing: wire vehicle options (scooter, truck, EV, fuel) through to query params
 - Provider client macro to reduce boilerplate across crates
 

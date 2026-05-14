@@ -194,7 +194,7 @@ impl HereTraffic {
 /// Convert core `TrafficOptions` to HERE-specific `HereFlowOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
 fn flow_options_from_core(options: &TrafficOptions) -> HereFlowOptions {
-    let mut here_opts = HereFlowOptions {
+    let mut here_options = HereFlowOptions {
         ..Default::default()
     };
 
@@ -202,48 +202,48 @@ fn flow_options_from_core(options: &TrafficOptions) -> HereFlowOptions {
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
-                here_opts.in_filter = Some(v.to_string());
+                here_options.in_filter = Some(v.to_string());
             }
             if let Some(v) = obj.get("location_referencing").and_then(|v| v.as_array()) {
-                here_opts.location_referencing = Some(
+                here_options.location_referencing = Some(
                     v.iter()
                         .filter_map(|i| serde_json::from_value(i.clone()).ok())
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("min_jam_factor").and_then(|v| v.as_f64()) {
-                here_opts.min_jam_factor = Some(v);
+                here_options.min_jam_factor = Some(v);
             }
             if let Some(v) = obj.get("max_jam_factor").and_then(|v| v.as_f64()) {
-                here_opts.max_jam_factor = Some(v);
+                here_options.max_jam_factor = Some(v);
             }
             if let Some(v) = obj.get("functional_classes").and_then(|v| v.as_array()) {
-                here_opts.functional_classes = Some(
+                here_options.functional_classes = Some(
                     v.iter()
                         .filter_map(|i| i.as_u64().map(|n| n as u32))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("advanced_features").and_then(|v| v.as_array()) {
-                here_opts.advanced_features = Some(
+                here_options.advanced_features = Some(
                     v.iter()
                         .filter_map(|i| serde_json::from_value(i.clone()).ok())
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("use_ref_replacements").and_then(|v| v.as_bool()) {
-                here_opts.use_ref_replacements = Some(v);
+                here_options.use_ref_replacements = Some(v);
             }
             if let Some(v) = obj
                 .get("exact_segment_ref_matching")
                 .and_then(|v| v.as_bool())
             {
-                here_opts.exact_segment_ref_matching = Some(v);
+                here_options.exact_segment_ref_matching = Some(v);
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -254,10 +254,10 @@ impl TrafficProvider for HereTraffic {
         options: &TrafficOptions,
     ) -> EveryMapResult<TrafficResponse> {
         // Convert core options to HERE-specific options
-        let here_opts = flow_options_from_core(options);
+        let here_options = flow_options_from_core(options);
 
         // Use the rich flow API and extract simplified data
-        let flow_response = self.get_flow(*location, &here_opts).await?;
+        let flow_response = self.get_flow(*location, &here_options).await?;
 
         let flows: Vec<TrafficFlow> = flow_response.results.into_iter().map(Into::into).collect();
 

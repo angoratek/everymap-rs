@@ -74,10 +74,10 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Pull Request Process
 
 1. Ensure `cargo clippy -- -D warnings` passes with zero warnings
-2. Ensure `cargo test` passes (all 575+ tests)
+2. Ensure `cargo test` passes (all 578 tests)
 3. Ensure `cargo fmt --all -- --check` passes
 4. Add tests for any new functionality
-5. Update documentation (CLAUDE.md, README.md, TESTING.md) as needed
+5. Update public-facing documentation (README.md, TESTING.md, CHANGELOG.md) as needed
 6. Keep PRs focused — one feature or fix per PR
 
 ## Release Process

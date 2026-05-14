@@ -107,9 +107,7 @@ impl HereIsoline {
     }
 }
 
-// Internal deserialization for the real v8 API response
-// The HERE Isoline API v8 returns:
-// {"isolines": [{"range": {"type": "...", "value": N}, "polygons": [{"outer": "flexible_polyline"}]}]}
+/// Wire format: `{"isolines": [{"range": {"type": "...", "value": N}, "polygons": [{"outer": "BFPol..."}]}]}`
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacyResponse {
     #[serde(default)]
@@ -128,7 +126,7 @@ struct HereIsolineLegacy {
 }
 
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
+#[allow(dead_code)] // Deserialize-only struct; fields only accessed via serde derive
 struct HereApiIsolineRange {
     #[serde(default)]
     #[serde(rename = "type")]
@@ -199,7 +197,7 @@ fn isoline_options_from_core(options: &IsolineOptions) -> HereIsolineOptions {
         Some(everymap_core::domains::routing::TransportMode::Unknown) => IsolineTransportMode::Car,
     };
 
-    let mut here_opts = HereIsolineOptions {
+    let mut here_options = HereIsolineOptions {
         range_type,
         transport_mode,
         departure_time: options.departure_time.as_ref().map(|dt| dt.to_string()),
@@ -208,7 +206,7 @@ fn isoline_options_from_core(options: &IsolineOptions) -> HereIsolineOptions {
 
     // Convert avoid types
     if !options.avoid.is_empty() {
-        here_opts.avoid = Some(
+        here_options.avoid = Some(
             options.avoid
                 .iter()
                 .map(|a| match a {
@@ -228,76 +226,76 @@ fn isoline_options_from_core(options: &IsolineOptions) -> HereIsolineOptions {
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("routing_mode").and_then(|v| v.as_str()) {
-                here_opts.routing_mode = match v {
+                here_options.routing_mode = match v {
                     "short" => IsolineRoutingMode::Short,
                     _ => IsolineRoutingMode::Fast,
                 };
             }
             if let Some(v) = obj.get("optimize_for") {
-                here_opts.optimize_for = serde_json::from_value(v.clone()).ok();
+                here_options.optimize_for = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("arrival_time").and_then(|v| v.as_str()) {
-                here_opts.arrival_time = Some(v.to_string());
+                here_options.arrival_time = Some(v.to_string());
             }
             if let Some(v) = obj.get("exclude").and_then(|v| v.as_array()) {
-                here_opts.exclude = Some(
+                here_options.exclude = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("shape").and_then(|v| v.as_str()) {
-                here_opts.shape = Some(v.to_string());
+                here_options.shape = Some(v.to_string());
             }
             if let Some(v) = obj.get("vehicle").and_then(|v| v.as_array()) {
-                here_opts.vehicle = Some(
+                here_options.vehicle = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("consumption_model") {
-                here_opts.consumption_model = serde_json::from_value(v.clone()).ok();
+                here_options.consumption_model = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("ev").and_then(|v| v.as_array()) {
-                here_opts.ev = Some(
+                here_options.ev = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("fuel").and_then(|v| v.as_array()) {
-                here_opts.fuel = Some(
+                here_options.fuel = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("max_speed_on_segment").and_then(|v| v.as_array()) {
-                here_opts.max_speed_on_segment = Some(
+                here_options.max_speed_on_segment = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("taxi").and_then(|v| v.as_array()) {
-                here_opts.taxi = Some(
+                here_options.taxi = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("traffic").and_then(|v| v.as_str()) {
-                here_opts.traffic =
+                here_options.traffic =
                     serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("billing_tag").and_then(|v| v.as_str()) {
-                here_opts.billing_tag = Some(v.to_string());
+                here_options.billing_tag = Some(v.to_string());
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -308,15 +306,15 @@ impl IsolineProvider for HereIsoline {
         range: f64,
         options: &IsolineOptions,
     ) -> EveryMapResult<IsolineResponse> {
-        let here_opts = isoline_options_from_core(options);
+        let here_options = isoline_options_from_core(options);
 
-        let range_type = match here_opts.range_type {
+        let range_type = match here_options.range_type {
             RangeType::Time => "time",
             RangeType::Distance => "distance",
             RangeType::Consumption => "consumption",
         };
 
-        let transport = match here_opts.transport_mode {
+        let transport = match here_options.transport_mode {
             IsolineTransportMode::Car => "car",
             IsolineTransportMode::Truck => "truck",
             IsolineTransportMode::Pedestrian => "pedestrian",
@@ -327,7 +325,7 @@ impl IsolineProvider for HereIsoline {
             IsolineTransportMode::Taxi => "taxi",
         };
 
-        let routing_mode = match here_opts.routing_mode {
+        let routing_mode = match here_options.routing_mode {
             IsolineRoutingMode::Fast => "fast",
             IsolineRoutingMode::Short => "short",
         };
@@ -341,47 +339,47 @@ impl IsolineProvider for HereIsoline {
             ("return", "polyline".to_string()),
         ];
 
-        if let Some(opt) = &here_opts.optimize_for {
+        if let Some(opt) = &here_options.optimize_for {
             let value = crate::util::enum_as_str(opt);
             params.push(("optimizeFor", value));
         }
-        if let Some(departure_time) = &here_opts.departure_time {
+        if let Some(departure_time) = &here_options.departure_time {
             params.push(("departureTime", departure_time.clone()));
         }
-        if let Some(at) = &here_opts.arrival_time {
+        if let Some(at) = &here_options.arrival_time {
             params.push(("arrivalTime", at.clone()));
         }
-        if let Some(avoid) = &here_opts.avoid {
+        if let Some(avoid) = &here_options.avoid {
             params.push(("avoid", avoid.join(",")));
         }
-        if let Some(exclude) = &here_opts.exclude {
+        if let Some(exclude) = &here_options.exclude {
             params.push(("exclude", exclude.join(",")));
         }
-        if let Some(traffic) = &here_opts.traffic {
+        if let Some(traffic) = &here_options.traffic {
             params.push(("traffic", crate::util::enum_as_str(traffic)));
         }
-        if let Some(shape) = &here_opts.shape {
+        if let Some(shape) = &here_options.shape {
             params.push(("shape", shape.clone()));
         }
-        if let Some(vehicle) = &here_opts.vehicle {
+        if let Some(vehicle) = &here_options.vehicle {
             params.push(("vehicle", vehicle.join(",")));
         }
-        if let Some(consumption_model) = &here_opts.consumption_model {
+        if let Some(consumption_model) = &here_options.consumption_model {
             params.push(("consumptionModel", crate::util::enum_as_str(consumption_model)));
         }
-        if let Some(ev) = &here_opts.ev {
+        if let Some(ev) = &here_options.ev {
             params.push(("ev", ev.join(",")));
         }
-        if let Some(fuel) = &here_opts.fuel {
+        if let Some(fuel) = &here_options.fuel {
             params.push(("fuel", fuel.join(",")));
         }
-        if let Some(max_speed_on_segment) = &here_opts.max_speed_on_segment {
+        if let Some(max_speed_on_segment) = &here_options.max_speed_on_segment {
             params.push(("maxSpeedOnSegment", max_speed_on_segment.join(",")));
         }
-        if let Some(taxi) = &here_opts.taxi {
+        if let Some(taxi) = &here_options.taxi {
             params.push(("taxi", taxi.join(",")));
         }
-        if let Some(billing_tag) = &here_opts.billing_tag {
+        if let Some(billing_tag) = &here_options.billing_tag {
             params.push(("billingTag", billing_tag.clone()));
         }
 

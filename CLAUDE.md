@@ -43,7 +43,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 575+ tests (unit + contract + CLI integration + error cases)
+- `cargo test` — runs 578 tests (unit + contract + CLI integration + error cases)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
@@ -63,7 +63,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
-**31 real implementations** across 5 providers.
+**35 real implementations** across 5 providers.
 
 ## Adding a New Provider
 1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`

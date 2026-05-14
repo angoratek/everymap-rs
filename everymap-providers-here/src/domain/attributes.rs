@@ -195,7 +195,7 @@ impl HereAttributeProvider {
 /// Convert core `AttributeOptions` to HERE-specific `HereAttributeOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
 fn attribute_options_from_core(options: &AttributeOptions) -> HereAttributeOptions {
-    let mut here_opts = HereAttributeOptions {
+    let mut here_options = HereAttributeOptions {
         lang: options.language.clone(),
         ..Default::default()
     };
@@ -205,10 +205,10 @@ fn attribute_options_from_core(options: &AttributeOptions) -> HereAttributeOptio
         // If bbox already starts with "bbox:", "proximity:", or "tile:", use as-is
         if bbox.starts_with("bbox:") || bbox.starts_with("proximity:") || bbox.starts_with("tile:")
         {
-            here_opts.in_filter = Some(bbox.clone());
+            here_options.in_filter = Some(bbox.clone());
         } else {
             // Convert "lat1,lon1;lat2,lon2" or "south,west;north,east" to "bbox:..."
-            here_opts.in_filter = Some(format!("bbox:{}", bbox.replace(';', ",")));
+            here_options.in_filter = Some(format!("bbox:{}", bbox.replace(';', ",")));
         }
     }
 
@@ -216,32 +216,32 @@ fn attribute_options_from_core(options: &AttributeOptions) -> HereAttributeOptio
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("layers").and_then(|v| v.as_array()) {
-                here_opts.layers = Some(
+                here_options.layers = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("in_filter").and_then(|v| v.as_str()) {
-                here_opts.in_filter = Some(v.to_string());
+                here_options.in_filter = Some(v.to_string());
             }
             if let Some(v) = obj.get("ids").and_then(|v| v.as_array()) {
-                here_opts.ids = Some(
+                here_options.ids = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("srs").and_then(|v| v.as_str()) {
-                here_opts.srs = Some(v.to_string());
+                here_options.srs = Some(v.to_string());
             }
             if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
-                here_opts.political_view = Some(v.to_string());
+                here_options.political_view = Some(v.to_string());
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -250,9 +250,9 @@ impl AttributeProvider for HereAttributeProvider {
         &self,
         options: &AttributeOptions,
     ) -> EveryMapResult<AttributeResponse> {
-        let here_opts = attribute_options_from_core(options);
+        let here_options = attribute_options_from_core(options);
 
-        let data = self.get_map_attributes(&here_opts).await?;
+        let data = self.get_map_attributes(&here_options).await?;
 
         Ok(AttributeResponse { data })
     }

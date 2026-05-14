@@ -64,9 +64,9 @@ impl ScenarioParams {
 
 /// A benchmark scenario defining a test case.
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
 pub struct BenchmarkScenario {
     pub name: String,
+    #[allow(dead_code)]
     pub description: String,
     pub params: ScenarioParams,
 }

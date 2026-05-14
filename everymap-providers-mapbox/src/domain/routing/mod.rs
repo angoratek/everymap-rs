@@ -117,14 +117,14 @@ impl Router for MapBoxRouter {
             params.push(("alternatives", alternatives.to_string()));
         }
         if !options.avoid.is_empty() {
-            eprintln!(
-                "WARNING: MapBox Directions API v5 does not support avoid restrictions; \
+            log::warn!(
+                "MapBox Directions API v5 does not support avoid restrictions; \
                  avoid will be ignored"
             );
         }
         if options.language.is_some() {
-            eprintln!(
-                "WARNING: MapBox Directions API v5 does not support a language parameter; \
+            log::warn!(
+                "MapBox Directions API v5 does not support a language parameter; \
                  language will be ignored"
             );
         }

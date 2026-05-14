@@ -1,5 +1,22 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- `scripts/validate-cli.sh`: 374-assertion CLI validation framework with timing and JSON output.
+- `SUPPORT.md`, `CODEOWNERS`, `.github/FUNDING.yml` community files.
+- Module-level documentation on `everymap-core` crate (crates.io/docs.rs landing page).
+- `waypoint_distance` field on `HereMatchingOptions` (replaces abbreviated `wp_dist`).
+
+### Changed
+- `wp_dist` field on `HereMatchingOptions` is now deprecated — use `waypoint_distance` instead.
+- `here_opts` variable renamed to `here_options` (256 occurrences, 9 files).
+- Replaced `eprintln!` with `log::debug!` / `log::warn!` in library crates (core client, MapBox provider).
+- Documentation: updated implementation count (31→35), test count (575+→578).
+
+### Removed
+- Obsolete `tmp/` planning documents.
+
 ## [0.2.0] — 2026-05-03
 
 ### Added
@@ -18,13 +35,13 @@
 - `RouteOptions.departure_time` and `.arrival_time` changed from `Option<String>` to `Option<DepartureTime>`.
 - `MatchingOptions.departure_time` and `IsolineOptions.departure_time` changed to `Option<DepartureTime>`.
 
-## [0.1.0] — 2025
+## [0.1.0] — 2026-04
 
 ### Added
 - Initial release with workspace architecture (8 crates).
 - 10 domain traits in `everymap-core`.
 - Provider implementations: HERE (10 domains), Google (6), TomTom (8), MapBox (7), Radar (4).
-- 31 real implementations across 5 providers.
+- 35 real implementations across 5 providers.
 - CLI with 11 commands and unified `ProviderRegistry` dispatch.
 - Benchmark framework covering all 10 domains.
-- 575+ tests (unit + contract + CLI integration + error cases).
+- 578 tests (unit + contract + CLI integration + error cases).

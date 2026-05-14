@@ -43,11 +43,11 @@ impl HereTileProvider {
 /// Convert core `TileOptions` to HERE-specific `HereTileOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
 fn tile_options_from_core(options: &TileOptions) -> HereTileOptions {
-    let mut here_opts = HereTileOptions::default();
+    let mut here_options = HereTileOptions::default();
 
     // Common fields
     if let Some(format) = &options.format {
-        here_opts.format = match format.as_str() {
+        here_options.format = match format.as_str() {
             "omv" | "protobuf" => TileFormat::OmnichannelVector,
             "pbf" => TileFormat::Protobuf,
             _ => TileFormat::OmnichannelVector,
@@ -58,7 +58,7 @@ fn tile_options_from_core(options: &TileOptions) -> HereTileOptions {
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("layer").and_then(|v| v.as_str()) {
-                here_opts.layer = match v {
+                here_options.layer = match v {
                     "base" => TileLayer::Base,
                     "core" => TileLayer::Core,
                     "hybrid" => TileLayer::Hybrid,
@@ -67,12 +67,12 @@ fn tile_options_from_core(options: &TileOptions) -> HereTileOptions {
                 };
             }
             if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
-                here_opts.political_view = Some(v.to_string());
+                here_options.political_view = Some(v.to_string());
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -84,16 +84,16 @@ impl TileProvider for HereTileProvider {
         y: u32,
         options: &TileOptions,
     ) -> EveryMapResult<TileResponse> {
-        let here_opts = tile_options_from_core(options);
+        let here_options = tile_options_from_core(options);
 
-        let layer = match &here_opts.layer {
+        let layer = match &here_options.layer {
             TileLayer::Mapbox => "mapbox",
             TileLayer::Base => "base",
             TileLayer::Core => "core",
             TileLayer::Hybrid => "hybrid",
         };
 
-        let format_ext = match &here_opts.format {
+        let format_ext = match &here_options.format {
             TileFormat::OmnichannelVector => "omv",
             TileFormat::Protobuf => "pbf",
         };
@@ -105,7 +105,7 @@ impl TileProvider for HereTileProvider {
 
         let mut builder = self.client.build_request(reqwest::Method::GET, &url);
 
-        if let Some(political_view) = &here_opts.political_view {
+        if let Some(political_view) = &here_options.political_view {
             builder = builder.query(&[("politicalView", political_view)]);
         }
 

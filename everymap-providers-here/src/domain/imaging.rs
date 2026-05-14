@@ -53,7 +53,7 @@ impl HereMapImageProvider {
 /// Convert core `ImageOptions` to HERE-specific `HereImageOptions`,
 /// extracting common fields and parsing `provider_extra` for HERE-specific ones.
 fn image_options_from_core(options: &ImageOptions) -> HereImageOptions {
-    let mut here_opts = HereImageOptions {
+    let mut here_options = HereImageOptions {
         lang: options.language.clone(),
         ..Default::default()
     };
@@ -62,7 +62,7 @@ fn image_options_from_core(options: &ImageOptions) -> HereImageOptions {
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("format").and_then(|v| v.as_str()) {
-                here_opts.format = match v {
+                here_options.format = match v {
                     "jpg" => ImageFormat::Jpg,
                     "gif" => ImageFormat::Gif,
                     "bmp" => ImageFormat::Bmp,
@@ -73,27 +73,27 @@ fn image_options_from_core(options: &ImageOptions) -> HereImageOptions {
                 };
             }
             if let Some(v) = obj.get("style").and_then(|v| v.as_str()) {
-                here_opts.style = Some(v.to_string());
+                here_options.style = Some(v.to_string());
             }
             if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
-                here_opts.political_view = Some(v.to_string());
+                here_options.political_view = Some(v.to_string());
             }
             if let Some(v) = obj.get("poi").and_then(|v| v.as_str()) {
-                here_opts.poi = Some(v.to_string());
+                here_options.poi = Some(v.to_string());
             }
             if let Some(v) = obj.get("bg").and_then(|v| v.as_str()) {
-                here_opts.bg = Some(v.to_string());
+                here_options.bg = Some(v.to_string());
             }
             if let Some(v) = obj.get("center_marker").and_then(|v| v.as_bool()) {
-                here_opts.center_marker = Some(v);
+                here_options.center_marker = Some(v);
             }
             if let Some(v) = obj.get("overlay").and_then(|v| v.as_str()) {
-                here_opts.overlay = Some(v.to_string());
+                here_options.overlay = Some(v.to_string());
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -105,9 +105,9 @@ impl MapImageProvider for HereMapImageProvider {
         size: (u32, u32),
         options: &ImageOptions,
     ) -> EveryMapResult<ImageResponse> {
-        let here_opts = image_options_from_core(options);
+        let here_options = image_options_from_core(options);
 
-        let format_ext = match &here_opts.format {
+        let format_ext = match &here_options.format {
             ImageFormat::Png => "png",
             ImageFormat::Jpg => "jpg",
             ImageFormat::Gif => "gif",
@@ -124,22 +124,22 @@ impl MapImageProvider for HereMapImageProvider {
 
         let mut params: Vec<(String, String)> = vec![];
 
-        if let Some(style) = &here_opts.style {
+        if let Some(style) = &here_options.style {
             params.push(("style".to_string(), style.clone()));
         }
-        if let Some(lang) = &here_opts.lang {
+        if let Some(lang) = &here_options.lang {
             params.push(("lang".to_string(), lang.clone()));
         }
-        if let Some(political_view) = &here_opts.political_view {
+        if let Some(political_view) = &here_options.political_view {
             params.push(("politicalView".to_string(), political_view.clone()));
         }
-        if let Some(poi) = &here_opts.poi {
+        if let Some(poi) = &here_options.poi {
             params.push(("poi".to_string(), poi.clone()));
         }
-        if let Some(bg) = &here_opts.bg {
+        if let Some(bg) = &here_options.bg {
             params.push(("bg".to_string(), bg.clone()));
         }
-        if let Some(overlay) = &here_opts.overlay {
+        if let Some(overlay) = &here_options.overlay {
             params.push(("overlay".to_string(), overlay.clone()));
         }
 

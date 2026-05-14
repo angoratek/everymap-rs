@@ -334,7 +334,7 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
         Some(everymap_core::domains::routing::TransportMode::Unknown) => TransportMode::Car,
     };
 
-    let mut here_opts = HereRouteOptions {
+    let mut here_options = HereRouteOptions {
         transport_mode,
         alternatives: options.alternatives,
         departure_time: options.departure_time.as_ref().map(|dt| dt.to_string()),
@@ -344,7 +344,7 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
 
     // Convert avoid types
     if !options.avoid.is_empty() {
-        here_opts.avoid = Some(
+        here_options.avoid = Some(
             options.avoid
                 .iter()
                 .map(|a| match a {
@@ -364,93 +364,93 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("routing_mode").and_then(|v| v.as_str()) {
-                here_opts.routing_mode = match v {
+                here_options.routing_mode = match v {
                     "short" => RoutingMode::Short,
                     _ => RoutingMode::Fast,
                 };
             }
             if let Some(v) = obj.get("via").and_then(|v| v.as_array()) {
-                here_opts.via = Some(
+                here_options.via = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("arrival_time").and_then(|v| v.as_str()) {
-                here_opts.arrival_time = Some(v.to_string());
+                here_options.arrival_time = Some(v.to_string());
             }
             if let Some(v) = obj.get("exclude").and_then(|v| v.as_array()) {
-                here_opts.exclude = Some(
+                here_options.exclude = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("units").and_then(|v| v.as_str()) {
-                here_opts.units =
+                here_options.units =
                     serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("spans").and_then(|v| v.as_array()) {
-                here_opts.spans = Some(
+                here_options.spans = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("vehicle").and_then(|v| v.as_array()) {
-                here_opts.vehicle = Some(
+                here_options.vehicle = Some(
                     v.iter()
                         .filter_map(|i| i.as_str().map(String::from))
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("consumption_model").and_then(|v| v.as_str()) {
-                here_opts.consumption_model =
+                here_options.consumption_model =
                     serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("traffic").and_then(|v| v.as_str()) {
-                here_opts.traffic =
+                here_options.traffic =
                     serde_json::from_value(serde_json::Value::String(v.to_string())).ok();
             }
             if let Some(v) = obj.get("billing_tag").and_then(|v| v.as_str()) {
-                here_opts.billing_tag = Some(v.to_string());
+                here_options.billing_tag = Some(v.to_string());
             }
             if let Some(v) = obj.get("scooter") {
-                here_opts.scooter = serde_json::from_value(v.clone()).ok();
+                here_options.scooter = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("truck") {
-                here_opts.truck = serde_json::from_value(v.clone()).ok();
+                here_options.truck = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("ev") {
-                here_opts.ev = serde_json::from_value(v.clone()).ok();
+                here_options.ev = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("fuel") {
-                here_opts.fuel = serde_json::from_value(v.clone()).ok();
+                here_options.fuel = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("driver") {
-                here_opts.driver = serde_json::from_value(v.clone()).ok();
+                here_options.driver = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("taxi") {
-                here_opts.taxi = serde_json::from_value(v.clone()).ok();
+                here_options.taxi = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("tolls") {
-                here_opts.tolls = serde_json::from_value(v.clone()).ok();
+                here_options.tolls = serde_json::from_value(v.clone()).ok();
             }
             if let Some(v) = obj.get("max_speed_on_segment").and_then(|v| v.as_array()) {
-                here_opts.max_speed_on_segment = Some(
+                here_options.max_speed_on_segment = Some(
                     v.iter()
                         .filter_map(|i| serde_json::from_value(i.clone()).ok())
                         .collect(),
                 );
             }
             if let Some(v) = obj.get("customizations").and_then(|v| v.as_str()) {
-                here_opts.customizations = Some(v.to_string());
+                here_options.customizations = Some(v.to_string());
             }
             if let Some(v) = obj.get("currency").and_then(|v| v.as_str()) {
-                here_opts.currency = Some(v.to_string());
+                here_options.currency = Some(v.to_string());
             }
             if let Some(v) = obj.get("route_handle").and_then(|v| v.as_str()) {
-                here_opts.route_handle = Some(v.to_string());
+                here_options.route_handle = Some(v.to_string());
             }
             if let Some(v) = obj.get("return_fields").and_then(|v| v.as_array()) {
                 let parsed: Vec<ReturnField> = v
@@ -458,13 +458,13 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
                     .filter_map(|item| serde_json::from_value(item.clone()).ok())
                     .collect();
                 if !parsed.is_empty() {
-                    here_opts.return_fields = Some(parsed);
+                    here_options.return_fields = Some(parsed);
                 }
             }
         }
     }
 
-    here_opts
+    here_options
 }
 
 #[async_trait]
@@ -475,9 +475,9 @@ impl Router for HereRouter {
         end: &everymap_core::types::Coordinate,
         options: &RouteOptions,
     ) -> EveryMapResult<RouteResponse> {
-        let here_opts = route_options_from_core(options);
+        let here_options = route_options_from_core(options);
 
-        let transport = match here_opts.transport_mode {
+        let transport = match here_options.transport_mode {
             TransportMode::Car => "car",
             TransportMode::Truck => "truck",
             TransportMode::Pedestrian => "pedestrian",
@@ -489,7 +489,7 @@ impl Router for HereRouter {
             TransportMode::NetworkRestrictedTruck => "networkRestrictedTruck",
         };
 
-        let mode = match here_opts.routing_mode {
+        let mode = match here_options.routing_mode {
             RoutingMode::Fast => "fast",
             RoutingMode::Short => "short",
         };
@@ -501,7 +501,7 @@ impl Router for HereRouter {
             ("destination".to_string(), format!("{},{}", end.lat, end.lng)),
         ];
 
-        if let Some(return_fields) = &here_opts.return_fields {
+        if let Some(return_fields) = &here_options.return_fields {
             params.push((
                 "return".to_string(),
                 return_fields
@@ -514,52 +514,52 @@ impl Router for HereRouter {
             params.push(("return".to_string(), "polyline,summary".to_string()));
         }
 
-        if let Some(alternatives) = here_opts.alternatives {
+        if let Some(alternatives) = here_options.alternatives {
             params.push(("alternatives".to_string(), alternatives.to_string()));
         }
-        if let Some(via) = &here_opts.via {
+        if let Some(via) = &here_options.via {
             for v in via {
                 params.push(("via".to_string(), v.clone()));
             }
         }
-        if let Some(departure_time) = &here_opts.departure_time {
+        if let Some(departure_time) = &here_options.departure_time {
             params.push(("departureTime".to_string(), departure_time.clone()));
         }
-        if let Some(at) = &here_opts.arrival_time {
+        if let Some(at) = &here_options.arrival_time {
             params.push(("arrivalTime".to_string(), at.clone()));
         }
-        if let Some(avoid) = &here_opts.avoid {
+        if let Some(avoid) = &here_options.avoid {
             params.push(("avoid".to_string(), avoid.join(",")));
         }
-        if let Some(exclude) = &here_opts.exclude {
+        if let Some(exclude) = &here_options.exclude {
             params.push(("exclude".to_string(), exclude.join(",")));
         }
-        if let Some(units) = &here_opts.units {
+        if let Some(units) = &here_options.units {
             params.push(("units".to_string(), crate::util::enum_as_str(units)));
         }
-        if let Some(lang) = &here_opts.lang {
+        if let Some(lang) = &here_options.lang {
             params.push(("lang".to_string(), lang.clone()));
         }
-        if let Some(spans) = &here_opts.spans {
+        if let Some(spans) = &here_options.spans {
             params.push(("spans".to_string(), spans.join(",")));
         }
-        if let Some(vehicle) = &here_opts.vehicle {
+        if let Some(vehicle) = &here_options.vehicle {
             params.push(("vehicle".to_string(), vehicle.join(",")));
         }
-        if let Some(consumption_model) = &here_opts.consumption_model {
+        if let Some(consumption_model) = &here_options.consumption_model {
             params.push((
                 "consumptionModel".to_string(),
                 crate::util::enum_as_str(consumption_model),
             ));
         }
         // Scooter options
-        if let Some(scooter) = &here_opts.scooter {
+        if let Some(scooter) = &here_options.scooter {
             if let Some(allow_highway) = scooter.allow_highway {
                 params.push(("scooter[allowHighway]".to_string(), allow_highway.to_string()));
             }
         }
         // Truck options
-        if let Some(truck) = &here_opts.truck {
+        if let Some(truck) = &here_options.truck {
             if let Some(height) = truck.height {
                 params.push(("truck[height]".to_string(), format!("{}m", height)));
             }
@@ -592,7 +592,7 @@ impl Router for HereRouter {
             }
         }
         // EV options
-        if let Some(ev) = &here_opts.ev {
+        if let Some(ev) = &here_options.ev {
             if let Some(charging_mode) = &ev.charging_mode {
                 params.push(("ev[chargingMode]".to_string(), charging_mode.clone()));
             }
@@ -607,7 +607,7 @@ impl Router for HereRouter {
             }
         }
         // Fuel options
-        if let Some(fuel) = &here_opts.fuel {
+        if let Some(fuel) = &here_options.fuel {
             if let Some(free_flow_speed_table) = &fuel.free_flow_speed_table {
                 params.push(("fuel[freeFlowSpeedTable]".to_string(), free_flow_speed_table.clone()));
             }
@@ -622,7 +622,7 @@ impl Router for HereRouter {
             }
         }
         // Driver options
-        if let Some(driver) = &here_opts.driver {
+        if let Some(driver) = &here_options.driver {
             if let Some(daily_duration) = driver.daily_duration {
                 params.push(("driver[dailyDuration]".to_string(), daily_duration.to_string()));
             }
@@ -634,13 +634,13 @@ impl Router for HereRouter {
             }
         }
         // Taxi options
-        if let Some(taxi) = &here_opts.taxi {
+        if let Some(taxi) = &here_options.taxi {
             if let Some(allow_drive_through) = taxi.allow_drive_through_taxi_roads {
                 params.push(("taxi[allowDriveThroughTaxiRoads]".to_string(), allow_drive_through.to_string()));
             }
         }
         // Tolls options
-        if let Some(tolls) = &here_opts.tolls {
+        if let Some(tolls) = &here_options.tolls {
             if let Some(vehicle) = &tolls.vehicle {
                 params.push(("tolls[vehicle]".to_string(), vehicle.join(",")));
             }
@@ -649,7 +649,7 @@ impl Router for HereRouter {
             }
         }
         // Max speed on segment overrides
-        if let Some(segments) = &here_opts.max_speed_on_segment {
+        if let Some(segments) = &here_options.max_speed_on_segment {
             for (i, segment) in segments.iter().enumerate() {
                 if let Some(segment_ref) = &segment.segment_ref {
                     params.push((format!("maxSpeedOnSegment[{}][segmentRef]", i), segment_ref.clone()));
@@ -659,19 +659,19 @@ impl Router for HereRouter {
                 }
             }
         }
-        if let Some(traffic) = &here_opts.traffic {
+        if let Some(traffic) = &here_options.traffic {
             params.push(("traffic".to_string(), crate::util::enum_as_str(traffic)));
         }
-        if let Some(billing_tag) = &here_opts.billing_tag {
+        if let Some(billing_tag) = &here_options.billing_tag {
             params.push(("billingTag".to_string(), billing_tag.clone()));
         }
-        if let Some(currency) = &here_opts.currency {
+        if let Some(currency) = &here_options.currency {
             params.push(("currency".to_string(), currency.clone()));
         }
-        if let Some(customizations) = &here_opts.customizations {
+        if let Some(customizations) = &here_options.customizations {
             params.push(("customizations".to_string(), customizations.clone()));
         }
-        if let Some(route_handle) = &here_opts.route_handle {
+        if let Some(route_handle) = &here_options.route_handle {
             params.push(("routeHandle".to_string(), route_handle.clone()));
         }
 
