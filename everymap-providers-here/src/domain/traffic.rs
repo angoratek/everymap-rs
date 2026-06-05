@@ -198,6 +198,13 @@ fn flow_options_from_core(options: &TrafficOptions) -> HereFlowOptions {
         ..Default::default()
     };
 
+    if options.language.is_some() {
+        log::warn!(
+            "HERE traffic flow API does not support language in the flow endpoint; \
+             language will be ignored for flow data. Use incidents API for localized incident data."
+        );
+    }
+
     // Extract HERE-specific options from provider_extra
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {

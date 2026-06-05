@@ -1,5 +1,6 @@
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
 use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::types::{BoundingBox, Coordinate};
 use everymap_providers_radar::{RadarClient, RadarGeocoder};
 use std::sync::Arc;
 use wiremock::matchers::{method, path, query_param};
@@ -118,4 +119,40 @@ async fn test_geocode_with_options() {
     };
     let result = geocoder.geocode("Berlin", &options).await.unwrap();
     assert_eq!(result.items.len(), 2);
+}
+
+#[tokio::test]
+async fn test_geocode_with_bounding_box_warns() {
+    let (server, geocoder) = setup_geocoder_mock().await;
+
+    Mock::given(method("GET"))
+        .and(path("/v1/geocode/forward"))
+        .and(query_param("query", "Berlin"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "addresses": [{
+                "latitude": 52.52,
+                "longitude": 13.405,
+                "formattedAddress": "Berlin, Germany",
+                "country": "Germany",
+                "countryCode": "DE",
+                "city": "Berlin",
+                "confidence": "exact"
+            }]
+        })))
+        .mount(&server)
+        .await;
+
+    let bounding_box = BoundingBox::new(
+        Coordinate::new(52.6, 13.5).unwrap(),
+        Coordinate::new(52.4, 13.3).unwrap(),
+    );
+    let options = GeocodeOptions {
+        bounding_box: Some(bounding_box),
+        ..Default::default()
+    };
+
+    // bounding_box logs a warning but the request still works
+    let result = geocoder.geocode("Berlin", &options).await.unwrap();
+    assert_eq!(result.items.len(), 1);
 }

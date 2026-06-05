@@ -58,6 +58,19 @@ fn image_options_from_core(options: &ImageOptions) -> HereImageOptions {
         ..Default::default()
     };
 
+    // Read format from core field first, then provider_extra as override
+    if let Some(fmt) = &options.format {
+        here_options.format = match fmt.to_lowercase().as_str() {
+            "jpg" | "jpeg" => ImageFormat::Jpg,
+            "gif" => ImageFormat::Gif,
+            "bmp" => ImageFormat::Bmp,
+            "svg" => ImageFormat::Svg,
+            "png8" => ImageFormat::Png8,
+            "png32" => ImageFormat::Png32,
+            _ => ImageFormat::Png,
+        };
+    }
+
     // Extract HERE-specific options from provider_extra
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {

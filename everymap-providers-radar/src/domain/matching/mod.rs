@@ -60,6 +60,22 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
         points: &[Coordinate],
         options: &MatchingOptions,
     ) -> EveryMapResult<TraceResponse> {
+        if options.heading.is_some() {
+            log::warn!(
+                "Radar Route Match API does not support heading; ignoring"
+            );
+        }
+        if options.departure_time.is_some() {
+            log::warn!(
+                "Radar Route Match API does not support departure_time; ignoring"
+            );
+        }
+        if !options.avoid.is_empty() {
+            log::warn!(
+                "Radar Route Match API does not support avoid restrictions; ignoring"
+            );
+        }
+
         if points.is_empty() {
             return Err(EveryMapError::ValidationError(
                 "At least one point is required for route matching".to_string(),

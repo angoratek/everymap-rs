@@ -17,6 +17,10 @@ pub struct RadarGeocoder {
     pub(crate) client: std::sync::Arc<RadarClient>,
     pub(crate) base_url: String,
     pub(crate) reverse_base_url: String,
+    pub(crate) ip_geocode_url: String,
+    pub(crate) autocomplete_url: String,
+    pub(crate) validate_url: String,
+    pub(crate) places_url: String,
 }
 
 impl RadarGeocoder {
@@ -25,6 +29,10 @@ impl RadarGeocoder {
             client,
             base_url: GEOCODING_BASE_URL.to_string(),
             reverse_base_url: REVERSE_GEOCODING_BASE_URL.to_string(),
+            ip_geocode_url: "https://api.radar.io/v1/geocode/ip".to_string(),
+            autocomplete_url: "https://api.radar.io/v1/search/autocomplete".to_string(),
+            validate_url: "https://api.radar.io/v1/addresses/validate".to_string(),
+            places_url: "https://api.radar.io/v1/search/places".to_string(),
         }
     }
 
@@ -37,6 +45,30 @@ impl RadarGeocoder {
             client,
             base_url,
             reverse_base_url,
+            ip_geocode_url: "https://api.radar.io/v1/geocode/ip".to_string(),
+            autocomplete_url: "https://api.radar.io/v1/search/autocomplete".to_string(),
+            validate_url: "https://api.radar.io/v1/addresses/validate".to_string(),
+            places_url: "https://api.radar.io/v1/search/places".to_string(),
+        }
+    }
+
+    pub fn with_ext_urls(
+        client: std::sync::Arc<RadarClient>,
+        base_url: String,
+        reverse_base_url: String,
+        ip_geocode_url: String,
+        autocomplete_url: String,
+        validate_url: String,
+        places_url: String,
+    ) -> Self {
+        Self {
+            client,
+            base_url,
+            reverse_base_url,
+            ip_geocode_url,
+            autocomplete_url,
+            validate_url,
+            places_url,
         }
     }
 }
@@ -153,6 +185,12 @@ impl Geocoder for RadarGeocoder {
         }
         if !options.country_codes.is_empty() {
             params.push(("country", options.country_codes.join(",")));
+        }
+        if options.bounding_box.is_some() {
+            log::warn!(
+                "Radar Geocoding API does not support bounding_box; \
+                 bounding_box will be ignored"
+            );
         }
         // Extract Radar-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {

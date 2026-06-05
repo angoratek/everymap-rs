@@ -153,7 +153,13 @@ impl Router for GoogleRouter {
             Some(TransportMode::Car) | None => "driving",
             Some(TransportMode::Bicycle) => "bicycling",
             Some(TransportMode::Pedestrian) => "walking",
-            _ => "driving",
+            other => {
+                log::warn!(
+                    "Google Directions API does not support transport mode {:?}, falling back to driving",
+                    other
+                );
+                "driving"
+            }
         };
 
         let mut params: Vec<(&str, String)> = vec![
@@ -165,6 +171,12 @@ impl Router for GoogleRouter {
         if let Some(lang) = &options.language {
             params.push(("language", lang.clone()));
         }
+        if options.arrival_time.is_some() {
+            log::warn!(
+                "Google Directions API does not support arrival_time; \
+                 arrival_time will be ignored"
+            );
+        }
         if !options.avoid.is_empty() {
             let avoid_str: String = options
                 .avoid
@@ -173,8 +185,13 @@ impl Router for GoogleRouter {
                     everymap_core::domains::routing::AvoidType::Tolls => Some("tolls"),
                     everymap_core::domains::routing::AvoidType::Highways => Some("highways"),
                     everymap_core::domains::routing::AvoidType::Ferries => Some("ferries"),
-                    // Tunnels and DirtRoads are not supported by Google Directions API
-                    _ => None,
+                    unsupported => {
+                        log::warn!(
+                            "Google Directions API does not support avoid type {:?}; ignoring",
+                            unsupported
+                        );
+                        None
+                    }
                 })
                 .collect::<Vec<&str>>()
                 .join("|");

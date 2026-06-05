@@ -52,6 +52,12 @@ impl MapImageProvider for MapBoxMapImageProvider {
         if let Some(lang) = &options.language {
             params.push(("language", lang.clone()));
         }
+        if options.format.is_some() {
+            log::warn!(
+                "MapBox Static Images API does not support a format parameter; \
+                 format will be ignored (MapBox always returns PNG)"
+            );
+        }
 
         let builder = self
             .client

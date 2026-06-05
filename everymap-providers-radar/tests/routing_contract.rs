@@ -1,10 +1,9 @@
 use everymap_core::auth::AuthProvider;
-use everymap_core::domains::routing::RouteOptions;
-use everymap_core::domains::routing::Router;
+use everymap_core::domains::routing::{AvoidType, RouteOptions, Router, TransportMode};
 use everymap_core::types::Coordinate;
 use everymap_providers_radar::{RadarClient, RadarRouter};
 use std::sync::Arc;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 async fn setup_router_mock() -> (MockServer, RadarRouter) {
@@ -62,4 +61,105 @@ async fn test_routing_contract() {
     assert!((route.distance - 250000.0).abs() < 1.0);
     assert!((route.duration - 120.5 * 60.0).abs() < 1.0); // converted from minutes to seconds
     assert_eq!(route.steps.len(), 1);
+}
+
+#[tokio::test]
+async fn test_routing_with_provider_extra_alternatives() {
+    let (server, router) = setup_router_mock().await;
+
+    Mock::given(method("GET"))
+        .and(path("/v1/route/directions"))
+        .and(query_param("alternatives", "true"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "routes": [
+                {
+                    "duration": { "value": 120.5, "text": "2h 0m" },
+                    "distance": { "value": 250000, "text": "250 km" },
+                    "legs": [],
+                    "geometry": { "polyline": "" }
+                },
+                {
+                    "duration": { "value": 130.0, "text": "2h 10m" },
+                    "distance": { "value": 260000, "text": "260 km" },
+                    "legs": [],
+                    "geometry": { "polyline": "" }
+                }
+            ]
+        })))
+        .mount(&server)
+        .await;
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        provider_extra: Some(serde_json::json!({"alternatives": true})),
+        ..Default::default()
+    };
+
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    assert_eq!(result.routes.len(), 2);
+}
+
+#[tokio::test]
+async fn test_routing_with_provider_extra_avoid() {
+    let (server, router) = setup_router_mock().await;
+
+    Mock::given(method("GET"))
+        .and(path("/v1/route/directions"))
+        .and(query_param("avoid", "tolls"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "routes": [{
+                "duration": { "value": 130.0, "text": "2h 10m" },
+                "distance": { "value": 255000, "text": "255 km" },
+                "legs": [],
+                "geometry": { "polyline": "" }
+            }]
+        })))
+        .mount(&server)
+        .await;
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        provider_extra: Some(serde_json::json!({"avoid": "tolls"})),
+        ..Default::default()
+    };
+
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    assert_eq!(result.routes.len(), 1);
+}
+
+#[tokio::test]
+async fn test_routing_with_avoid_core_field_warns() {
+    let (server, router) = setup_router_mock().await;
+
+    Mock::given(method("GET"))
+        .and(path("/v1/route/directions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "routes": [{
+                "duration": { "value": 120.5, "text": "2h 0m" },
+                "distance": { "value": 250000, "text": "250 km" },
+                "legs": [],
+                "geometry": { "polyline": "" }
+            }]
+        })))
+        .mount(&server)
+        .await;
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        avoid: vec![AvoidType::Tolls, AvoidType::Highways],
+        ..Default::default()
+    };
+
+    // Core avoid field logs a warning but route still works
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    assert_eq!(result.routes.len(), 1);
 }

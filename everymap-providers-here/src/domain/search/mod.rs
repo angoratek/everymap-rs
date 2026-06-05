@@ -25,6 +25,7 @@ pub struct HereGeocodeOptions {
     pub qq: Option<String>,
     pub lang: Option<String>,
     pub limit: Option<u32>,
+    pub radius: Option<f64>,
     pub political_view: Option<String>,
     pub address_names_mode: Option<AddressNamesMode>,
     pub address_names_variant: Option<String>,
@@ -174,6 +175,7 @@ fn reverse_geocode_options_from_core(options: &ReverseGeocodeOptions) -> HereGeo
     let mut here_options = HereGeocodeOptions {
         limit: options.limit,
         lang: options.language.clone(),
+        radius: options.radius,
         ..Default::default()
     };
 
@@ -309,6 +311,9 @@ fn apply_geocode_options(options: &HereGeocodeOptions, params: &mut Vec<(&str, S
     }
     if let Some(limit) = options.limit {
         params.push(("limit", limit.to_string()));
+    }
+    if let Some(radius) = options.radius {
+        params.push(("radius", radius.to_string()));
     }
     if let Some(political_view) = &options.political_view {
         params.push(("politicalView", political_view.clone()));

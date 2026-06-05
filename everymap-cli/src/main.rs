@@ -9,6 +9,8 @@ use everymap_core::domains::isoline::{IsolineOptions, RangeType as CoreRangeType
 use everymap_core::domains::matching::MatchingOptions;
 use everymap_core::domains::positioning::PositioningOptions;
 use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
+use everymap_core::domains::routing::AvoidType as CoreAvoidType;
+use everymap_core::domains::routing::DepartureTime;
 use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
 use everymap_core::domains::tiling::TileOptions;
 use everymap_core::domains::tour::TourOptions;
@@ -53,6 +55,18 @@ enum Commands {
     Geocode {
         /// Address to geocode
         query: String,
+        /// Maximum number of results
+        #[arg(long)]
+        limit: Option<u32>,
+        /// Language for results (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
+        /// Country codes to restrict search (repeatable, e.g., --country DE --country FR)
+        #[arg(long = "country", num_args = 1..)]
+        country_codes: Option<Vec<String>>,
+        /// Bounding box as "south,west;north,east"
+        #[arg(long)]
+        bbox: Option<String>,
     },
     /// Reverse geocode coordinates to an address
     ReverseGeocode {
@@ -62,6 +76,15 @@ enum Commands {
         /// Longitude
         #[arg(long)]
         lng: f64,
+        /// Maximum number of results
+        #[arg(long)]
+        limit: Option<u32>,
+        /// Language for results (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
+        /// Search radius in meters
+        #[arg(long)]
+        radius: Option<f64>,
     },
     /// Calculate a route between two points
     Route {
@@ -74,6 +97,21 @@ enum Commands {
         /// Transport mode (car, truck, pedestrian, bicycle, scooter, bus, taxi)
         #[arg(long, default_value = "car")]
         transport: String,
+        /// Number of alternative routes
+        #[arg(long)]
+        alternatives: Option<u32>,
+        /// Road types to avoid (repeatable: tolls, ferries, tunnels, highways, dirt-roads)
+        #[arg(long = "avoid", num_args = 1..)]
+        avoid: Option<Vec<String>>,
+        /// Departure time (now, unix timestamp, or ISO 8601)
+        #[arg(long)]
+        departure_time: Option<String>,
+        /// Arrival time (now, unix timestamp, or ISO 8601)
+        #[arg(long)]
+        arrival_time: Option<String>,
+        /// Language for instructions (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
     },
     /// Get traffic flow data for a location
     Traffic {
@@ -89,6 +127,9 @@ enum Commands {
         /// Include incident data (true/false)
         #[arg(long)]
         include_incidents: Option<bool>,
+        /// Language for results (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
     },
     /// Get position estimate from network data
     Position,
@@ -109,6 +150,12 @@ enum Commands {
         /// Range type (distance, time) — default: distance
         #[arg(long, default_value = "distance")]
         range_type: String,
+        /// Departure time (now, unix timestamp, or ISO 8601)
+        #[arg(long)]
+        departure_time: Option<String>,
+        /// Road types to avoid (repeatable: tolls, ferries, tunnels, highways, dirt-roads)
+        #[arg(long = "avoid", num_args = 1..)]
+        avoid: Option<Vec<String>>,
     },
     /// Match a GPS trace to the road network
     MatchRoute {
@@ -118,6 +165,15 @@ enum Commands {
         /// Transport mode for matching (car, truck, pedestrian, bicycle) — default: car
         #[arg(long, default_value = "car")]
         transport: String,
+        /// Heading in degrees (0–360)
+        #[arg(long)]
+        heading: Option<f64>,
+        /// Departure time (now, unix timestamp, or ISO 8601)
+        #[arg(long)]
+        departure_time: Option<String>,
+        /// Road types to avoid (repeatable: tolls, ferries, tunnels, highways, dirt-roads)
+        #[arg(long = "avoid", num_args = 1..)]
+        avoid: Option<Vec<String>>,
     },
     /// Optimize a tour visiting multiple stops
     Tour {
@@ -145,6 +201,9 @@ enum Commands {
         /// Tile layer (provider-specific: HERE uses base/core/hybrid, TomTom uses basic/hybrid/labels)
         #[arg(long)]
         layer: Option<String>,
+        /// Tile format (mvt, png, json)
+        #[arg(long)]
+        format: Option<String>,
         /// Output file path (default: tile.omv)
         #[arg(long, default_value = "tile.omv")]
         output_file: String,
@@ -166,6 +225,9 @@ enum Commands {
         /// Include specific attribute fields (comma-separated)
         #[arg(long)]
         include: Option<String>,
+        /// Language for results (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
     },
     /// Get a static map image
     MapImage {
@@ -178,6 +240,12 @@ enum Commands {
         /// Zoom level
         #[arg(long, default_value = "14")]
         zoom: u32,
+        /// Image format (png, jpg)
+        #[arg(long)]
+        format: Option<String>,
+        /// Language for labels (e.g., en, fr, de)
+        #[arg(long)]
+        language: Option<String>,
         /// Output file path (default: map.png)
         #[arg(long, default_value = "map.png")]
         output_file: String,
@@ -205,6 +273,37 @@ fn parse_transport_mode(transport: &str) -> CoreTransportMode {
         "taxi" => CoreTransportMode::Taxi,
         _ => CoreTransportMode::Car,
     }
+}
+
+fn parse_avoid_type(avoid: &str) -> CoreAvoidType {
+    match avoid {
+        "tolls" => CoreAvoidType::Tolls,
+        "ferries" => CoreAvoidType::Ferries,
+        "tunnels" => CoreAvoidType::Tunnels,
+        "highways" => CoreAvoidType::Highways,
+        "dirt-roads" | "dirt_roads" => CoreAvoidType::DirtRoads,
+        _ => CoreAvoidType::Tolls,
+    }
+}
+
+fn parse_departure_time(value: &str) -> DepartureTime {
+    if value == "now" {
+        DepartureTime::Now
+    } else if let Ok(ts) = value.parse::<i64>() {
+        DepartureTime::Timestamp(ts)
+    } else {
+        DepartureTime::Iso8601(value.to_string())
+    }
+}
+
+fn parse_bbox(bbox: &str) -> Option<everymap_core::types::BoundingBox> {
+    let parts: Vec<&str> = bbox.split(';').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let sw = parse_coordinate(parts[0]).ok()?;
+    let ne = parse_coordinate(parts[1]).ok()?;
+    Some(everymap_core::types::BoundingBox::new(ne, sw))
 }
 
 fn print_output(value: &serde_json::Value, format: &output::OutputFormat) {
@@ -268,9 +367,15 @@ async fn run_commands(
     output_format: &output::OutputFormat,
 ) {
     match &cli.command {
-        Commands::Geocode { query } => {
+        Commands::Geocode { query, limit, language, country_codes, bbox } => {
             let geocoder = registry.geocoder();
-            let options = GeocodeOptions::default();
+            let options = GeocodeOptions {
+                limit: *limit,
+                language: language.clone(),
+                country_codes: country_codes.clone().unwrap_or_default(),
+                bounding_box: bbox.as_ref().and_then(|b| parse_bbox(b)),
+                ..Default::default()
+            };
             match geocoder.geocode(query, &options).await {
                 Ok(result) => {
                     let output: Vec<serde_json::Value> = result.items.iter().map(|item| {
@@ -288,11 +393,16 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::ReverseGeocode { lat, lng } => {
+        Commands::ReverseGeocode { lat, lng, limit, language, radius } => {
             let geocoder = registry.geocoder();
             let coordinate = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let options = ReverseGeocodeOptions::default();
+            let options = ReverseGeocodeOptions {
+                limit: *limit,
+                language: language.clone(),
+                radius: *radius,
+                ..Default::default()
+            };
             match geocoder.reverse_geocode(&coordinate, &options).await {
                 Ok(result) => {
                     let output: Vec<serde_json::Value> = result.items.iter().map(|item| {
@@ -313,6 +423,11 @@ async fn run_commands(
             origin,
             destination,
             transport,
+            alternatives,
+            avoid,
+            departure_time,
+            arrival_time,
+            language,
         } => {
             let router = registry.router();
             let start = parse_coordinate(origin)
@@ -322,6 +437,11 @@ async fn run_commands(
             let transport_mode = parse_transport_mode(transport);
             let options = RouteOptions {
                 transport_mode: Some(transport_mode),
+                alternatives: *alternatives,
+                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
+                departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
+                arrival_time: arrival_time.as_ref().map(|v| parse_departure_time(v)),
+                language: language.clone(),
                 ..Default::default()
             };
             match router.calculate_route(&start, &end, &options).await {
@@ -342,13 +462,14 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Traffic { lat, lng, radius, include_incidents } => {
+        Commands::Traffic { lat, lng, radius, include_incidents, language } => {
             let traffic = registry.traffic();
             let coordinate = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
             let options = TrafficOptions {
                 radius: *radius,
                 include_incidents: *include_incidents,
+                language: language.clone(),
                 ..Default::default()
             };
             match traffic.get_traffic(&coordinate, &options).await {
@@ -390,7 +511,7 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Isoline { lat, lng, range, transport, range_type } => {
+        Commands::Isoline { lat, lng, range, transport, range_type, departure_time, avoid } => {
             let isoline = registry.isoline();
             let center = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
@@ -402,6 +523,8 @@ async fn run_commands(
             let options = IsolineOptions {
                 range_type: Some(core_range_type),
                 transport_mode: Some(transport_mode),
+                departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
+                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
                 ..Default::default()
             };
             match isoline.get_isoline(&center, *range, &options).await {
@@ -414,7 +537,7 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::MatchRoute { trace, transport } => {
+        Commands::MatchRoute { trace, transport, heading, departure_time, avoid } => {
             let matcher = registry.route_matcher();
             let points: Vec<Coordinate> = trace
                 .split(';')
@@ -426,10 +549,12 @@ async fn run_commands(
             let transport_mode = parse_transport_mode(transport);
             let options = MatchingOptions {
                 transport_mode: Some(transport_mode),
+                heading: *heading,
+                departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
+                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
                 provider_extra: Some(serde_json::json!({
                     "transport_mode": transport
                 })),
-                ..Default::default()
             };
             match matcher.match_route(&points, &options).await {
                 Ok(result) => {
@@ -494,6 +619,7 @@ async fn run_commands(
             x,
             y,
             layer,
+            format,
             output_file,
         } => {
             let tile_provider = registry.tile_provider();
@@ -502,7 +628,7 @@ async fn run_commands(
                 provider_extra["layer"] = serde_json::json!(layer_val);
             }
             let options = TileOptions {
-                format: None,
+                format: format.clone(),
                 provider_extra: Some(provider_extra),
             };
             match tile_provider.get_tile(*z, *x, *y, &options).await {
@@ -524,6 +650,7 @@ async fn run_commands(
             format,
             ids,
             include,
+            language,
         } => {
             let attr_provider = registry.attribute_provider();
             let mut provider_extra = serde_json::json!({
@@ -539,8 +666,8 @@ async fn run_commands(
             }
             let options = AttributeOptions {
                 bbox: bbox.clone(),
+                language: language.clone(),
                 provider_extra: Some(provider_extra),
-                ..Default::default()
             };
             match attr_provider.get_attributes(&options).await {
                 Ok(result) => {
@@ -553,12 +680,18 @@ async fn run_commands(
             lat,
             lng,
             zoom,
+            format,
+            language,
             output_file,
         } => {
             let image_provider = registry.image_provider();
             let center = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
-            let options = ImageOptions::default();
+            let options = ImageOptions {
+                format: format.clone(),
+                language: language.clone(),
+                ..Default::default()
+            };
             match image_provider
                 .get_image(&center, *zoom, (800, 600), &options)
                 .await

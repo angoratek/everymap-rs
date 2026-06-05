@@ -166,7 +166,6 @@ impl Geocoder for GoogleGeocoder {
             ));
         }
         if !options.country_codes.is_empty() {
-            // Map country codes to components filter (country:XX format)
             let components = options
                 .country_codes
                 .iter()
@@ -175,7 +174,6 @@ impl Geocoder for GoogleGeocoder {
                 .join("|");
             params.push(("components", components));
         }
-        // Extract Google-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("region").and_then(|v| v.as_str()) {
@@ -206,11 +204,16 @@ impl Geocoder for GoogleGeocoder {
             ));
         }
 
-        let items: Vec<SearchResult> = google_res
+        let mut items: Vec<SearchResult> = google_res
             .results
             .into_iter()
             .map(SearchResult::from)
             .collect();
+
+        // Google API lacks a limit parameter; truncate client-side
+        if let Some(limit) = options.limit {
+            items.truncate(limit as usize);
+        }
 
         Ok(SearchResponse { items })
     }
@@ -225,6 +228,18 @@ impl Geocoder for GoogleGeocoder {
 
         if let Some(lang) = &options.language {
             params.push(("language", lang.clone()));
+        }
+        if options.limit.is_some() {
+            log::warn!(
+                "Google Reverse Geocoding API does not support a limit parameter; \
+                 limit will be ignored"
+            );
+        }
+        if options.radius.is_some() {
+            log::warn!(
+                "Google Reverse Geocoding API does not support a radius parameter; \
+                 radius will be ignored"
+            );
         }
         // Extract Google-specific options from provider_extra
         if let Some(extra) = &options.provider_extra {

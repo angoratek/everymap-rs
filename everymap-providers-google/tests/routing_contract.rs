@@ -1,5 +1,5 @@
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
+use everymap_core::domains::routing::{AvoidType, DepartureTime, RouteOptions, Router, TransportMode};
 use everymap_core::types::Coordinate;
 use everymap_providers_google::client::GoogleClient;
 use everymap_providers_google::GoogleRouter;
@@ -184,4 +184,97 @@ async fn test_routing_error_response() {
 
     let result = router.calculate_route(&start, &end, &options).await;
     assert!(result.is_err());
+}
+
+#[tokio::test]
+async fn test_routing_with_avoid_tolls() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "routes": [{
+            "summary": "A2",
+            "legs": [{
+                "distance": { "value": 950000, "text": "950 km" },
+                "duration": { "value": 33000, "text": "about 9 hours" },
+                "start_location": { "lat": 52.5163, "lng": 13.3777 },
+                "end_location": { "lat": 48.8566, "lng": 2.3522 },
+                "steps": []
+            }],
+            "overview_polyline": { "points": "_m_I??~o~@" },
+            "bounds": {
+                "northeast": { "lat": 52.5, "lng": 13.4 },
+                "southwest": { "lat": 48.8, "lng": 2.3 }
+            },
+            "warnings": [],
+            "waypoint_order": []
+        }],
+        "status": "OK"
+    });
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let client = Arc::new(GoogleClient::new(auth));
+    let router = GoogleRouter::with_base_url(client, server.uri());
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
+        ..Default::default()
+    };
+
+    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    assert_eq!(result.routes.len(), 1);
+}
+
+#[tokio::test]
+async fn test_routing_with_arrival_time() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "routes": [{
+            "summary": "A2/E50",
+            "legs": [{
+                "distance": { "value": 1052000, "text": "1,052 km" },
+                "duration": { "value": 36720, "text": "about 10 hours" },
+                "start_location": { "lat": 52.5163, "lng": 13.3777 },
+                "end_location": { "lat": 48.8566, "lng": 2.3522 },
+                "steps": []
+            }],
+            "overview_polyline": { "points": "_m_I??~o~@" },
+            "bounds": {
+                "northeast": { "lat": 52.5, "lng": 13.4 },
+                "southwest": { "lat": 48.8, "lng": 2.3 }
+            },
+            "warnings": [],
+            "waypoint_order": []
+        }],
+        "status": "OK"
+    });
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let client = Arc::new(GoogleClient::new(auth));
+    let router = GoogleRouter::with_base_url(client, server.uri());
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        arrival_time: Some(DepartureTime::Timestamp(1715702400)),
+        ..Default::default()
+    };
+
+    let result = router.calculate_route(&start, &end, &options).await;
+    // arrival_time will log a warning but should still function
+    assert!(result.is_ok());
 }

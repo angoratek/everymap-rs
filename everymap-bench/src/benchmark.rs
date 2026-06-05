@@ -751,7 +751,6 @@ fn percentile(sorted: &[u64], p: f64) -> u64 {
     let index = ((p / 100.0) * (sorted.len() - 1) as f64).round() as usize;
     sorted[index.min(sorted.len() - 1)]
 }
-
 /// Build a benchmark report from a set of results.
 pub fn build_report(
     domain: &str,
@@ -822,5 +821,141 @@ pub fn build_report(
         fastest,
         most_results,
         percentiles,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use everymap_core::auth::ApiKeyProvider;
+    use std::sync::Arc;
+
+    fn test_auth() -> Arc<dyn AuthProvider> {
+        Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()))
+    }
+
+    #[test]
+    fn test_bench_providers_here() {
+        let providers = BenchProviders::new("here", test_auth()).unwrap();
+        assert_eq!(providers.provider_name, "here");
+        assert!(providers.geocoder.is_some());
+        assert!(providers.router.is_some());
+        assert!(providers.isoline.is_some());
+        assert!(providers.route_matcher.is_some());
+        assert!(providers.tour_planner.is_some());
+        assert!(providers.traffic.is_some());
+        assert!(providers.tile.is_some());
+        assert!(providers.positioner.is_some());
+        assert!(providers.attributes.is_some());
+        assert!(providers.image.is_some());
+    }
+
+    #[test]
+    fn test_bench_providers_google() {
+        let providers = BenchProviders::new("google", test_auth()).unwrap();
+        assert_eq!(providers.provider_name, "google");
+        assert!(providers.geocoder.is_some());
+        assert!(providers.router.is_some());
+        assert!(providers.isoline.is_none());
+        assert!(providers.route_matcher.is_some());
+        assert!(providers.tour_planner.is_none());
+        assert!(providers.traffic.is_none());
+        assert!(providers.tile.is_none());
+        assert!(providers.positioner.is_some());
+        assert!(providers.attributes.is_some());
+        assert!(providers.image.is_some());
+    }
+
+    #[test]
+    fn test_bench_providers_tomtom() {
+        let providers = BenchProviders::new("tomtom", test_auth()).unwrap();
+        assert_eq!(providers.provider_name, "tomtom");
+        assert!(providers.geocoder.is_some());
+        assert!(providers.router.is_some());
+        assert!(providers.isoline.is_some());
+        assert!(providers.route_matcher.is_some());
+        assert!(providers.tour_planner.is_some());
+        assert!(providers.traffic.is_some());
+        assert!(providers.tile.is_some());
+        assert!(providers.positioner.is_none());
+        assert!(providers.attributes.is_none());
+        assert!(providers.image.is_some());
+    }
+
+    #[test]
+    fn test_bench_providers_unknown() {
+        let result = BenchProviders::new("unknown", test_auth());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_percentile_empty() {
+        assert_eq!(percentile(&[], 50.0), 0);
+    }
+
+    #[test]
+    fn test_percentile_single() {
+        assert_eq!(percentile(&[100], 50.0), 100);
+        assert_eq!(percentile(&[100], 95.0), 100);
+    }
+
+    #[test]
+    fn test_percentile_multiple() {
+        let values: Vec<u64> = (0..100).collect();
+        assert_eq!(percentile(&values, 50.0), 50);
+        assert_eq!(percentile(&values, 95.0), 94);
+        assert_eq!(percentile(&values, 0.0), 0);
+        assert_eq!(percentile(&values, 100.0), 99);
+    }
+
+    #[test]
+    fn test_build_report_single_provider() {
+        let results = vec![BenchmarkResult {
+            provider: "here".to_string(),
+            domain: "routing".to_string(),
+            scenario: "Berlin to Paris".to_string(),
+            duration_ms: 1234,
+            success: true,
+            error: None,
+            result_count: 1,
+            raw_response_size: Some(5000),
+        }];
+        let report = build_report("routing", "Berlin to Paris", results);
+        assert_eq!(report.domain, "routing");
+        assert_eq!(report.scenario, "Berlin to Paris");
+        assert_eq!(report.results.len(), 1);
+        assert_eq!(report.fastest.as_deref(), Some("here"));
+        assert_eq!(report.most_results.as_deref(), Some("here"));
+        assert!(report.percentiles.is_none());
+    }
+
+    #[test]
+    fn test_build_report_with_failure() {
+        let results = vec![
+            BenchmarkResult {
+                provider: "here".to_string(),
+                domain: "routing".to_string(),
+                scenario: "Berlin to Paris".to_string(),
+                duration_ms: 100,
+                success: true,
+                error: None,
+                result_count: 1,
+                raw_response_size: Some(5000),
+            },
+            BenchmarkResult {
+                provider: "google".to_string(),
+                domain: "routing".to_string(),
+                scenario: "Berlin to Paris".to_string(),
+                duration_ms: 0,
+                success: false,
+                error: Some("API error".to_string()),
+                result_count: 0,
+                raw_response_size: None,
+            },
+        ];
+        let report = build_report("routing", "Berlin to Paris", results);
+        assert_eq!(report.results.len(), 2);
+        assert_eq!(report.fastest.as_deref(), Some("here"));
+        assert_eq!(report.most_results.as_deref(), Some("here"));
     }
 }

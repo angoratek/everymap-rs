@@ -122,19 +122,12 @@ use crate::domain::matching::RadarRouteMatcher;
 use crate::domain::routing::RadarRouter;
 use crate::domain::search::RadarGeocoder;
 
-const IP_GEOCODE_URL: &str = "https://api.radar.io/v1/geocode/ip";
-const AUTOCOMPLETE_URL: &str = "https://api.radar.io/v1/search/autocomplete";
-const VALIDATE_URL: &str = "https://api.radar.io/v1/addresses/validate";
-const DISTANCE_URL: &str = "https://api.radar.io/v1/route/distance";
-const MATRIX_URL: &str = "https://api.radar.io/v1/route/matrix";
-const PLACES_URL: &str = "https://api.radar.io/v1/search/places";
-
 #[async_trait]
 impl RadarGeocoderExt for RadarGeocoder {
     async fn ip_geocode(&self) -> EveryMapResult<RadarIpGeocodeResponse> {
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, IP_GEOCODE_URL);
+            .build_request(reqwest::Method::GET, &self.ip_geocode_url);
         self.client.request_json(builder).await
     }
 
@@ -161,7 +154,7 @@ impl RadarGeocoderExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, AUTOCOMPLETE_URL)
+            .build_request(reqwest::Method::GET, &self.autocomplete_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -193,7 +186,7 @@ impl RadarGeocoderExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, VALIDATE_URL)
+            .build_request(reqwest::Method::GET, &self.validate_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -234,7 +227,7 @@ impl RadarRouterExt for RadarRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, DISTANCE_URL)
+            .build_request(reqwest::Method::GET, &self.distance_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -275,7 +268,7 @@ impl RadarRouterExt for RadarRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, MATRIX_URL)
+            .build_request(reqwest::Method::GET, &self.matrix_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -309,7 +302,7 @@ impl RadarSearchExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, PLACES_URL)
+            .build_request(reqwest::Method::GET, &self.places_url)
             .query(&params);
 
         self.client.request_json(builder).await

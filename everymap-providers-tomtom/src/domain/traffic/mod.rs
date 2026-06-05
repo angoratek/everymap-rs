@@ -49,6 +49,11 @@ impl TrafficProvider for TomTomTraffic {
         if let Some(lang) = &options.language {
             flow_params.push(("language", lang.clone()));
         }
+        if options.provider_extra.is_some() {
+            log::warn!(
+                "TomTom Traffic API does not support provider_extra; ignoring"
+            );
+        }
 
         let flow_builder = self
             .client

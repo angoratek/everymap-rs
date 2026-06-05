@@ -67,10 +67,21 @@ impl TourPlanner for MapBoxTourPlanner {
             self.base_url, profile, coords
         );
 
-        let params: Vec<(&str, String)> = vec![
+        let mut params: Vec<(&str, String)> = vec![
             ("overview", "false".to_string()),
             ("roundtrip", "false".to_string()),
         ];
+
+        if let Some(extra) = &options.provider_extra {
+            if let Some(obj) = extra.as_object() {
+                if let Some(v) = obj.get("source").and_then(|v| v.as_str()) {
+                    params.push(("source", v.to_string()));
+                }
+                if let Some(v) = obj.get("destination").and_then(|v| v.as_str()) {
+                    params.push(("destination", v.to_string()));
+                }
+            }
+        }
 
         let builder = self
             .client

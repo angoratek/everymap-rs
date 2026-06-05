@@ -352,6 +352,18 @@ test_here() {
                 --api-key "$key" --provider here --output summary reverse-geocode --lat "$lat" $(lng_flag "$lng")
         fi
 
+        # New CLI flags: --limit, --language on geocode; --radius on reverse
+        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
+            run_cli "here_geocode_${name}_limit" \
+                --api-key "$key" --provider here geocode --limit 3 "$query"
+
+            run_cli "here_geocode_${name}_lang" \
+                --api-key "$key" --provider here geocode --language de "$query"
+
+            run_cli "here_reverse_${name}_radius" \
+                --api-key "$key" --provider here reverse-geocode --lat "$lat" $(lng_flag "$lng") --radius 500
+        fi
+
         # traffic
         run_cli "here_traffic_${name}" \
             --api-key "$key" --provider here traffic --lat "$lat" $(lng_flag "$lng")
@@ -376,6 +388,12 @@ test_here() {
         if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
             run_cli "here_isoline_${name}_summary" \
                 --api-key "$key" --provider here --output summary isoline --lat "$lat" $(lng_flag "$lng") --range 1000
+        fi
+
+        # Isoline range-type=time
+        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
+            run_cli "here_isoline_${name}_time" \
+                --api-key "$key" --provider here isoline --lat "$lat" $(lng_flag "$lng") --range 600 --range-type time
         fi
 
         # map-image (saves to temp file)
@@ -415,9 +433,36 @@ test_here() {
                 --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport truck
         fi
 
+        # Bicycle, scooter, bus, taxi transport modes (HERE supports all)
+        if [[ "$QUICK_MODE" == false ]] && [[ "$route_count" -le 2 ]]; then
+            run_cli "here_route_${rname}_bicycle" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport bicycle
+
+            run_cli "here_route_${rname}_scooter" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport scooter
+
+            run_cli "here_route_${rname}_bus" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport bus
+
+            run_cli "here_route_${rname}_taxi" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport taxi
+        fi
+
         # Summary output
         run_cli "here_route_${rname}_summary" \
             --api-key "$key" --provider here --output summary route --origin "$orig" --destination "$dest" --transport car
+
+        # New CLI flags: --avoid, --alternatives, --departure-time, --language on route
+        if [[ "$QUICK_MODE" == false ]] && [[ "$route_count" -le 1 ]]; then
+            run_cli "here_route_${rname}_avoid_tolls" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport car --avoid tolls
+
+            run_cli "here_route_${rname}_alternatives" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport car --alternatives 2
+
+            run_cli "here_route_${rname}_lang_de" \
+                --api-key "$key" --provider here route --origin "$orig" --destination "$dest" --transport car --language de
+        fi
     done
 
     # Match-route — test with different traces and transport modes
@@ -518,6 +563,21 @@ test_here() {
     run_cli "here_route_berlin_paris_verbose" \
         --api-key "$key" --provider here -v route --origin "52.52,13.40" --destination "48.86,2.35" --transport car
 
+    run_cli "here_traffic_berlin_verbose" \
+        --api-key "$key" --provider here --verbose traffic --lat 52.52 --lng=13.40
+
+    run_cli "here_isoline_berlin_verbose" \
+        --api-key "$key" --provider here --verbose isoline --lat 52.52 --lng=13.40 --range 1000
+
+    run_cli "here_match_berlin_verbose" \
+        --api-key "$key" --provider here --verbose match-route --trace "52.5164,13.3777;52.5170,13.3900;52.5175,13.3950;52.5180,13.4000" --transport car
+
+    run_cli "here_tour_berlin_verbose" \
+        --api-key "$key" --provider here --verbose tour --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
+
+    run_cli "here_attrs_berlin_verbose" \
+        --api-key "$key" --provider here --verbose attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
+
 }
 
 # ===================== GOOGLE ==============================================
@@ -557,6 +617,25 @@ test_google() {
         rm -f "$img_file" 2>/dev/null
     done
 
+    # Attributes (Google supports attributes)
+    local attr_count=0
+    for bbox in "${BBOXES[@]}"; do
+        attr_count=$((attr_count + 1))
+        if [[ "$QUICK_MODE" == true ]] && [[ "$attr_count" -gt 1 ]]; then break; fi
+
+        local aname acoords
+        aname="$(echo "$bbox" | cut -d'|' -f1)"
+        acoords="$(echo "$bbox" | cut -d'|' -f2)"
+
+        run_cli "google_attrs_${aname}_roads" \
+            --api-key "$key" --provider google attributes --bbox "$acoords" --layer roads
+
+        if [[ "$QUICK_MODE" == false ]]; then
+            run_cli "google_attrs_${aname}_segments" \
+                --api-key "$key" --provider google attributes --bbox "$acoords" --layer segments
+        fi
+    done
+
     # Routes
     local route_count=0
     for route in "${ROUTES[@]}"; do
@@ -577,6 +656,15 @@ test_google() {
         if [[ "$QUICK_MODE" == false ]] || [[ "$route_count" -eq 1 ]]; then
             run_cli "google_route_${rname}_pedestrian" \
                 --api-key "$key" --provider google route --origin "$orig" --destination "$dest" --transport pedestrian
+        fi
+
+        # Bicycle and bus transport modes
+        if [[ "$QUICK_MODE" == false ]] && [[ "$route_count" -le 2 ]]; then
+            run_cli "google_route_${rname}_bicycle" \
+                --api-key "$key" --provider google route --origin "$orig" --destination "$dest" --transport bicycle
+
+            run_cli "google_route_${rname}_bus" \
+                --api-key "$key" --provider google route --origin "$orig" --destination "$dest" --transport bus
         fi
     done
 
@@ -607,6 +695,19 @@ test_google() {
 
     run_cli "google_isoline_unsupported" \
         --api-key "$key" --provider google isoline --lat 52.52 --lng=13.40 --range 1000
+
+    run_cli "google_tour_unsupported" \
+        --api-key "$key" --provider google tour --stops "52.52,13.40" "52.52,13.41" "52.52,13.42"
+
+    run_cli "google_tile_unsupported" \
+        --api-key "$key" --provider google tile --z 14 --x 8800 --y 5374
+
+    # New CLI flags: --limit, --language on geocode
+    run_cli "google_geocode_berlin_limit" \
+        --api-key "$key" --provider google geocode --limit 3 "Berlin"
+
+    run_cli "google_geocode_berlin_lang" \
+        --api-key "$key" --provider google geocode --language de "Berlin"
 }
 
 # ===================== TOMTOM ==============================================
@@ -653,6 +754,12 @@ test_tomtom() {
                 --api-key "$key" --provider tomtom --output summary isoline --lat "$lat" $(lng_flag "$lng") --range 1000
         fi
 
+        # Isoline range-type=time (TomTom supports time-based isolines)
+        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
+            run_cli "tomtom_isoline_${name}_time" \
+                --api-key "$key" --provider tomtom isoline --lat "$lat" $(lng_flag "$lng") --range 600 --range-type time
+        fi
+
         # map-image
         local img_file
         img_file="$(mktemp /tmp/everymap_smoke_tomtom_${name}_XXXXX.png)"
@@ -681,6 +788,18 @@ test_tomtom() {
         if [[ "$QUICK_MODE" == false ]] || [[ "$route_count" -eq 1 ]]; then
             run_cli "tomtom_route_${rname}_pedestrian" \
                 --api-key "$key" --provider tomtom route --origin "$orig" --destination "$dest" --transport pedestrian
+        fi
+
+        # Bicycle, bus, taxi transport modes (TomTom supports all)
+        if [[ "$QUICK_MODE" == false ]] && [[ "$route_count" -le 2 ]]; then
+            run_cli "tomtom_route_${rname}_bicycle" \
+                --api-key "$key" --provider tomtom route --origin "$orig" --destination "$dest" --transport bicycle
+
+            run_cli "tomtom_route_${rname}_bus" \
+                --api-key "$key" --provider tomtom route --origin "$orig" --destination "$dest" --transport bus
+
+            run_cli "tomtom_route_${rname}_taxi" \
+                --api-key "$key" --provider tomtom route --origin "$orig" --destination "$dest" --transport taxi
         fi
     done
 
@@ -733,6 +852,22 @@ test_tomtom() {
     run_cli "tomtom_geocode_berlin_verbose" \
         --api-key "$key" --provider tomtom --verbose geocode "Berlin"
 
+    run_cli "tomtom_traffic_berlin_verbose" \
+        --api-key "$key" --provider tomtom --verbose traffic --lat 52.52 --lng=13.40
+
+    run_cli "tomtom_isoline_berlin_verbose" \
+        --api-key "$key" --provider tomtom --verbose isoline --lat 52.52 --lng=13.40 --range 1000
+
+    run_cli "tomtom_tour_berlin_verbose" \
+        --api-key "$key" --provider tomtom --verbose tour --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
+
+    # Unsupported domains
+    run_cli "tomtom_position_unsupported" \
+        --api-key "$key" --provider tomtom position
+
+    run_cli "tomtom_attributes_unsupported" \
+        --api-key "$key" --provider tomtom attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
+
 }
 
 # ===================== MAPBOX ===============================================
@@ -768,6 +903,12 @@ test_mapbox() {
         run_cli "mapbox_isoline_${name}" \
             --api-key "$key" --provider mapbox isoline --lat "$lat" $(lng_flag "$lng") --range 30
 
+        # Isoline range-type=time
+        if [[ "$QUICK_MODE" == false ]] || [[ "$loc_count" -eq 1 ]]; then
+            run_cli "mapbox_isoline_${name}_time" \
+                --api-key "$key" --provider mapbox isoline --lat "$lat" $(lng_flag "$lng") --range 30 --range-type time
+        fi
+
         # map-image
         local img_file
         img_file="$(mktemp /tmp/everymap_smoke_mapbox_${name}_XXXXX.png)"
@@ -797,6 +938,12 @@ test_mapbox() {
             run_cli "mapbox_route_${rname}_pedestrian" \
                 --api-key "$key" --provider mapbox route --origin "$orig" --destination "$dest" --transport pedestrian
         fi
+
+        # Bicycle transport mode
+        if [[ "$QUICK_MODE" == false ]] && [[ "$route_count" -le 2 ]]; then
+            run_cli "mapbox_route_${rname}_bicycle" \
+                --api-key "$key" --provider mapbox route --origin "$orig" --destination "$dest" --transport bicycle
+        fi
     done
 
     # Match-route
@@ -809,12 +956,21 @@ test_mapbox() {
             --api-key "$key" --provider mapbox match-route --trace "$tpoints" --transport car
     done
 
-    # Tour
+    # Tour — multiple variants
     local name="berlin"
     local lat="52.52"
     local lng="13.40"
-    run_cli "mapbox_tour_${name}" \
+    run_cli "mapbox_tour_${name}_car" \
         --api-key "$key" --provider mapbox tour --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
+
+    run_cli "mapbox_tour_${name}_bicycle" \
+        --api-key "$key" --provider mapbox tour --transport bicycle --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
+
+    run_cli "mapbox_tour_${name}_walking" \
+        --api-key "$key" --provider mapbox tour --transport pedestrian --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
+
+    run_cli "mapbox_tour_${name}_summary" \
+        --api-key "$key" --provider mapbox --output summary tour --stops "52.52,13.41" "52.52,13.42" "52.52,13.43"
 
     # Tiles (web Mercator tiling scheme)
     for tile in "${WEB_TILES[@]}"; do
@@ -835,6 +991,25 @@ test_mapbox() {
     # Verbose mode
     run_cli "mapbox_geocode_berlin_verbose" \
         --api-key "$key" --provider mapbox --verbose geocode "Berlin"
+
+    run_cli "mapbox_route_berlin_paris_verbose" \
+        --api-key "$key" --provider mapbox --verbose route --origin "52.52,13.40" --destination "48.86,2.35" --transport car
+
+    run_cli "mapbox_isoline_berlin_verbose" \
+        --api-key "$key" --provider mapbox --verbose isoline --lat 52.52 --lng=13.40 --range 30
+
+    run_cli "mapbox_match_berlin_verbose" \
+        --api-key "$key" --provider mapbox --verbose match-route --trace "52.5164,13.3777;52.5170,13.3900;52.5175,13.3950;52.5180,13.4000" --transport car
+
+    # Unsupported domains
+    run_cli "mapbox_traffic_unsupported" \
+        --api-key "$key" --provider mapbox traffic --lat 52.52 --lng=13.40
+
+    run_cli "mapbox_position_unsupported" \
+        --api-key "$key" --provider mapbox position
+
+    run_cli "mapbox_attributes_unsupported" \
+        --api-key "$key" --provider mapbox attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
 
 }
 
@@ -891,9 +1066,19 @@ test_radar() {
     run_cli "radar_route_sf_la_car" \
         --api-key "$key" --provider radar route --origin "37.77,-122.42" --destination "34.05,-118.24" --transport car
 
+    # Additional route variants
+    run_cli "radar_route_nyc_boston_bicycle" \
+        --api-key "$key" --provider radar route --origin "40.71,-74.01" --destination "42.36,-71.06" --transport bicycle
+
+    run_cli "radar_route_boston_chicago_car" \
+        --api-key "$key" --provider radar route --origin "42.36,-71.06" --destination "41.88,-87.63" --transport car
+
     # Match-route
     run_cli "radar_match_nyc_car" \
         --api-key "$key" --provider radar match-route --trace "40.7128,-74.0060;40.7135,-74.0050;40.7142,-74.0040;40.7150,-74.0030" --transport car
+
+    run_cli "radar_match_sf_car" \
+        --api-key "$key" --provider radar match-route --trace "37.7749,-122.4194;37.7755,-122.4180;37.7760,-122.4165;37.7765,-122.4150" --transport car
 
     # Tour
     run_cli "radar_tour_nyc" \
@@ -902,9 +1087,18 @@ test_radar() {
     run_cli "radar_tour_nyc_summary" \
         --api-key "$key" --provider radar --output summary tour --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
 
+    run_cli "radar_tour_nyc_bicycle" \
+        --api-key "$key" --provider radar tour --transport bicycle --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
+
+    run_cli "radar_tour_sf" \
+        --api-key "$key" --provider radar tour --stops "37.77,-122.42" "37.78,-122.41" "37.79,-122.40"
+
     # Verbose mode
     run_cli "radar_geocode_nyc_verbose" \
         --api-key "$key" --provider radar --verbose geocode "New York"
+
+    run_cli "radar_route_nyc_boston_verbose" \
+        --api-key "$key" --provider radar --verbose route --origin "40.71,-74.01" --destination "42.36,-71.06" --transport car
 
     # Unsupported domains
     run_cli "radar_traffic_unsupported" \
@@ -918,6 +1112,12 @@ test_radar() {
 
     run_cli "radar_attributes_unsupported" \
         --api-key "$key" --provider radar attributes --bbox "40.6,-74.1;40.8,-74.0" --layer roads
+
+    run_cli "radar_position_unsupported" \
+        --api-key "$key" --provider radar position
+
+    run_cli "radar_mapimage_unsupported" \
+        --api-key "$key" --provider radar map-image --lat 40.71 --lng=-74.01
 }
 
 # ---------------------------------------------------------------------------

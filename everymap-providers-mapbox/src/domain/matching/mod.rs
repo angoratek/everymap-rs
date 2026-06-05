@@ -36,12 +36,25 @@ impl MapBoxRouteMatcher {
 /// Convert core TransportMode to MapBox profile.
 fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     match mode {
-        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => {
+        TransportMode::Car => "driving",
+        TransportMode::Truck => {
+            log::warn!("MapBox Map Matching API does not support truck profile, falling back to driving");
             "driving"
         }
         TransportMode::Pedestrian => "walking",
         TransportMode::Bicycle => "cycling",
-        TransportMode::Scooter => "driving",
+        TransportMode::Bus => {
+            log::warn!("MapBox Map Matching API does not support bus profile, falling back to driving");
+            "driving"
+        }
+        TransportMode::Taxi => {
+            log::warn!("MapBox Map Matching API does not support taxi profile, falling back to driving");
+            "driving"
+        }
+        TransportMode::Scooter => {
+            log::warn!("MapBox Map Matching API does not support scooter profile, falling back to driving");
+            "driving"
+        }
         TransportMode::Unknown => "driving",
     }
 }
@@ -80,6 +93,22 @@ impl RouteMatcher for MapBoxRouteMatcher {
             ("overview", "full".to_string()),
             ("geometries", "polyline".to_string()),
         ];
+
+        if options.heading.is_some() {
+            log::warn!(
+                "MapBox Map Matching API v5 does not support heading; ignoring"
+            );
+        }
+        if options.departure_time.is_some() {
+            log::warn!(
+                "MapBox Map Matching API v5 does not support departure_time; ignoring"
+            );
+        }
+        if !options.avoid.is_empty() {
+            log::warn!(
+                "MapBox Map Matching API v5 does not support avoid restrictions; ignoring"
+            );
+        }
 
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {

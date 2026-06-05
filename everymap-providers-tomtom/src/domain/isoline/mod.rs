@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use everymap_core::domains::isoline::{
     IsolineOptions, IsolineProvider, IsolineResponse, IsolineResult, RangeType,
 };
-use everymap_core::domains::routing::TransportMode;
+use everymap_core::domains::routing::{AvoidType, TransportMode};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use std::sync::Arc;
@@ -60,9 +60,25 @@ impl IsolineProvider for TomTomIsoline {
                 TransportMode::Truck => "truck",
                 TransportMode::Pedestrian => "pedestrian",
                 TransportMode::Bicycle => "bicycle",
-                _ => "car",
+                unsupported => {
+                    log::warn!(
+                        "TomTom isoline does not support transport mode {:?}, falling back to car",
+                        unsupported
+                    );
+                    "car"
+                }
             };
             params.push(("travelMode", mode_str.to_string()));
+        }
+
+        for avoid_type in &options.avoid {
+            match avoid_type {
+                AvoidType::Tolls => params.push(("avoid", "tollRoads".to_string())),
+                AvoidType::Ferries => params.push(("avoid", "ferries".to_string())),
+                AvoidType::Tunnels => params.push(("avoid", "tunnels".to_string())),
+                AvoidType::Highways => params.push(("avoid", "motorways".to_string())),
+                AvoidType::DirtRoads => params.push(("avoid", "unpavedRoads".to_string())),
+            }
         }
 
         if let Some(departure) = &options.departure_time {

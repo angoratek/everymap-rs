@@ -295,3 +295,110 @@ pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
         None => all,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use everymap_core::types::Coordinate;
+
+    #[test]
+    fn test_domain_names() {
+        // Verify domain() returns correct strings for every variant
+        let geocode = ScenarioParams::Geocode {
+            query: "Berlin".to_string(),
+        };
+        assert_eq!(geocode.domain(), "geocoder");
+
+        let reverse = ScenarioParams::ReverseGeocode {
+            coordinate: Coordinate::new(52.52, 13.40).unwrap(),
+        };
+        assert_eq!(reverse.domain(), "geocoder");
+
+        let route = ScenarioParams::Route {
+            start: Coordinate::new(52.52, 13.40).unwrap(),
+            end: Coordinate::new(48.86, 2.35).unwrap(),
+        };
+        assert_eq!(route.domain(), "routing");
+
+        let isoline = ScenarioParams::Isoline {
+            center: Coordinate::new(52.52, 13.40).unwrap(),
+            range: 1000.0,
+        };
+        assert_eq!(isoline.domain(), "isoline");
+
+        let matching = ScenarioParams::Matching {
+            points: vec![Coordinate::new(52.52, 13.40).unwrap()],
+        };
+        assert_eq!(matching.domain(), "matching");
+
+        let tour = ScenarioParams::Tour {
+            stops: vec![Coordinate::new(52.52, 13.40).unwrap()],
+        };
+        assert_eq!(tour.domain(), "tour");
+
+        let traffic = ScenarioParams::Traffic {
+            location: Coordinate::new(52.52, 13.40).unwrap(),
+        };
+        assert_eq!(traffic.domain(), "traffic");
+
+        let tile = ScenarioParams::Tile { z: 14, x: 8800, y: 5374 };
+        assert_eq!(tile.domain(), "tiling");
+
+        let positioning = ScenarioParams::Positioning {
+            provider_extra: None,
+        };
+        assert_eq!(positioning.domain(), "positioning");
+
+        let attributes = ScenarioParams::Attributes {
+            bbox: "13.3,52.5,13.5,52.6".to_string(),
+            provider_extra: None,
+        };
+        assert_eq!(attributes.domain(), "attributes");
+
+        let image = ScenarioParams::Image {
+            center: Coordinate::new(52.52, 13.40).unwrap(),
+            zoom: 12,
+        };
+        assert_eq!(image.domain(), "imaging");
+    }
+
+    #[test]
+    fn test_get_scenarios_all() {
+        let all = get_scenarios(None);
+        // Should have scenarios across all 10 domains
+        assert!(all.len() > 15);
+        let domains: std::collections::HashSet<&str> =
+            all.iter().map(|s| s.params.domain()).collect();
+        assert_eq!(domains.len(), 10);
+    }
+
+    #[test]
+    fn test_get_scenarios_filtered() {
+        let routing = get_scenarios(Some("routing"));
+        assert_eq!(routing.len(), 2);
+        for s in &routing {
+            assert_eq!(s.params.domain(), "routing");
+        }
+
+        let geocoder = get_scenarios(Some("geocoder"));
+        assert_eq!(geocoder.len(), 3); // Berlin, NYC, reverse Berlin
+        for s in &geocoder {
+            assert_eq!(s.params.domain(), "geocoder");
+        }
+    }
+
+    #[test]
+    fn test_get_scenarios_unknown_domain() {
+        let unknown = get_scenarios(Some("nonexistent"));
+        assert!(unknown.is_empty());
+    }
+
+    #[test]
+    fn test_scenario_name_and_description() {
+        let all = get_scenarios(None);
+        for scenario in &all {
+            assert!(!scenario.name.is_empty());
+            assert!(!scenario.description.is_empty());
+        }
+    }
+}

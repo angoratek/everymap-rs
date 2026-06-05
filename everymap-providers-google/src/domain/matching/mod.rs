@@ -38,6 +38,27 @@ impl GoogleRouteMatcher {
 fn matching_options_from_core(options: &MatchingOptions) -> GoogleMatchOptions {
     let mut google_opts = GoogleMatchOptions::default();
 
+    if options.transport_mode.is_some() {
+        log::warn!(
+            "Google Roads API snapToRoads does not support transport_mode; ignoring"
+        );
+    }
+    if options.heading.is_some() {
+        log::warn!(
+            "Google Roads API snapToRoads does not support heading; ignoring"
+        );
+    }
+    if options.departure_time.is_some() {
+        log::warn!(
+            "Google Roads API snapToRoads does not support departure_time; ignoring"
+        );
+    }
+    if !options.avoid.is_empty() {
+        log::warn!(
+            "Google Roads API snapToRoads does not support avoid restrictions; ignoring"
+        );
+    }
+
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("interpolate").and_then(|v| v.as_bool()) {

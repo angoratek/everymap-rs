@@ -35,8 +35,18 @@ impl TourPlanner for TomTomTourPlanner {
     async fn optimize_tour(
         &self,
         stops: &[Coordinate],
-        _options: &TourOptions,
+        options: &TourOptions,
     ) -> EveryMapResult<TourResponse> {
+        if options.transport_mode.is_some() {
+            log::warn!(
+                "TomTom Waypoint Optimization API does not support transport_mode; ignoring"
+            );
+        }
+        if options.provider_extra.is_some() {
+            log::warn!(
+                "TomTom Waypoint Optimization API does not support provider_extra; ignoring"
+            );
+        }
         if stops.len() < 2 {
             return Err(everymap_core::error::EveryMapError::provider(
                 "tomtom",

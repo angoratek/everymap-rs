@@ -3,7 +3,7 @@ pub mod types;
 use crate::client::TomTomClient;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    RouteOptions, RouteResponse, RouteResult, Router, TransportMode,
+    AvoidType, RouteOptions, RouteResponse, RouteResult, Router, TransportMode,
 };
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::{Coordinate, Polyline};
@@ -39,10 +39,14 @@ fn transport_mode_to_tomtom(mode: &TransportMode) -> &'static str {
         TransportMode::Truck => "truck",
         TransportMode::Pedestrian => "pedestrian",
         TransportMode::Bicycle => "bicycle",
-        TransportMode::Scooter => "car", // TomTom doesn't have scooter mode
         TransportMode::Bus => "bus",
-        TransportMode::Taxi => "car",
-        TransportMode::Unknown => "car",
+        unsupported => {
+            log::warn!(
+                "TomTom routing does not support transport mode {:?}, falling back to car",
+                unsupported
+            );
+            "car"
+        }
     }
 }
 
@@ -93,6 +97,15 @@ impl Router for TomTomRouter {
         }
         if let Some(lang) = &options.language {
             params.push(("language", lang.clone()));
+        }
+        for avoid_type in &options.avoid {
+            match avoid_type {
+                AvoidType::Tolls => params.push(("avoid", "tollRoads".to_string())),
+                AvoidType::Ferries => params.push(("avoid", "ferries".to_string())),
+                AvoidType::Tunnels => params.push(("avoid", "tunnels".to_string())),
+                AvoidType::Highways => params.push(("avoid", "motorways".to_string())),
+                AvoidType::DirtRoads => params.push(("avoid", "unpavedRoads".to_string())),
+            }
         }
         if let Some(departure) = &options.departure_time {
             params.push(("departAt", departure.to_string()));

@@ -33,9 +33,10 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
     async fn optimize_tour(
         &self,
         stops: &[Coordinate],
-        _options: &TourOptions,
+        options: &TourOptions,
     ) -> EveryMapResult<TourResponse> {
         if stops.len() < 2 {
+
             return Err(EveryMapError::ValidationError(
                 "At least 2 stops are required for tour optimization".to_string(),
             ));
@@ -51,12 +52,26 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             ("geometry", "polyline6".to_string()),
         ];
 
-        // Extract Radar-specific options
-        if let Some(extra) = &_options.provider_extra {
+        // Read transport_mode from core field or provider_extra
+        let mode = options
+            .transport_mode
+            .as_ref()
+            .map(|m| format!("{:?}", m).to_lowercase())
+            .or_else(|| {
+                options
+                    .provider_extra
+                    .as_ref()
+                    .and_then(|e| e.get("mode"))
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string())
+            });
+        if let Some(mode_str) = mode {
+            params.push(("mode", mode_str));
+        }
+
+        // Extract Radar-specific options from provider_extra
+        if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
-                if let Some(v) = obj.get("mode").and_then(|v| v.as_str()) {
-                    params.push(("mode", v.to_string()));
-                }
                 if let Some(v) = obj.get("units").and_then(|v| v.as_str()) {
                     params.push(("units", v.to_string()));
                 }

@@ -88,6 +88,18 @@ fn attribute_options_from_core(
 ) -> EveryMapResult<GoogleAttributeOptions> {
     let mut google_opts = GoogleAttributeOptions::default();
 
+    if options.bbox.is_some() {
+        log::warn!(
+            "Google Roads API speedLimits does not support bbox queries; \
+             use provider_extra.place_ids or provider_extra.path instead"
+        );
+    }
+    if options.language.is_some() {
+        log::warn!(
+            "Google Roads API speedLimits does not support language parameter; ignoring"
+        );
+    }
+
     if let Some(extra) = &options.provider_extra {
         if let Some(obj) = extra.as_object() {
             if let Some(v) = obj.get("place_ids").and_then(|v| v.as_array()) {

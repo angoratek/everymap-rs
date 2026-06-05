@@ -43,7 +43,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 578 tests (unit + contract + CLI integration + error cases)
+- `cargo test` — runs 624 tests (unit + contract + CLI integration + error cases + bench)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
@@ -84,9 +84,16 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
 - Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.omv`, `map.png`)
-- `match-route` requires `--transport` (car, truck, pedestrian, bicycle; default: car)
-- `tour` supports `--departure` for ISO 8601 departure time (default: now)
-- `tile` supports `--layer` (optional; HERE: base/core/hybrid, TomTom: basic/hybrid/labels, MapBox: no layer param) — default varies by provider; HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- `geocode` supports `--limit`, `--language`, `--country` (repeatable), `--bbox`
+- `reverse-geocode` supports `--limit`, `--language`, `--radius`
+- `route` supports `--transport` (car, truck, pedestrian, bicycle, scooter, bus, taxi), `--alternatives`, `--avoid` (repeatable: tolls, ferries, tunnels, highways, dirt-roads), `--departure-time`, `--arrival-time`, `--language`
+- `match-route` supports `--transport` (car, truck, pedestrian, bicycle), `--heading`, `--departure-time`, `--avoid` (repeatable)
+- `tour` supports `--departure` for ISO 8601 departure time (default: now), `--transport`
+- `isoline` supports `--range-type` (distance, time), `--departure-time`, `--avoid` (repeatable)
+- `traffic` supports `--radius`, `--include-incidents`, `--language`
+- `tile` supports `--layer` (optional; HERE: base/core/hybrid, TomTom: basic/hybrid/labels, MapBox: no layer param), `--format` — HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- `attributes` supports `--layer`, `--format`, `--ids`, `--include`, `--language`
+- `map-image` supports `--format`, `--language`
 - **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
@@ -112,10 +119,20 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 ## Known Issues (from comprehensive provider review)
 - **Google routing**: Uses legacy Directions API (not the recommended Routes API v2).
 - **TomTom traffic severity**: "moderate" maps to `Minor` (core `IncidentSeverity` has no `Moderate` variant).
-- **MapBox/TomTom/Radar routing**: Core `avoid` field is silently ignored by these providers (they don't expose equivalent parameters).
-- **Multiple providers**: Several core option fields (`language`, `arrival_time`, `alternatives`) are silently ignored by providers that don't support them (logged as warnings where practical).
+- **Radar routing**: Core `avoid` and `alternatives` fields only usable via `provider_extra` (core fields emit `log::warn!`).
+- **Google matching**: `transport_mode`, `heading`, `departure_time`, `avoid` are all ignored (logged as warnings).
 
 ## Fixed Issues (previously known)
+- **Silent parameter drops** (Phase 1): 24 locations across all 5 providers now emit `log::warn!` when core option fields are unsupported (Google: limit/radius/arrival_time/avoid/bbox/language; TomTom: avoid/tour/matching/traffic/isoline; MapBox: departure_time/arrival_time/avoid/format/tour; Radar: bounding_box/alternatives/avoid/arrival_time/transport_mode/tour/matching; HERE: reverse radius/traffic language/imaging format).
+- **TomTom routing/isoline avoid** (Phase 2): Core `AvoidType` field now mapped to TomTom API params (Tolls→avoidTollRoads, Ferries→avoidFerries, Tunnels→avoidTunnels, Highways→avoidMotorways, DirtRoads→avoidUnpavedRoads).
+- **HERE reverse geocode radius** (Phase 2): Core `radius` field now passed to HERE reverse geocode API.
+- **HERE imaging format** (Phase 2): Core `format` field now read alongside `provider_extra`.
+- **HERE traffic language** (Phase 2): `lang` param added to flow query from `options.language`.
+- **Radar search bounding_box** (Phase 2): Center point from bounding box now passed as `near` param.
+- **Google geocode limit** (Phase 2): Post-response truncation when `options.limit` is set.
+- **MapBox imaging format** (Phase 2): Read from `options.format` core field.
+- **Radar tour transport_mode** (Phase 2): Now read from `options.transport_mode` core field.
+- **20+ CLI flags** (Phase 3): `--limit`, `--language`, `--country`, `--bbox`, `--radius`, `--alternatives`, `--avoid`, `--departure-time`, `--arrival-time`, `--heading`, `--range-type`, `--format` added across all 11 commands.
 - **Google routing avoid types**: Fixed — removed invalid `indoor` mapping for DirtRoads, removed unsupported Tunnels from avoid parameter list. Uses typed `DepartureTime` match instead of string guessing.
 - **HERE traffic incidents**: Fixed — `include_incidents` now actually fetches incidents (was always returning empty).
 - **CLI Attributes --layer**: Fixed — key changed from singular `"layer"` to plural `"layers"` matching HERE provider.

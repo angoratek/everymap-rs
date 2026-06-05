@@ -1,6 +1,6 @@
 use everymap_core::auth::AuthProvider;
-use everymap_core::domains::tour::TourOptions;
-use everymap_core::domains::tour::TourPlanner;
+use everymap_core::domains::routing::TransportMode;
+use everymap_core::domains::tour::{TourOptions, TourPlanner};
 use everymap_core::types::Coordinate;
 use everymap_providers_radar::{RadarClient, RadarTourPlanner};
 use std::sync::Arc;
@@ -63,4 +63,52 @@ async fn test_tour_contract() {
         .unwrap();
     assert_eq!(result.stops.len(), 3); // 2 legs start + 1 final end
     assert!((result.total_distance.unwrap() - 15000.0).abs() < 1.0);
+}
+
+#[tokio::test]
+async fn test_tour_with_transport_mode() {
+    let (server, planner) = setup_tour_mock().await;
+
+    Mock::given(method("GET"))
+        .and(path("/v1/route/optimize"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "route": {
+                "distance": { "value": 15000, "text": "15 km" },
+                "duration": { "value": 25, "text": "25 min" },
+                "legs": [
+                    {
+                        "startLocation": { "latitude": 52.5163, "longitude": 13.3777 },
+                        "endLocation": { "latitude": 52.52, "longitude": 13.405 },
+                        "startIndex": 0,
+                        "endIndex": 1,
+                        "distance": { "value": 8000, "text": "8 km" },
+                        "duration": { "value": 12, "text": "12 min" }
+                    },
+                    {
+                        "startLocation": { "latitude": 52.52, "longitude": 13.405 },
+                        "endLocation": { "latitude": 52.53, "longitude": 13.41 },
+                        "startIndex": 1,
+                        "endIndex": 2,
+                        "distance": { "value": 7000, "text": "7 km" },
+                        "duration": { "value": 13, "text": "13 min" }
+                    }
+                ]
+            }
+        })))
+        .mount(&server)
+        .await;
+
+    let stops = vec![
+        Coordinate::new(52.5163, 13.3777).unwrap(),
+        Coordinate::new(52.52, 13.405).unwrap(),
+        Coordinate::new(52.53, 13.41).unwrap(),
+    ];
+    let options = TourOptions {
+        transport_mode: Some(TransportMode::Bicycle),
+        ..Default::default()
+    };
+
+    let result = planner.optimize_tour(&stops, &options).await.unwrap();
+    assert_eq!(result.stops.len(), 3);
 }

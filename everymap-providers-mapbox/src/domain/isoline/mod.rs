@@ -36,12 +36,25 @@ impl MapBoxIsoline {
 /// Convert core TransportMode to MapBox profile.
 fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     match mode {
-        TransportMode::Car | TransportMode::Truck | TransportMode::Bus | TransportMode::Taxi => {
+        TransportMode::Car => "driving",
+        TransportMode::Truck => {
+            log::warn!("MapBox Isochrone API does not support truck profile, falling back to driving");
             "driving"
         }
         TransportMode::Pedestrian => "walking",
         TransportMode::Bicycle => "cycling",
-        TransportMode::Scooter => "driving",
+        TransportMode::Bus => {
+            log::warn!("MapBox Isochrone API does not support bus profile, falling back to driving");
+            "driving"
+        }
+        TransportMode::Taxi => {
+            log::warn!("MapBox Isochrone API does not support taxi profile, falling back to driving");
+            "driving"
+        }
+        TransportMode::Scooter => {
+            log::warn!("MapBox Isochrone API does not support scooter profile, falling back to driving");
+            "driving"
+        }
         TransportMode::Unknown => "driving",
     }
 }
@@ -108,6 +121,20 @@ impl IsolineProvider for MapBoxIsoline {
                     "MapBox Isochrone API does not support consumption-based ranges",
                 ));
             }
+        }
+
+        if let Some(departure) = &options.departure_time {
+            log::warn!(
+                "MapBox Isochrone API does not support departure_time; \
+                 departure_time ({}) will be ignored",
+                departure
+            );
+        }
+        if !options.avoid.is_empty() {
+            log::warn!(
+                "MapBox Isochrone API does not support avoid restrictions; \
+                 avoid will be ignored"
+            );
         }
 
         if let Some(extra) = &options.provider_extra {

@@ -15,6 +15,8 @@ const DIRECTIONS_BASE_URL: &str = "https://api.radar.io/v1/route/directions";
 pub struct RadarRouter {
     pub(crate) client: std::sync::Arc<RadarClient>,
     pub(crate) base_url: String,
+    pub(crate) distance_url: String,
+    pub(crate) matrix_url: String,
 }
 
 impl RadarRouter {
@@ -22,11 +24,32 @@ impl RadarRouter {
         Self {
             client,
             base_url: DIRECTIONS_BASE_URL.to_string(),
+            distance_url: "https://api.radar.io/v1/route/distance".to_string(),
+            matrix_url: "https://api.radar.io/v1/route/matrix".to_string(),
         }
     }
 
     pub fn with_base_url(client: std::sync::Arc<RadarClient>, base_url: String) -> Self {
-        Self { client, base_url }
+        Self {
+            client,
+            base_url,
+            distance_url: "https://api.radar.io/v1/route/distance".to_string(),
+            matrix_url: "https://api.radar.io/v1/route/matrix".to_string(),
+        }
+    }
+
+    pub fn with_ext_urls(
+        client: std::sync::Arc<RadarClient>,
+        base_url: String,
+        distance_url: String,
+        matrix_url: String,
+    ) -> Self {
+        Self {
+            client,
+            base_url,
+            distance_url,
+            matrix_url,
+        }
     }
 }
 
@@ -36,7 +59,13 @@ fn map_transport_mode(mode: &TransportMode) -> &'static str {
         TransportMode::Truck => "truck",
         TransportMode::Pedestrian | TransportMode::Scooter => "foot",
         TransportMode::Bicycle => "bike",
-        _ => "car",
+        unsupported => {
+            log::warn!(
+                "Radar Directions API does not support transport mode {:?}, falling back to car",
+                unsupported
+            );
+            "car"
+        }
     }
 }
 
@@ -97,6 +126,25 @@ impl everymap_core::domains::routing::Router for RadarRouter {
 
         if let Some(mode) = &options.transport_mode {
             params.push(("mode", map_transport_mode(mode).to_string()));
+        }
+        if let Some(alternatives) = options.alternatives {
+            log::warn!(
+                "Radar Directions API does not support core alternatives field directly; \
+                 use provider_extra.alternatives instead"
+            );
+            let _ = alternatives;
+        }
+        if !options.avoid.is_empty() {
+            log::warn!(
+                "Radar Directions API does not support core avoid field directly; \
+                 use provider_extra.avoid instead"
+            );
+        }
+        if options.arrival_time.is_some() {
+            log::warn!(
+                "Radar Directions API does not support arrival_time; \
+                 arrival_time will be ignored"
+            );
         }
 
         // Extract Radar-specific options from provider_extra

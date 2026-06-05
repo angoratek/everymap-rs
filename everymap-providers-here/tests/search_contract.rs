@@ -140,6 +140,40 @@ async fn test_reverse_geocode_contract() {
 }
 
 #[tokio::test]
+async fn test_reverse_geocode_with_radius() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "items": [
+            {
+                "position": { "lat": 52.52, "lng": 13.405 },
+                "address": { "label": "Berlin Center, Germany" },
+                "distance": 150
+            }
+        ]
+    });
+
+    Mock::given(method("GET"))
+        .and(path("/revgeocode"))
+        .and(query_param("at", "52.52,13.405"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let client = Arc::new(HereClient::new(auth));
+    let geocoder = HereGeocoder::with_base_url(client, server.uri());
+
+    let coordinate = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ReverseGeocodeOptions {
+        radius: Some(500.0),
+        ..Default::default()
+    };
+    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
+    assert_eq!(response.items.len(), 1);
+}
+
+#[tokio::test]
 async fn test_discover_contract() {
     let server = MockServer::start().await;
 

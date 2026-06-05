@@ -216,3 +216,66 @@ async fn test_geocode_error_response() {
     let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
 }
+
+#[tokio::test]
+async fn test_geocode_with_limit_truncation() {
+    let server = MockServer::start().await;
+
+    let mock_response = serde_json::json!({
+        "results": [
+            {
+                "formatted_address": "Result 1",
+                "geometry": {
+                    "location": { "lat": 52.5, "lng": 13.4 },
+                    "location_type": "APPROXIMATE"
+                },
+                "place_id": "id1",
+                "types": ["locality"],
+                "address_components": []
+            },
+            {
+                "formatted_address": "Result 2",
+                "geometry": {
+                    "location": { "lat": 52.6, "lng": 13.5 },
+                    "location_type": "APPROXIMATE"
+                },
+                "place_id": "id2",
+                "types": ["locality"],
+                "address_components": []
+            },
+            {
+                "formatted_address": "Result 3",
+                "geometry": {
+                    "location": { "lat": 52.7, "lng": 13.6 },
+                    "location_type": "APPROXIMATE"
+                },
+                "place_id": "id3",
+                "types": ["locality"],
+                "address_components": []
+            }
+        ],
+        "status": "OK"
+    });
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let client = Arc::new(GoogleClient::new(auth));
+    let geocoder = GoogleGeocoder::with_base_url(client, server.uri());
+
+    let options = GeocodeOptions {
+        limit: Some(2),
+        ..Default::default()
+    };
+
+    let result = geocoder.geocode("Berlin", &options).await.unwrap();
+    assert_eq!(result.items.len(), 2);
+    assert_eq!(result.items[0].id, Some("id1".to_string()));
+    assert_eq!(result.items[1].id, Some("id2".to_string()));
+}
