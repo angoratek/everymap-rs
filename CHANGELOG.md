@@ -7,12 +7,20 @@
 - `SUPPORT.md`, `CODEOWNERS`, `.github/FUNDING.yml` community files.
 - Module-level documentation on `everymap-core` crate (crates.io/docs.rs landing page).
 - `waypoint_distance` field on `HereMatchingOptions` (replaces abbreviated `wp_dist`).
+- 20+ new CLI flags: `--language`, `--limit`, `--country`, `--bbox`, `--radius`, `--alternatives`, `--avoid`, `--departure-time`, `--arrival-time`, `--heading`, `--range-type`, `--format` across all 11 commands.
+- 24 `log::warn!` diagnostics for silent parameter drops across all 5 providers.
+- `.github/dependabot.yml` for weekly Cargo + GitHub Actions dependency updates.
 
 ### Changed
 - `wp_dist` field on `HereMatchingOptions` is now deprecated — use `waypoint_distance` instead.
 - `here_opts` variable renamed to `here_options` (256 occurrences, 9 files).
 - Replaced `eprintln!` with `log::debug!` / `log::warn!` in library crates (core client, MapBox provider).
-- Documentation: updated implementation count (31→35), test count (575+→578).
+- TomTom routing and isoline now wire core `AvoidType` to TomTom API params (`avoidTollRoads`, `avoidFerries`, `avoidTunnels`, `avoidMotorways`, `avoidUnpavedRoads`).
+- HERE reverse geocode, imaging, and traffic now read core `radius` / `format` / `language` fields.
+- Radar search `bounding_box`, routing `alternatives` / `avoid`, and tour `transport_mode` now wired from core options.
+- MapBox imaging `format` and tour `provider_extra` now read from core options.
+- TomTom tour `TourOptions` no longer ignored — `transport_mode` and `provider_extra` extracted.
+- Documentation: implementation count 35, test count 624 across all docs.
 
 ### Removed
 - Obsolete `tmp/` planning documents.
@@ -44,4 +52,4 @@
 - 35 real implementations across 5 providers.
 - CLI with 11 commands and unified `ProviderRegistry` dispatch.
 - Benchmark framework covering all 10 domains.
-- 578 tests (unit + contract + CLI integration + error cases).
+- 624 tests (unit + contract + CLI integration + error cases + bench).

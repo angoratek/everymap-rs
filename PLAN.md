@@ -90,7 +90,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - **ProviderClient extracted**: Shared HTTP client logic in `everymap-core/src/client/mod.rs`. All 5 provider crates have thin wrappers.
 - **Unsupported domain macros**: 7 macros in `everymap-core/src/unsupported.rs`. All 5 provider stubs converted to 1-line macro invocations.
 - **Security**: Error body truncation reduced to 256 bytes. Shared `redact_api_key()` from core.
-- **Tests**: 578 total (up from 345). ~230 new tests.
+- **Tests**: 624 total (up from 345). ~276 new tests.
 - **Clippy**: Zero warnings with `-D warnings`.
 
 ### Phase 16: Benchmark Expansion ✅
@@ -114,13 +114,28 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 
 ### Phase 18: Public Release Polish ✅
 - **Security**: Deleted `.env` with live API keys, removed `tmp/` planning artifacts.
-- **Metrics**: Fixed stale counts — 31→35 implementations, 575+→578 tests across all docs.
+- **Metrics**: Fixed stale counts — 31→35 implementations, 575+→578 tests across all docs. Further expanded to 624 tests in Phase 19.
 - **Code abbreviations**: Renamed `here_opts`→`here_options` (256 occurrences, 9 files). Deprecated `wp_dist` → `waypoint_distance`.
 - **Logging**: Replaced `eprintln!` with `log::warn!` in MapBox provider (silent parameter drops). Kept `eprintln!` for CLI verbose mode (user-facing).
 - **Documentation**: Added `//!` module docs to `everymap-core` (crates.io/docs.rs landing page). Expanded SECURITY.md env var docs. Clarified CONTRIBUTING.md for external contributors.
 - **Community files**: Added SUPPORT.md, CODEOWNERS, FUNDING.yml.
 - **Cleanup**: Converted commented-out JSON examples to proper doc comments. Removed spurious `#[allow(dead_code)]`.
 - **CI**: Added `cli-validate` job (374 CLI assertions) — 9 jobs total.
+
+### Phase 19: Feature & Domain Completion ✅
+- **Silent parameter drops**: Added 24 `log::warn!` diagnostics across Google, TomTom, MapBox, Radar, HERE for ignored core fields (avoid, arrival_time, language, limit, radius, heading, departure_time, transport_mode, format, bbox, alternatives).
+- **Transport mode collapse warnings**: Added `log::warn!` in all catch-all transport mode mapping arms (Google, TomTom, MapBox routing/isoline/matching).
+- **TomTom avoid wiring**: Wired core `AvoidType` → TomTom API params (`avoidTollRoads`, `avoidFerries`, `avoidTunnels`, `avoidMotorways`, `avoidUnpavedRoads`) in both routing and isoline.
+- **HERE parameter wiring**: reverse geocode `radius`, imaging `format` from core field, traffic `language` for flow path.
+- **Radar parameter wiring**: search `bounding_box` → `near` param, routing `alternatives`+`avoid` from core fields, tour `transport_mode` from core field.
+- **TomTom tour**: `TourOptions` no longer ignored — `transport_mode` and `provider_extra` extracted.
+- **MapBox**: imaging `format` from core field, tour `provider_extra` passed through.
+- **Google geocode**: `limit` post-response truncation.
+- **CLI flags**: 20+ new flags — `--language`, `--limit`, `--country`, `--bbox`, `--radius`, `--alternatives`, `--avoid`, `--departure-time`, `--arrival-time`, `--heading`, `--range-type`, `--format`.
+- **Integration tests**: Radar HTTP error tests + ext contract tests, bench unit tests, expanded parameter variation tests (Google limit/arrival/avoid, TomTom avoid/transport/bicycle, MapBox departure/heading/format/tour, Radar bbox/alternatives/avoid/transport, HERE radius/parameter-variations).
+- **Smoke tests**: Google attributes live smoke, transport variants (bicycle/scooter/bus/taxi), isoline range-type=time, new CLI flags, unsupported domain error paths, verbose mode on 6 commands, MapBox tour expanded, Radar smoke expanded.
+- **Test count**: 578 → 624 tests (46 new).
+- **Docs**: CLAUDE.md, README.md, PLAN.md updated with new test counts, CLI flags, known/fixed issues.
 
 ---
 
@@ -131,7 +146,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 | Workspace crates | 8 |
 | Domain traits | 10 |
 | CLI commands | 11 |
-| Total tests | 578 (nextest) |
+| Total tests | 624 (nextest) |
 | Real implementations | 35 across 5 providers |
 | Clippy warnings | 0 |
 | Version | 0.2.0 (0.2.1 upcoming) |
@@ -139,7 +154,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 578 tests (unit + contract + CLI integration + error cases), all passing with nextest
+- **TDD**: 624 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
@@ -152,8 +167,8 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - [ ] OAuth2 auth provider implementation
 - [ ] Upgrade Google routing from legacy Directions API to Routes API v2
 - [ ] Add `Moderate` variant to core `IncidentSeverity` (TomTom traffic)
-- [ ] Wire `avoid` parameter for TomTom routing (API supports it)
-- [ ] Add missing CLI flags: `--language`, `--limit`, `--avoid`, `--radius`, `--arrival-time`, `--alternatives`
+- [x] Wire `avoid` parameter for TomTom routing (API supports it) — wired in both routing and isoline
+- [x] Add missing CLI flags: `--language`, `--limit`, `--avoid`, `--radius`, `--arrival-time`, `--alternatives` — all 20+ flags added
 - [ ] Configurable image size for `map-image` command
 - [x] CI/CD pipeline (GitHub Actions — 9 jobs: fmt, clippy, docs, audit, MSRV, test, build, check-publish, cli-validate)
 - [x] Config file permission check (`~/.everymap/config.toml` world-readable warning) — Unix-only, warning on stderr

@@ -13,8 +13,9 @@ Thank you for your interest in contributing! This guide covers the basics.
    ```
 3. **Run tests**:
    ```bash
-   cargo test
-   cargo clippy -- -D warnings
+   cargo nextest run --all-features
+   cargo test                               # Alternative: standard test runner
+   cargo clippy --all-targets --all-features -- -D warnings
    ```
 
 ## Project Structure
@@ -74,7 +75,7 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Pull Request Process
 
 1. Ensure `cargo clippy -- -D warnings` passes with zero warnings
-2. Ensure `cargo test` passes (all 578 tests)
+2. Ensure `cargo test` passes (all 624 tests)
 3. Ensure `cargo fmt --all -- --check` passes
 4. Add tests for any new functionality
 5. Update public-facing documentation (README.md, TESTING.md, CHANGELOG.md) as needed

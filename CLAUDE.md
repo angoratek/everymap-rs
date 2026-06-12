@@ -1,5 +1,87 @@
 # CLAUDE.md — Project Guidance for Claude Code
 
+## Git Rules
+
+- **Never commit without explicit user approval.** Always ask before committing.
+- Do not push to remote unless explicitly asked.
+- When allowed, create 1-liner commit messages, precise yet concise, e.g. "feat: move validate-cli.sh to scripts/ (374 assertions, timing, CI job), fix clippy redundant_field_names, optimize api_key clone."
+- Never use the Co-author tag in commit messages.
+
+### Commit Style
+
+- **1-liner only** — precise, concise, no body paragraphs
+- **Never** add `Co-Authored-By`, `Signed-off-by`, or any trailer/footer
+- Format: `<type>: <imperative description>`
+- Types: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `ci:`, `chore:`
+- Examples:
+  - `feat: add token-bucket rate limiter to ig-ratelimit`
+  - `fix: map Graph API error code 2534022 to WindowExpired`
+  - `test: add wiremock tests for all API error code mappings`
+
+## Behavioral Guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+1. Think Before Coding
+
+Don't assume. Don't hide confusion. Surface tradeoffs.
+
+Before implementing:
+
+    State your assumptions explicitly. If uncertain, ask.
+    If multiple interpretations exist, present them - don't pick silently.
+    If a simpler approach exists, say so. Push back when warranted.
+    If something is unclear, stop. Name what's confusing. Ask.
+
+2. Simplicity First
+
+Minimum code that solves the problem. Nothing speculative.
+
+    No features beyond what was asked.
+    No abstractions for single-use code.
+    No "flexibility" or "configurability" that wasn't requested.
+    No error handling for impossible scenarios.
+    If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+3. Surgical Changes
+
+Touch only what you must. Clean up only your own mess.
+
+When editing existing code:
+
+    Don't "improve" adjacent code, comments, or formatting.
+    Don't refactor things that aren't broken.
+    Match existing style, even if you'd do it differently.
+    If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+
+    Remove imports/variables/functions that YOUR changes made unused.
+    Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+4. Goal-Driven Execution
+
+Define success criteria. Loop until verified.
+
+Transform tasks into verifiable goals:
+
+    "Add validation" → "Write tests for invalid inputs, then make them pass"
+    "Fix the bug" → "Write a test that reproduces it, then make it pass"
+    "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
 ## Project Overview
 EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs across 10 geospatial domains.
 
@@ -98,10 +180,6 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
 - 11 commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
-
-## Git Rules
-- **Never commit without explicit user approval.** Always ask before committing.
-- Do not push to remote unless explicitly asked.
 
 ## API Compatibility Notes
 - TomTom reverse geocode returns `addresses` (not `results`), position as `"lat,lon"` string
