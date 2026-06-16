@@ -51,7 +51,7 @@ jobs:
       - name: Build
         run: cargo build --release --target ${{ matrix.target }} -p everymap-cli
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: everymap-${{ matrix.target }}
           path: target/${{ matrix.target }}/release/everymap*
