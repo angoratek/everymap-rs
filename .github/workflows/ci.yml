@@ -66,7 +66,7 @@ jobs:
         with:
           tool: nextest
       - run: cargo nextest run --all-features --profile ci
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: nextest-junit
@@ -95,7 +95,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: chmod +x scripts/validate-cli.sh
       - run: ./scripts/validate-cli.sh --quiet --json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: validate-results
