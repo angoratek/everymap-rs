@@ -9,6 +9,8 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 EveryMap-RS provides a unified interface for geospatial services across multiple providers — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. The architecture uses **domain-driven design** with 10 geospatial capabilities, each defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
 
+**Capabilities covered**: geocoding, reverse geocoding, routing / directions, isolines / isochrones, map matching (snap-to-road), tour planning / waypoint optimization (TSP), traffic flow & incidents, map tiles, geodata attributes, and static map images.
+
 ## Architecture
 
 ```
@@ -185,7 +187,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 624 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest.
+- **TDD**: 623 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest.
 - **Full coverage**: All OpenAPI parameters and response fields are modeled.
 - **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
@@ -195,7 +197,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 
 ```bash
 cargo build                              # Build all 8 workspace crates
-cargo nextest run --all-features         # Run 624 tests (install: cargo install cargo-nextest)
+cargo nextest run --all-features         # Run 623 tests (install: cargo install cargo-nextest)
 cargo test                               # Alternative: standard test runner
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
@@ -220,8 +222,10 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide including live API 
 
 - OAuth2 authentication provider
 - Upgrade Google routing from legacy Directions API to Routes API v2
+- Add `Moderate` variant to core `IncidentSeverity` (TomTom traffic)
+- Configurable image size for the `map-image` command
+- Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via `provider_extra`)
 - Provider client macro to reduce boilerplate across crates
-- Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via provider_extra)
 
 ## License
 

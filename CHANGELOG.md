@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-09-13
+
 ### Added
 - `scripts/validate-cli.sh`: 374-assertion CLI validation framework with timing and JSON output.
 - `SUPPORT.md`, `CODEOWNERS`, `.github/FUNDING.yml` community files.
@@ -17,10 +19,20 @@
 - Replaced `eprintln!` with `log::debug!` / `log::warn!` in library crates (core client, MapBox provider).
 - TomTom routing and isoline now wire core `AvoidType` to TomTom API params (`avoidTollRoads`, `avoidFerries`, `avoidTunnels`, `avoidMotorways`, `avoidUnpavedRoads`).
 - HERE reverse geocode, imaging, and traffic now read core `radius` / `format` / `language` fields.
-- Radar search `bounding_box`, routing `alternatives` / `avoid`, and tour `transport_mode` now wired from core options.
+- Radar search `bounding_box` and tour `transport_mode` now wired from core options (routing `alternatives` / `avoid` remain available via `provider_extra` only, with warnings).
 - MapBox imaging `format` and tour `provider_extra` now read from core options.
 - TomTom tour `TourOptions` no longer ignored — `transport_mode` and `provider_extra` extracted.
-- Documentation: implementation count 35, test count 624 across all docs.
+- Documentation: implementation count 35, test count 623 across all docs.
+
+### Added (CI/CD and release infrastructure)
+- CI expanded to 9 jobs: fmt, clippy, docs (`RUSTDOCFLAGS="-D warnings"`), audit, msrv, test, build, check-publish, cli-validate.
+- `deny.toml` + `cargo deny check` audit job pinned to cargo-deny 0.20.2 (advisories, licenses, bans, sources).
+- MSRV bumped from 1.75 to 1.86 (edition-2024 dependencies; icu4x 2.2 requires 1.86).
+- reqwest upgraded from 0.12 to 0.13 (`query` feature now opt-in; default TLS backend is rustls/aws-lc-rs).
+- Security fixes: h2 0.4.19 (RUSTSEC-2026-0258), rustls-webpki 0.103.15 (RUSTSEC-2026-0098/0099/0104).
+- `.github/workflows/release.yml`: tag-triggered release pipeline (check → 5-target binaries → crates.io publish → GitHub release).
+- crates.io metadata: `readme`, `documentation`, and `authors` on all publishable crates; `cargo publish --locked`; index-polling between publishes replaces the fixed sleep.
+- GitHub Actions bumped: checkout v7, upload-artifact v7, download-artifact v8.
 
 ### Removed
 - Obsolete `tmp/` planning documents.

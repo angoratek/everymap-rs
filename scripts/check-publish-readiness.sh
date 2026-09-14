@@ -60,12 +60,39 @@ check_crate() {
         fi
     fi
 
-    # Check inter-crate deps have version specified
-    if grep -E '^everymap-' "$crate_dir/Cargo.toml" | grep -q 'path\s*='; then
-        # If path dep without version, flag it
-        if grep -E '^everymap-.*=.*path\s*=' "$crate_dir/Cargo.toml" | grep -qv 'version'; then
-            errors+=("inter-crate dep has path without version (need path+version for crates.io)")
+    # Check inter-crate deps have version specified ([dependencies] only —
+    # path-only dev-dependencies are intentional and stripped at publish)
+    local in_deps_section=false
+    local section_name=""
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^\[dependencies\] ]]; then in_deps_section=true; section_name="deps"
+        elif [[ "$line" =~ ^\[dev-dependencies\] ]]; then in_deps_section=false; section_name="dev"
+        elif [[ "$line" =~ ^\[ ]]; then in_deps_section=false; section_name=""
+        elif $in_deps_section && [[ "$line" =~ ^everymap-.*path ]]; then
+            if ! [[ "$line" =~ version ]]; then
+                errors+=("inter-crate dependency has path without version (need path+version for crates.io)")
+            fi
         fi
+    done < "$crate_dir/Cargo.toml"
+
+    # Check crates.io discovery metadata: keywords (max 5), categories,
+    # readme, and documentation links
+    local keyword_count
+    keyword_count=$(grep -E '^keywords' "$crate_dir/Cargo.toml" | grep -o '"' | wc -l | tr -d ' ')
+    keyword_count=$((keyword_count / 2))
+    if [[ $keyword_count -eq 0 ]]; then
+        errors+=("missing keywords (crates.io search discoverability)")
+    elif [[ $keyword_count -gt 5 ]]; then
+        errors+=("too many keywords: ${keyword_count} (crates.io allows max 5)")
+    fi
+    if ! grep -qE '^categories' "$crate_dir/Cargo.toml"; then
+        errors+=("missing categories (crates.io browse discoverability)")
+    fi
+    if ! grep -qE '^readme(\.workspace)?\s*=' "$crate_dir/Cargo.toml"; then
+        errors+=("missing readme field (crates.io page renders no README)")
+    fi
+    if ! grep -qE '^documentation\s*=' "$crate_dir/Cargo.toml"; then
+        errors+=("missing documentation field (no docs.rs link on crates.io)")
     fi
 
     # Check LICENSE file at repo root

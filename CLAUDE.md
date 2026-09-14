@@ -125,7 +125,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 624 tests (unit + contract + CLI integration + error cases + bench)
+- `cargo test` — runs 623 tests (unit + contract + CLI integration + error cases + bench; 9 more skipped)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)

@@ -8,6 +8,9 @@ rust-version.workspace = true
 description = "Core traits, types, and error handling for EveryMap — unified geospatial API abstraction"
 keywords = ["geospatial", "maps", "api", "abstraction"]
 categories = ["api-bindings", "science::geo"]
+readme = "../README.md"
+documentation = "https://docs.rs/everymap-core"
+authors.workspace = true
 
 [features]
 integration = []
@@ -23,10 +26,14 @@ flexpolyline = { workspace = true }
 zeroize = { workspace = true }
 
 [dev-dependencies]
-everymap-providers-here = { workspace = true }
-everymap-providers-google = { workspace = true }
-everymap-providers-tomtom = { workspace = true }
-everymap-providers-mapbox = { workspace = true }
+# Path-only dev-dependencies (no version): cargo strips these from the
+# published manifest, which breaks the chicken-and-egg cycle — core's
+# dev-deps are its own dependents, which do not exist on crates.io until
+# after core is first published.
+everymap-providers-here = { path = "../everymap-providers-here" }
+everymap-providers-google = { path = "../everymap-providers-google" }
+everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
+everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }
 
 [lints]
 workspace = true

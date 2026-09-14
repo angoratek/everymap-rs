@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 keywords = ["geospatial", "maps", "mapbox", "api"]
 categories = ["api-bindings", "science::geo"]
+readme = "../README.md"
+documentation = "https://docs.rs/everymap-providers-mapbox"
+authors.workspace = true
 
 [dependencies]
 everymap-core = { workspace = true }

@@ -4,7 +4,7 @@ Thank you for your interest in contributing! This guide covers the basics.
 
 ## Development Setup
 
-1. **Rust toolchain**: Install via [rustup](https://rustup.rs/). Minimum supported version: 1.75.
+1. **Rust toolchain**: Install via [rustup](https://rustup.rs/). Minimum supported version: 1.86.
 2. **Clone and build**:
    ```bash
    git clone https://github.com/angoratek/everymap-rs.git
@@ -75,7 +75,7 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Pull Request Process
 
 1. Ensure `cargo clippy -- -D warnings` passes with zero warnings
-2. Ensure `cargo test` passes (all 624 tests)
+2. Ensure `cargo test` passes (all 623 tests)
 3. Ensure `cargo fmt --all -- --check` passes
 4. Add tests for any new functionality
 5. Update public-facing documentation (README.md, TESTING.md, CHANGELOG.md) as needed
@@ -84,5 +84,7 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Release Process
 
 - All crates share a workspace version in `Cargo.toml`
+- Bump the version: `./scripts/bump-version.sh <version>` (updates `[workspace.package]` and all crates)
 - Run `./scripts/check-publish-readiness.sh --verbose` before releasing
-- Tag releases with `v0.x.0` format
+- Publishing: `./scripts/publish-crates.sh` (dependency order: core → providers → cli; requires `CARGO_REGISTRY_TOKEN`)
+- Tag releases with `v0.x.0` format — pushing a `v*` tag triggers `.github/workflows/release.yml` (checks, cross-platform binaries, crates.io publish, GitHub release)

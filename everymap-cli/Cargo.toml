@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 keywords = ["geospatial", "maps", "cli", "api"]
 categories = ["command-line-utilities", "science::geo"]
+readme = "../README.md"
+documentation = "https://docs.rs/everymap-cli"
+authors.workspace = true
 
 [[bin]]
 name = "everymap"
