@@ -1,5 +1,7 @@
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::domains::routing::{AvoidType, DepartureTime, RouteOptions, Router, TransportMode};
+use everymap_core::domains::routing::{
+    AvoidType, DepartureTime, RouteOptions, Router, TransportMode,
+};
 use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
 use everymap_providers_here::domain::routing::HereRouter;
@@ -45,7 +47,10 @@ async fn test_routing_contract() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.routes[0].distance, 1500.0);
     assert_eq!(response.routes[0].duration, 300.0);
@@ -71,7 +76,10 @@ async fn test_routing_with_avoid_tolls() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 
@@ -83,7 +91,10 @@ async fn test_routing_with_avoid_tolls() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert!(response.routes[0].distance > 0.0);
 }
 
@@ -115,7 +126,10 @@ async fn test_routing_with_alternatives() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 
@@ -127,7 +141,10 @@ async fn test_routing_with_alternatives() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(response.routes.len(), 2);
 }
 
@@ -151,7 +168,10 @@ async fn test_routing_with_departure_time() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 
@@ -163,7 +183,10 @@ async fn test_routing_with_departure_time() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert!(response.routes[0].duration > 0.0);
 }
 
@@ -187,7 +210,10 @@ async fn test_routing_with_language() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let router = HereRouter::with_base_url(client, server.uri());
 
@@ -199,6 +225,9 @@ async fn test_routing_with_language() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert!(response.routes[0].distance > 0.0);
 }

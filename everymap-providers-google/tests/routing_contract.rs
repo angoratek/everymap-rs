@@ -1,5 +1,7 @@
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::domains::routing::{AvoidType, DepartureTime, RouteOptions, Router, TransportMode};
+use everymap_core::domains::routing::{
+    AvoidType, DepartureTime, RouteOptions, Router, TransportMode,
+};
 use everymap_core::types::Coordinate;
 use everymap_providers_google::client::GoogleClient;
 use everymap_providers_google::GoogleRouter;
@@ -85,7 +87,10 @@ async fn test_routing_contract() {
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
 
     let route = &result.routes[0];
@@ -150,7 +155,10 @@ async fn test_routing_with_pedestrian_mode() {
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
     assert_eq!(result.routes[0].distance, 800000.0);
     assert_eq!(result.routes[0].duration, 576000.0);
@@ -216,7 +224,10 @@ async fn test_routing_with_avoid_tolls() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let router = GoogleRouter::with_base_url(client, server.uri());
 
@@ -228,7 +239,10 @@ async fn test_routing_with_avoid_tolls() {
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
 }
 
@@ -262,7 +276,10 @@ async fn test_routing_with_arrival_time() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(GoogleClient::new(auth));
     let router = GoogleRouter::with_base_url(client, server.uri());
 

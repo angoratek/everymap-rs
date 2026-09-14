@@ -40,24 +40,16 @@ impl RouteMatcher for TomTomRouteMatcher {
         options: &MatchingOptions,
     ) -> EveryMapResult<TraceResponse> {
         if options.transport_mode.is_some() {
-            log::warn!(
-                "TomTom Snap to Roads API does not support transport_mode; ignoring"
-            );
+            log::warn!("TomTom Snap to Roads API does not support transport_mode; ignoring");
         }
         if options.heading.is_some() {
-            log::warn!(
-                "TomTom Snap to Roads API does not support heading; ignoring"
-            );
+            log::warn!("TomTom Snap to Roads API does not support heading; ignoring");
         }
         if options.departure_time.is_some() {
-            log::warn!(
-                "TomTom Snap to Roads API does not support departure_time; ignoring"
-            );
+            log::warn!("TomTom Snap to Roads API does not support departure_time; ignoring");
         }
         if !options.avoid.is_empty() {
-            log::warn!(
-                "TomTom Snap to Roads API does not support avoid restrictions; ignoring"
-            );
+            log::warn!("TomTom Snap to Roads API does not support avoid restrictions; ignoring");
         }
 
         let url = format!("{}/snapToRoads/1/snap", self.base_url);

@@ -119,7 +119,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - CLI output writes directly to stdout via `serde_json::to_writer` (no intermediate `String` allocation for JSON/Pretty formats).
 - Provider crates define `const PROVIDER_NAME: &str` in their client module for consistent naming in errors and logs.
 - Workspace-level lints configured in root `Cargo.toml` (`[workspace.lints]`): `unsafe_code = "deny"`, clippy `all = warn`.
-- MSRV declared as 1.75 in `[workspace.package]`.
+- MSRV declared as 1.86 in `[workspace.package]`.
 - Use `DepartureTime` enum for departure/arrival time fields — never `Option<String>` guessing.
 - All variable names must be full words (no abbreviations). See "What NOT to Do" for the full list.
 

@@ -72,7 +72,11 @@ pub struct GooglePlusCode {
 impl From<GoogleGeocodeResponse> for SearchResponse {
     fn from(response: GoogleGeocodeResponse) -> Self {
         SearchResponse {
-            items: response.results.into_iter().map(SearchResult::from).collect(),
+            items: response
+                .results
+                .into_iter()
+                .map(SearchResult::from)
+                .collect(),
         }
     }
 }

@@ -32,10 +32,14 @@ check_crate() {
     TOTAL=$((TOTAL + 1))
     local errors=()
 
-    # Check required fields
+    # Check required fields (accepts `field = "..."` and workspace-inherited
+    # `field.workspace = true`, which must be defined in [workspace.package])
     for field in description license repository; do
-        if ! grep -q "^${field}\s*=" "$crate_dir/Cargo.toml"; then
+        if ! grep -qE "^${field}(\.workspace)?\s*=" "$crate_dir/Cargo.toml"; then
             errors+=("missing required field: $field")
+        elif grep -q "^${field}\.workspace\s*=" "$crate_dir/Cargo.toml" \
+            && ! grep -qE "^${field}\s*=" "$REPO_ROOT/Cargo.toml"; then
+            errors+=("$field.workspace = true but '$field' not defined in [workspace.package]")
         fi
     done
 

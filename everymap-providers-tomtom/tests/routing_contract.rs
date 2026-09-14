@@ -57,7 +57,10 @@ async fn test_routing_contract() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.routes.len(), 1);
     assert_eq!(response.routes[0].distance, 947000.0);
@@ -90,14 +93,19 @@ async fn test_routing_with_avoid_tolls_and_ferries() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json"))
+        .and(path(
+            "/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json",
+        ))
         .and(query_param("avoid", "tollRoads"))
         .and(query_param("avoid", "ferries"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let router = TomTomRouter::with_base_url(client, server.uri());
 
@@ -109,7 +117,10 @@ async fn test_routing_with_avoid_tolls_and_ferries() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(response.routes.len(), 1);
 }
 
@@ -138,12 +149,17 @@ async fn test_routing_with_bus_transport_mode() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json"))
+        .and(path(
+            "/routing/1/calculateRoute/52.52,13.405:51.5,-0.12/json",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let router = TomTomRouter::with_base_url(client, server.uri());
 
@@ -154,6 +170,9 @@ async fn test_routing_with_bus_transport_mode() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(response.routes.len(), 1);
 }

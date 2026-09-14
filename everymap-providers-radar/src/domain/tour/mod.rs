@@ -36,7 +36,6 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
         options: &TourOptions,
     ) -> EveryMapResult<TourResponse> {
         if stops.len() < 2 {
-
             return Err(EveryMapError::ValidationError(
                 "At least 2 stops are required for tour optimization".to_string(),
             ));

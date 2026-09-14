@@ -90,12 +90,17 @@ async fn test_matching_with_heading() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/matching/v5/mapbox/driving/13.405,52.52;13.45,52.55.json"))
+        .and(path(
+            "/matching/v5/mapbox/driving/13.405,52.52;13.45,52.55.json",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let matcher = MapBoxRouteMatcher::with_base_url(client, server.uri());
 
@@ -132,12 +137,17 @@ async fn test_matching_with_departure_time() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/matching/v5/mapbox/driving/13.405,52.52;13.45,52.55.json"))
+        .and(path(
+            "/matching/v5/mapbox/driving/13.405,52.52;13.45,52.55.json",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let matcher = MapBoxRouteMatcher::with_base_url(client, server.uri());
 

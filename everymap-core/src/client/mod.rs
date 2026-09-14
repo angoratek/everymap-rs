@@ -116,7 +116,10 @@ impl ProviderClient {
             Ok(response)
         } else {
             let status_code = status.as_u16();
-            let status_text = status.canonical_reason().unwrap_or(UNKNOWN_STATUS).to_string();
+            let status_text = status
+                .canonical_reason()
+                .unwrap_or(UNKNOWN_STATUS)
+                .to_string();
             let retry_after = if status_code == 429 {
                 response
                     .headers()

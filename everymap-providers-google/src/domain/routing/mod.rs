@@ -208,11 +208,9 @@ impl Router for GoogleRouter {
             let departure_value = match departure_time {
                 DepartureTime::Now => "now".to_string(),
                 DepartureTime::Timestamp(ts) => ts.to_string(),
-                DepartureTime::Iso8601(s) => {
-                    chrono::DateTime::parse_from_rfc3339(s)
-                        .map(|dt| dt.timestamp().to_string())
-                        .unwrap_or_else(|_| s.clone())
-                }
+                DepartureTime::Iso8601(s) => chrono::DateTime::parse_from_rfc3339(s)
+                    .map(|dt| dt.timestamp().to_string())
+                    .unwrap_or_else(|_| s.clone()),
             };
             params.push(("departure_time", departure_value));
         }
@@ -222,7 +220,8 @@ impl Router for GoogleRouter {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("waypoints").and_then(|v| v.as_str()) {
                     // Google uses optimize:true| prefix in waypoints value for optimization
-                    if let Some(optimize) = obj.get("optimize_waypoints").and_then(|v| v.as_bool()) {
+                    if let Some(optimize) = obj.get("optimize_waypoints").and_then(|v| v.as_bool())
+                    {
                         if optimize {
                             params.push(("waypoints", format!("optimize:true|{}", v)));
                         } else {

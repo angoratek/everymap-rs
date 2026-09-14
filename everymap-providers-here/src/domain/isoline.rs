@@ -207,7 +207,8 @@ fn isoline_options_from_core(options: &IsolineOptions) -> HereIsolineOptions {
     // Convert avoid types
     if !options.avoid.is_empty() {
         here_options.avoid = Some(
-            options.avoid
+            options
+                .avoid
                 .iter()
                 .map(|a| match a {
                     everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
@@ -365,7 +366,10 @@ impl IsolineProvider for HereIsoline {
             params.push(("vehicle", vehicle.join(",")));
         }
         if let Some(consumption_model) = &here_options.consumption_model {
-            params.push(("consumptionModel", crate::util::enum_as_str(consumption_model)));
+            params.push((
+                "consumptionModel",
+                crate::util::enum_as_str(consumption_model),
+            ));
         }
         if let Some(ev) = &here_options.ev {
             params.push(("ev", ev.join(",")));

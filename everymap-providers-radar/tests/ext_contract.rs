@@ -101,14 +101,10 @@ async fn test_autocomplete_contract() {
         limit: Some(3),
         country_code: None,
     };
-    let result = RadarGeocoderExt::autocomplete(
-        &geocoder,
-        "Branden",
-        Some(&test_coordinate()),
-        &options,
-    )
-    .await
-    .unwrap();
+    let result =
+        RadarGeocoderExt::autocomplete(&geocoder, "Branden", Some(&test_coordinate()), &options)
+            .await
+            .unwrap();
     assert_eq!(result.addresses.len(), 1);
     assert_eq!(result.addresses[0].country_code, "DE");
 }

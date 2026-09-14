@@ -48,7 +48,10 @@ async fn test_isoline_contract() {
         ..Default::default()
     };
 
-    let response = isoline.get_isoline(&center, 5000.0, &options).await.unwrap();
+    let response = isoline
+        .get_isoline(&center, 5000.0, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.isolines.len(), 1);
     assert_eq!(response.isolines[0].polygon.len(), 6);
@@ -80,7 +83,10 @@ async fn test_isoline_with_avoid_tunnels() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let isoline = TomTomIsoline::with_base_url(client, server.uri());
 
@@ -91,7 +97,10 @@ async fn test_isoline_with_avoid_tunnels() {
         ..Default::default()
     };
 
-    let response = isoline.get_isoline(&center, 5000.0, &options).await.unwrap();
+    let response = isoline
+        .get_isoline(&center, 5000.0, &options)
+        .await
+        .unwrap();
     assert_eq!(response.isolines.len(), 1);
 }
 
@@ -118,7 +127,10 @@ async fn test_isoline_range_type_time() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
     let client = Arc::new(TomTomClient::new(auth));
     let isoline = TomTomIsoline::with_base_url(client, server.uri());
 

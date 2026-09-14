@@ -27,9 +27,7 @@ async fn test_geocode_unauthorized() {
         format!("{}/v1/geocode/reverse", server.uri()),
     );
 
-    let result = geocoder
-        .geocode("Berlin", &GeocodeOptions::default())
-        .await;
+    let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::HttpError { status, .. } => assert_eq!(status, 401),
@@ -58,9 +56,7 @@ async fn test_geocode_forbidden() {
         format!("{}/v1/geocode/reverse", server.uri()),
     );
 
-    let result = geocoder
-        .geocode("Berlin", &GeocodeOptions::default())
-        .await;
+    let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::HttpError { status, .. } => assert_eq!(status, 403),
@@ -92,9 +88,7 @@ async fn test_geocode_rate_limited() {
         format!("{}/v1/geocode/reverse", server.uri()),
     );
 
-    let result = geocoder
-        .geocode("Berlin", &GeocodeOptions::default())
-        .await;
+    let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::HttpError { status, .. } => assert_eq!(status, 429),
@@ -123,9 +117,7 @@ async fn test_geocode_server_error() {
         format!("{}/v1/geocode/reverse", server.uri()),
     );
 
-    let result = geocoder
-        .geocode("Berlin", &GeocodeOptions::default())
-        .await;
+    let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
     match result.unwrap_err() {
         EveryMapError::HttpError { status, .. } => assert_eq!(status, 500),

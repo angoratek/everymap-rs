@@ -450,6 +450,9 @@ mod tests {
         let json = serde_json::to_string(&dt).unwrap();
         assert_eq!(json, "\"2024-06-01T08:00:00Z\"");
         let back: DepartureTime = serde_json::from_str(&json).unwrap();
-        assert_eq!(back, DepartureTime::Iso8601("2024-06-01T08:00:00Z".to_string()));
+        assert_eq!(
+            back,
+            DepartureTime::Iso8601("2024-06-01T08:00:00Z".to_string())
+        );
     }
 }

@@ -94,7 +94,10 @@ async fn test_geocode_with_options() {
     let response = geocoder.geocode("Paris", &options).await.unwrap();
 
     assert_eq!(response.items.len(), 1);
-    assert_eq!(response.items[0].address.label.as_deref(), Some("Paris, France"));
+    assert_eq!(
+        response.items[0].address.label.as_deref(),
+        Some("Paris, France")
+    );
 }
 
 #[tokio::test]
@@ -126,7 +129,10 @@ async fn test_reverse_geocode_contract() {
 
     let coordinate = Coordinate::new(52.52, 13.405).unwrap();
     let options = ReverseGeocodeOptions::default();
-    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
+    let response = geocoder
+        .reverse_geocode(&coordinate, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.items.len(), 1);
     assert_eq!(
@@ -160,7 +166,10 @@ async fn test_reverse_geocode_with_radius() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("test-key".to_string(), "apiKey".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
     let client = Arc::new(HereClient::new(auth));
     let geocoder = HereGeocoder::with_base_url(client, server.uri());
 
@@ -169,7 +178,10 @@ async fn test_reverse_geocode_with_radius() {
         radius: Some(500.0),
         ..Default::default()
     };
-    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
+    let response = geocoder
+        .reverse_geocode(&coordinate, &options)
+        .await
+        .unwrap();
     assert_eq!(response.items.len(), 1);
 }
 

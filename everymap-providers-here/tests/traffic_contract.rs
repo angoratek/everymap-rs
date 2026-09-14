@@ -47,7 +47,10 @@ async fn test_traffic_contract() {
     let coordinate = Coordinate::new(52.52, 13.405).unwrap();
     let options = TrafficOptions::default();
 
-    let response = traffic_provider.get_traffic(&coordinate, &options).await.unwrap();
+    let response = traffic_provider
+        .get_traffic(&coordinate, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.flows.len(), 1);
     assert_eq!(response.flows[0].jam_factor.unwrap(), 2.5);

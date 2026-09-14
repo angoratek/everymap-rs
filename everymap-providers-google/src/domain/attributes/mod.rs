@@ -95,9 +95,7 @@ fn attribute_options_from_core(
         );
     }
     if options.language.is_some() {
-        log::warn!(
-            "Google Roads API speedLimits does not support language parameter; ignoring"
-        );
+        log::warn!("Google Roads API speedLimits does not support language parameter; ignoring");
     }
 
     if let Some(extra) = &options.provider_extra {

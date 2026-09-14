@@ -110,7 +110,10 @@ async fn test_traffic_incidents_contract() {
     assert_eq!(response.flows[0].speed, Some(30.0));
     assert_eq!(response.incidents.len(), 1);
     assert_eq!(response.incidents[0].id, Some("inc123".to_string()));
-    assert_eq!(response.incidents[0].severity, Some(IncidentSeverity::Major));
+    assert_eq!(
+        response.incidents[0].severity,
+        Some(IncidentSeverity::Major)
+    );
     assert_eq!(
         response.incidents[0].description,
         Some("Multi-vehicle accident on A100".to_string())

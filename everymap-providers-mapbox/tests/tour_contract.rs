@@ -95,7 +95,10 @@ async fn test_tour_with_provider_extra_source_destination() {
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let tour = MapBoxTourPlanner::with_base_url(client, server.uri());
 

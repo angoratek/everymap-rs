@@ -98,7 +98,10 @@ async fn test_routing_with_provider_extra_alternatives() {
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 2);
 }
 
@@ -129,7 +132,10 @@ async fn test_routing_with_provider_extra_avoid() {
         ..Default::default()
     };
 
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
 }
 
@@ -160,6 +166,9 @@ async fn test_routing_with_avoid_core_field_warns() {
     };
 
     // Core avoid field logs a warning but route still works
-    let result = router.calculate_route(&start, &end, &options).await.unwrap();
+    let result = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(result.routes.len(), 1);
 }

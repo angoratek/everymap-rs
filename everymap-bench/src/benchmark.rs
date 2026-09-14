@@ -283,7 +283,11 @@ pub async fn bench_geocode(providers: &BenchProviders, query: &str) -> Benchmark
             success: true,
             error: None,
             result_count: response.items.len(),
-            raw_response_size: response.items.first().and_then(|i| i.raw.as_ref()).map(|v| v.to_string().len()),
+            raw_response_size: response
+                .items
+                .first()
+                .and_then(|i| i.raw.as_ref())
+                .map(|v| v.to_string().len()),
         },
         Err(e) => BenchmarkResult {
             provider: providers.provider_name.clone(),
@@ -326,7 +330,11 @@ pub async fn bench_reverse_geocode(
             success: true,
             error: None,
             result_count: response.items.len(),
-            raw_response_size: response.items.first().and_then(|i| i.raw.as_ref()).map(|v| v.to_string().len()),
+            raw_response_size: response
+                .items
+                .first()
+                .and_then(|i| i.raw.as_ref())
+                .map(|v| v.to_string().len()),
         },
         Err(e) => BenchmarkResult {
             provider: providers.provider_name.clone(),
@@ -378,7 +386,11 @@ pub async fn bench_route(
             success: true,
             error: None,
             result_count: response.routes.len(),
-            raw_response_size: response.routes.first().and_then(|r| r.raw.as_ref()).map(|v| v.to_string().len()),
+            raw_response_size: response
+                .routes
+                .first()
+                .and_then(|r| r.raw.as_ref())
+                .map(|v| v.to_string().len()),
         },
         Err(e) => BenchmarkResult {
             provider: providers.provider_name.clone(),
@@ -831,7 +843,10 @@ mod tests {
     use std::sync::Arc;
 
     fn test_auth() -> Arc<dyn AuthProvider> {
-        Arc::new(ApiKeyProvider::new("test-key".to_string(), "key".to_string()))
+        Arc::new(ApiKeyProvider::new(
+            "test-key".to_string(),
+            "key".to_string(),
+        ))
     }
 
     #[test]

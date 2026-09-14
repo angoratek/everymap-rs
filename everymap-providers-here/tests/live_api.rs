@@ -210,7 +210,9 @@ async fn live_isoline_berlin_5km() {
         ..Default::default()
     };
 
-    let response = isoline_provider.get_isoline(&center, 5000.0, &options).await;
+    let response = isoline_provider
+        .get_isoline(&center, 5000.0, &options)
+        .await;
 
     match response {
         Ok(response) => {
@@ -561,7 +563,10 @@ async fn live_attributes_roads_berlin() {
         Ok(response) => {
             println!(
                 "[attributes] response keys: {:?}",
-                response.data.as_object().map(|o| o.keys().collect::<Vec<_>>())
+                response
+                    .data
+                    .as_object()
+                    .map(|o| o.keys().collect::<Vec<_>>())
             );
             // The response should be a valid JSON object.
             // The real HERE v8 API returns {"geometries": [...], "meta": {...}},

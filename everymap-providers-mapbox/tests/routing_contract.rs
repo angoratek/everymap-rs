@@ -64,7 +64,10 @@ async fn test_routing_contract() {
     let end = Coordinate::new(48.8566, 2.3522).unwrap();
     let options = RouteOptions::default();
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.routes.len(), 1);
     assert_eq!(response.routes[0].distance, 947000.0);
@@ -95,12 +98,17 @@ async fn test_routing_with_departure_time() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/directions/v5/mapbox/driving/13.405,52.52;2.3522,48.8566"))
+        .and(path(
+            "/directions/v5/mapbox/driving/13.405,52.52;2.3522,48.8566",
+        ))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new("pk.test123".to_string(), "access_token".to_string()));
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
     let client = Arc::new(MapBoxClient::new(auth));
     let router = MapBoxRouter::with_base_url(client, server.uri());
 
@@ -111,6 +119,9 @@ async fn test_routing_with_departure_time() {
         ..Default::default()
     };
 
-    let response = router.calculate_route(&start, &end, &options).await.unwrap();
+    let response = router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
     assert_eq!(response.routes.len(), 1);
 }

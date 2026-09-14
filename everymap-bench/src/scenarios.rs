@@ -341,7 +341,11 @@ mod tests {
         };
         assert_eq!(traffic.domain(), "traffic");
 
-        let tile = ScenarioParams::Tile { z: 14, x: 8800, y: 5374 };
+        let tile = ScenarioParams::Tile {
+            z: 14,
+            x: 8800,
+            y: 5374,
+        };
         assert_eq!(tile.domain(), "tiling");
 
         let positioning = ScenarioParams::Positioning {

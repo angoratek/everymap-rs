@@ -47,7 +47,12 @@ async fn test_attributes_by_place_ids() {
 
     let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response
+        .data
+        .get("speedLimits")
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(limits.len(), 2);
     assert_eq!(limits[0]["speedLimit"], 50.0);
     assert_eq!(limits[1]["speedLimit"], 30.0);
@@ -101,10 +106,20 @@ async fn test_attributes_along_path() {
 
     let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response
+        .data
+        .get("speedLimits")
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(limits.len(), 1);
     assert_eq!(limits[0]["speedLimit"], 80.0);
-    let snapped = response.data.get("snappedPoints").unwrap().as_array().unwrap();
+    let snapped = response
+        .data
+        .get("snappedPoints")
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(snapped.len(), 2);
 }
 
@@ -164,7 +179,12 @@ async fn test_attributes_with_units() {
 
     let response = provider.get_attributes(&options).await.unwrap();
 
-    let limits = response.data.get("speedLimits").unwrap().as_array().unwrap();
+    let limits = response
+        .data
+        .get("speedLimits")
+        .unwrap()
+        .as_array()
+        .unwrap();
     assert_eq!(limits[0]["units"], "MPH");
     assert_eq!(limits[0]["speedLimit"], 55.0);
 }

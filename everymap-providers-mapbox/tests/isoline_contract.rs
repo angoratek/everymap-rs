@@ -46,7 +46,10 @@ async fn test_isoline_contract() {
         range_type: Some(RangeType::Time),
         ..Default::default()
     };
-    let response = isoline.get_isoline(&center, 1800.0, &options).await.unwrap();
+    let response = isoline
+        .get_isoline(&center, 1800.0, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.isolines.len(), 1);
     assert_eq!(response.isolines[0].polygon.len(), 5); // 4 corners + closing

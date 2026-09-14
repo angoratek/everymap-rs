@@ -345,7 +345,8 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
     // Convert avoid types
     if !options.avoid.is_empty() {
         here_options.avoid = Some(
-            options.avoid
+            options
+                .avoid
                 .iter()
                 .map(|a| match a {
                     everymap_core::domains::routing::AvoidType::Tolls => "tolls".to_string(),
@@ -498,7 +499,10 @@ impl Router for HereRouter {
             ("transportMode".to_string(), transport.to_string()),
             ("routingMode".to_string(), mode.to_string()),
             ("origin".to_string(), format!("{},{}", start.lat, start.lng)),
-            ("destination".to_string(), format!("{},{}", end.lat, end.lng)),
+            (
+                "destination".to_string(),
+                format!("{},{}", end.lat, end.lng),
+            ),
         ];
 
         if let Some(return_fields) = &here_options.return_fields {
@@ -555,7 +559,10 @@ impl Router for HereRouter {
         // Scooter options
         if let Some(scooter) = &here_options.scooter {
             if let Some(allow_highway) = scooter.allow_highway {
-                params.push(("scooter[allowHighway]".to_string(), allow_highway.to_string()));
+                params.push((
+                    "scooter[allowHighway]".to_string(),
+                    allow_highway.to_string(),
+                ));
             }
         }
         // Truck options
@@ -579,16 +586,25 @@ impl Router for HereRouter {
                 params.push(("truck[trailerCount]".to_string(), trailer_count.to_string()));
             }
             if let Some(hazardous_goods) = &truck.shipped_hazardous_goods {
-                params.push(("truck[shippedHazardousGoods]".to_string(), hazardous_goods.join(",")));
+                params.push((
+                    "truck[shippedHazardousGoods]".to_string(),
+                    hazardous_goods.join(","),
+                ));
             }
             if let Some(tunnel_category) = &truck.tunnel_category {
                 params.push(("truck[tunnelCategory]".to_string(), tunnel_category.clone()));
             }
             if let Some(gcw) = truck.gross_combination_weight {
-                params.push(("truck[grossCombinationWeight]".to_string(), format!("{}kg", gcw)));
+                params.push((
+                    "truck[grossCombinationWeight]".to_string(),
+                    format!("{}kg", gcw),
+                ));
             }
             if let Some(weight_per_axle) = truck.weight_per_axle {
-                params.push(("truck[weightPerAxle]".to_string(), format!("{}kg", weight_per_axle)));
+                params.push((
+                    "truck[weightPerAxle]".to_string(),
+                    format!("{}kg", weight_per_axle),
+                ));
             }
         }
         // EV options
@@ -609,10 +625,16 @@ impl Router for HereRouter {
         // Fuel options
         if let Some(fuel) = &here_options.fuel {
             if let Some(free_flow_speed_table) = &fuel.free_flow_speed_table {
-                params.push(("fuel[freeFlowSpeedTable]".to_string(), free_flow_speed_table.clone()));
+                params.push((
+                    "fuel[freeFlowSpeedTable]".to_string(),
+                    free_flow_speed_table.clone(),
+                ));
             }
             if let Some(traffic_speed_table) = &fuel.traffic_speed_table {
-                params.push(("fuel[trafficSpeedTable]".to_string(), traffic_speed_table.clone()));
+                params.push((
+                    "fuel[trafficSpeedTable]".to_string(),
+                    traffic_speed_table.clone(),
+                ));
             }
             if let Some(ascent) = fuel.ascent {
                 params.push(("fuel[ascent]".to_string(), ascent.to_string()));
@@ -624,19 +646,31 @@ impl Router for HereRouter {
         // Driver options
         if let Some(driver) = &here_options.driver {
             if let Some(daily_duration) = driver.daily_duration {
-                params.push(("driver[dailyDuration]".to_string(), daily_duration.to_string()));
+                params.push((
+                    "driver[dailyDuration]".to_string(),
+                    daily_duration.to_string(),
+                ));
             }
             if let Some(break_duration) = driver.break_duration {
-                params.push(("driver[breakDuration]".to_string(), break_duration.to_string()));
+                params.push((
+                    "driver[breakDuration]".to_string(),
+                    break_duration.to_string(),
+                ));
             }
             if let Some(rest_duration) = driver.rest_duration {
-                params.push(("driver[restDuration]".to_string(), rest_duration.to_string()));
+                params.push((
+                    "driver[restDuration]".to_string(),
+                    rest_duration.to_string(),
+                ));
             }
         }
         // Taxi options
         if let Some(taxi) = &here_options.taxi {
             if let Some(allow_drive_through) = taxi.allow_drive_through_taxi_roads {
-                params.push(("taxi[allowDriveThroughTaxiRoads]".to_string(), allow_drive_through.to_string()));
+                params.push((
+                    "taxi[allowDriveThroughTaxiRoads]".to_string(),
+                    allow_drive_through.to_string(),
+                ));
             }
         }
         // Tolls options
@@ -652,10 +686,16 @@ impl Router for HereRouter {
         if let Some(segments) = &here_options.max_speed_on_segment {
             for (i, segment) in segments.iter().enumerate() {
                 if let Some(segment_ref) = &segment.segment_ref {
-                    params.push((format!("maxSpeedOnSegment[{}][segmentRef]", i), segment_ref.clone()));
+                    params.push((
+                        format!("maxSpeedOnSegment[{}][segmentRef]", i),
+                        segment_ref.clone(),
+                    ));
                 }
                 if let Some(max_speed) = segment.max_speed {
-                    params.push((format!("maxSpeedOnSegment[{}][maxSpeed]", i), max_speed.to_string()));
+                    params.push((
+                        format!("maxSpeedOnSegment[{}][maxSpeed]", i),
+                        max_speed.to_string(),
+                    ));
                 }
             }
         }

@@ -8,9 +8,9 @@ use everymap_core::domains::imaging::ImageOptions;
 use everymap_core::domains::isoline::{IsolineOptions, RangeType as CoreRangeType};
 use everymap_core::domains::matching::MatchingOptions;
 use everymap_core::domains::positioning::PositioningOptions;
-use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::routing::AvoidType as CoreAvoidType;
 use everymap_core::domains::routing::DepartureTime;
+use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
 use everymap_core::domains::tiling::TileOptions;
 use everymap_core::domains::tour::TourOptions;
@@ -367,7 +367,13 @@ async fn run_commands(
     output_format: &output::OutputFormat,
 ) {
     match &cli.command {
-        Commands::Geocode { query, limit, language, country_codes, bbox } => {
+        Commands::Geocode {
+            query,
+            limit,
+            language,
+            country_codes,
+            bbox,
+        } => {
             let geocoder = registry.geocoder();
             let options = GeocodeOptions {
                 limit: *limit,
@@ -393,7 +399,13 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::ReverseGeocode { lat, lng, limit, language, radius } => {
+        Commands::ReverseGeocode {
+            lat,
+            lng,
+            limit,
+            language,
+            radius,
+        } => {
             let geocoder = registry.geocoder();
             let coordinate = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
@@ -438,7 +450,10 @@ async fn run_commands(
             let options = RouteOptions {
                 transport_mode: Some(transport_mode),
                 alternatives: *alternatives,
-                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
+                avoid: avoid
+                    .as_ref()
+                    .map(|v| v.iter().map(|a| parse_avoid_type(a)).collect())
+                    .unwrap_or_default(),
                 departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
                 arrival_time: arrival_time.as_ref().map(|v| parse_departure_time(v)),
                 language: language.clone(),
@@ -462,7 +477,13 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Traffic { lat, lng, radius, include_incidents, language } => {
+        Commands::Traffic {
+            lat,
+            lng,
+            radius,
+            include_incidents,
+            language,
+        } => {
             let traffic = registry.traffic();
             let coordinate = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
@@ -511,7 +532,15 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Isoline { lat, lng, range, transport, range_type, departure_time, avoid } => {
+        Commands::Isoline {
+            lat,
+            lng,
+            range,
+            transport,
+            range_type,
+            departure_time,
+            avoid,
+        } => {
             let isoline = registry.isoline();
             let center = Coordinate::new(*lat, *lng)
                 .unwrap_or_else(|e| exit_with_coord_error(&e.to_string()));
@@ -524,7 +553,10 @@ async fn run_commands(
                 range_type: Some(core_range_type),
                 transport_mode: Some(transport_mode),
                 departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
-                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
+                avoid: avoid
+                    .as_ref()
+                    .map(|v| v.iter().map(|a| parse_avoid_type(a)).collect())
+                    .unwrap_or_default(),
                 ..Default::default()
             };
             match isoline.get_isoline(&center, *range, &options).await {
@@ -537,7 +569,13 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::MatchRoute { trace, transport, heading, departure_time, avoid } => {
+        Commands::MatchRoute {
+            trace,
+            transport,
+            heading,
+            departure_time,
+            avoid,
+        } => {
             let matcher = registry.route_matcher();
             let points: Vec<Coordinate> = trace
                 .split(';')
@@ -551,7 +589,10 @@ async fn run_commands(
                 transport_mode: Some(transport_mode),
                 heading: *heading,
                 departure_time: departure_time.as_ref().map(|v| parse_departure_time(v)),
-                avoid: avoid.as_ref().map(|v| v.iter().map(|a| parse_avoid_type(a)).collect()).unwrap_or_default(),
+                avoid: avoid
+                    .as_ref()
+                    .map(|v| v.iter().map(|a| parse_avoid_type(a)).collect())
+                    .unwrap_or_default(),
                 provider_extra: Some(serde_json::json!({
                     "transport_mode": transport
                 })),
@@ -570,7 +611,11 @@ async fn run_commands(
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
-        Commands::Tour { stops, transport, departure } => {
+        Commands::Tour {
+            stops,
+            transport,
+            departure,
+        } => {
             let planner = registry.tour_planner();
             let coordinates: Vec<Coordinate> = stops
                 .iter()

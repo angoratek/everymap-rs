@@ -104,9 +104,10 @@ async fn run_scenario(
         ScenarioParams::Positioning { provider_extra } => {
             benchmark::bench_positioning(providers, provider_extra).await
         }
-        ScenarioParams::Attributes { bbox, provider_extra } => {
-            benchmark::bench_attributes(providers, bbox, provider_extra).await
-        }
+        ScenarioParams::Attributes {
+            bbox,
+            provider_extra,
+        } => benchmark::bench_attributes(providers, bbox, provider_extra).await,
         ScenarioParams::Image { center, zoom } => {
             benchmark::bench_image(providers, center, *zoom).await
         }

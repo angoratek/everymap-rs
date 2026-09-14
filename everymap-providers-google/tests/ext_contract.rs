@@ -101,9 +101,15 @@ async fn test_attribute_ext_get_speed_limits_by_ids() {
         .unwrap();
 
     assert_eq!(response.speed_limits.len(), 2);
-    assert_eq!(response.speed_limits[0].place_id.as_deref(), Some("ChIJext_1"));
+    assert_eq!(
+        response.speed_limits[0].place_id.as_deref(),
+        Some("ChIJext_1")
+    );
     assert_eq!(response.speed_limits[0].speed_limit, Some(50.0));
-    assert_eq!(response.speed_limits[1].place_id.as_deref(), Some("ChIJext_2"));
+    assert_eq!(
+        response.speed_limits[1].place_id.as_deref(),
+        Some("ChIJext_2")
+    );
     assert_eq!(response.speed_limits[1].speed_limit, Some(80.0));
 }
 

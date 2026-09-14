@@ -54,7 +54,10 @@ async fn test_permanent_geocode_contract() {
         .unwrap();
 
     assert_eq!(response.features.len(), 1);
-    assert_eq!(response.features[0].id, Some("dXJuOm1ieHBsYzpBY1E2".to_string()));
+    assert_eq!(
+        response.features[0].id,
+        Some("dXJuOm1ieHBsYzpBY1E2".to_string())
+    );
     let props = response.features[0].properties.as_ref().unwrap();
     assert_eq!(
         props.full_address,

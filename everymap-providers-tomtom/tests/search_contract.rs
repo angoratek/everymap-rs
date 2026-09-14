@@ -43,7 +43,10 @@ async fn test_geocode_contract() {
     let geocoder = TomTomGeocoder::with_base_url(client, server.uri());
 
     let options = GeocodeOptions::default();
-    let response = geocoder.geocode("Brandenburg Gate", &options).await.unwrap();
+    let response = geocoder
+        .geocode("Brandenburg Gate", &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.items.len(), 1);
     assert_eq!(response.items[0].coordinate.lat, 52.5200);
@@ -92,11 +95,17 @@ async fn test_reverse_geocode_contract() {
 
     let coordinate = Coordinate::new(52.52, 13.405).unwrap();
     let options = ReverseGeocodeOptions::default();
-    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
+    let response = geocoder
+        .reverse_geocode(&coordinate, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.items.len(), 1);
     assert_eq!(response.items[0].coordinate.lat, 52.520264);
     assert_eq!(response.items[0].coordinate.lng, 13.399690);
-    assert_eq!(response.items[0].address.street.as_deref(), Some("Bodestraße"));
+    assert_eq!(
+        response.items[0].address.street.as_deref(),
+        Some("Bodestraße")
+    );
     assert_eq!(response.items[0].address.city.as_deref(), Some("Berlin"));
 }

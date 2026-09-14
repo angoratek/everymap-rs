@@ -360,7 +360,8 @@ async fn test_attributes_buildings_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let response: HereBuildingsResponse = provider.get_buildings("52.5,13.4,52.6,13.5").await.unwrap();
+    let response: HereBuildingsResponse =
+        provider.get_buildings("52.5,13.4,52.6,13.5").await.unwrap();
 
     assert_eq!(response.features.len(), 1);
     let bldg = &response.features[0].properties;
@@ -409,7 +410,8 @@ async fn test_attributes_landmarks_typed() {
     let client = Arc::new(HereClient::new(auth));
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
-    let response: HereLandmarksResponse = provider.get_landmarks("52.5,13.3,52.6,13.5").await.unwrap();
+    let response: HereLandmarksResponse =
+        provider.get_landmarks("52.5,13.3,52.6,13.5").await.unwrap();
 
     assert_eq!(response.features.len(), 1);
     let lm = &response.features[0].properties;
@@ -516,7 +518,8 @@ async fn test_attributes_roads_by_ids() {
     let provider = HereAttributeProvider::with_base_url(client, server.uri());
 
     let ids = vec!["link_1".to_string(), "link_2".to_string()];
-    let response: HereRoadAttributesResponse = provider.get_road_attributes_by_ids(&ids).await.unwrap();
+    let response: HereRoadAttributesResponse =
+        provider.get_road_attributes_by_ids(&ids).await.unwrap();
 
     assert_eq!(response.features.len(), 2);
     assert_eq!(response.features[0].properties.speed_limit, Some(60.0));

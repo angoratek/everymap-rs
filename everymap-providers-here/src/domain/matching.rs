@@ -223,7 +223,8 @@ fn matching_options_from_core(options: &MatchingOptions) -> HereMatchingOptions 
     // Convert avoid types
     if !options.avoid.is_empty() {
         here_options.avoid_features = Some(
-            options.avoid
+            options
+                .avoid
                 .iter()
                 .map(|a| match a {
                     everymap_core::domains::routing::AvoidType::Tolls => AvoidFeature::TollRoad,
@@ -248,9 +249,7 @@ fn matching_options_from_core(options: &MatchingOptions) -> HereMatchingOptions 
             }
             everymap_core::domains::routing::TransportMode::Bicycle => Some(MatchMode::Bicycle),
             everymap_core::domains::routing::TransportMode::Bus => Some(MatchMode::Bus),
-            everymap_core::domains::routing::TransportMode::Scooter => {
-                Some(MatchMode::Motorcycle)
-            }
+            everymap_core::domains::routing::TransportMode::Scooter => Some(MatchMode::Motorcycle),
             everymap_core::domains::routing::TransportMode::Taxi => Some(MatchMode::Taxi),
             _ => Some(MatchMode::Car),
         };
@@ -595,7 +594,10 @@ impl RouteMatcher for HereRouteMatcher {
                 Some(MatchTrafficMode::Enabled) => ";traffic:enabled",
                 _ => ";traffic:disabled",
             };
-            params.push(("mode".to_string(), format!("{};{}{}", routing, transport, traffic)));
+            params.push((
+                "mode".to_string(),
+                format!("{};{}{}", routing, transport, traffic),
+            ));
         }
         if let Some(legal) = &options.legal {
             params.push(("legal".to_string(), crate::util::enum_as_str(legal)));
@@ -617,7 +619,11 @@ impl RouteMatcher for HereRouteMatcher {
         };
         add_option(&mut params, "wpDist", wp_dist);
         add_option_ref(&mut params, "speedFcCat", options.speed_fc_cat.as_ref());
-        add_option(&mut params, "mapMatchTolerance", options.map_match_tolerance);
+        add_option(
+            &mut params,
+            "mapMatchTolerance",
+            options.map_match_tolerance,
+        );
         add_option(&mut params, "heading", options.heading);
 
         // Vehicle dimensions
@@ -625,8 +631,16 @@ impl RouteMatcher for HereRouteMatcher {
         add_option(&mut params, "height", options.height);
         add_option(&mut params, "length", options.length);
         add_option(&mut params, "width", options.width);
-        add_option(&mut params, "vehicleNumberAxles", options.vehicle_number_axles);
-        add_option(&mut params, "trailerNumberAxles", options.trailer_number_axles);
+        add_option(
+            &mut params,
+            "vehicleNumberAxles",
+            options.vehicle_number_axles,
+        );
+        add_option(
+            &mut params,
+            "trailerNumberAxles",
+            options.trailer_number_axles,
+        );
         if let Some(tt) = &options.trailer_type {
             params.push(("trailerType".to_string(), crate::util::enum_as_str(tt)));
         }
@@ -670,7 +684,11 @@ impl RouteMatcher for HereRouteMatcher {
             ));
         }
         add_option(&mut params, "avoidPrivate", options.avoid_private);
-        add_option(&mut params, "avoidCountryChange", options.avoid_country_change);
+        add_option(
+            &mut params,
+            "avoidCountryChange",
+            options.avoid_country_change,
+        );
         if let Some(hg) = &options.shipped_hazardous_goods {
             params.push((
                 "shippedHazardousGoods".to_string(),
@@ -696,8 +714,16 @@ impl RouteMatcher for HereRouteMatcher {
         add_option_ref(&mut params, "arrival", options.arrival.as_ref());
 
         // Response attributes
-        add_option_ref(&mut params, "legAttributes", options.leg_attributes.as_ref());
-        add_option_ref(&mut params, "linkAttributes", options.link_attributes.as_ref());
+        add_option_ref(
+            &mut params,
+            "legAttributes",
+            options.leg_attributes.as_ref(),
+        );
+        add_option_ref(
+            &mut params,
+            "linkAttributes",
+            options.link_attributes.as_ref(),
+        );
         add_option_ref(
             &mut params,
             "responseAttributes",
@@ -708,7 +734,11 @@ impl RouteMatcher for HereRouteMatcher {
             "routeAttributes",
             options.route_attributes.as_ref(),
         );
-        add_option_ref(&mut params, "metaAttributes", options.meta_attributes.as_ref());
+        add_option_ref(
+            &mut params,
+            "metaAttributes",
+            options.meta_attributes.as_ref(),
+        );
         add_option_ref(
             &mut params,
             "maneuverAttributes",
@@ -781,7 +811,11 @@ impl RouteMatcher for HereRouteMatcher {
         );
         add_option(&mut params, "timeout", options.timeout);
         add_option(&mut params, "drivingReport", options.driving_report);
-        add_option_ref(&mut params, "ehorizonLimits", options.ehorizon_limits.as_ref());
+        add_option_ref(
+            &mut params,
+            "ehorizonLimits",
+            options.ehorizon_limits.as_ref(),
+        );
 
         let url = format!("{}/match/routelinks", self.base_url);
         let builder = self

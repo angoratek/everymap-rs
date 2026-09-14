@@ -37,21 +37,29 @@ fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     match mode {
         TransportMode::Car => "driving",
         TransportMode::Truck => {
-            log::warn!("MapBox Directions API does not support truck profile, falling back to driving");
+            log::warn!(
+                "MapBox Directions API does not support truck profile, falling back to driving"
+            );
             "driving"
         }
         TransportMode::Pedestrian => "walking",
         TransportMode::Bicycle => "cycling",
         TransportMode::Scooter => {
-            log::warn!("MapBox Directions API does not support scooter profile, falling back to driving");
+            log::warn!(
+                "MapBox Directions API does not support scooter profile, falling back to driving"
+            );
             "driving"
         }
         TransportMode::Bus => {
-            log::warn!("MapBox Directions API does not support bus profile, falling back to driving");
+            log::warn!(
+                "MapBox Directions API does not support bus profile, falling back to driving"
+            );
             "driving"
         }
         TransportMode::Taxi => {
-            log::warn!("MapBox Directions API does not support taxi profile, falling back to driving");
+            log::warn!(
+                "MapBox Directions API does not support taxi profile, falling back to driving"
+            );
             "driving"
         }
         TransportMode::Unknown => "driving",

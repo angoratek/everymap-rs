@@ -288,7 +288,11 @@ impl TrafficProvider for HereTraffic {
                 ..Default::default()
             };
             if let Ok(incident_response) = self.get_incidents(&incidents_options).await {
-                incidents = incident_response.results.into_iter().map(|item| item.incident.into()).collect();
+                incidents = incident_response
+                    .results
+                    .into_iter()
+                    .map(|item| item.incident.into())
+                    .collect();
             }
         }
 

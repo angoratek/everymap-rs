@@ -40,7 +40,10 @@ async fn test_tiling_contract() {
     let response = provider.get_tile(10, 511, 340, &options).await.unwrap();
 
     assert_eq!(response.data, tile_data.to_vec());
-    assert_eq!(response.content_type.as_deref(), Some("application/x-protobuf"));
+    assert_eq!(
+        response.content_type.as_deref(),
+        Some("application/x-protobuf")
+    );
 }
 
 #[tokio::test]

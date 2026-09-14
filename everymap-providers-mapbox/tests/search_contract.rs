@@ -73,8 +73,14 @@ async fn test_geocode_contract() {
         response.items[0].result_type,
         everymap_core::domains::search::SearchResultType::Approximate
     );
-    assert_eq!(response.items[0].address.country.as_deref(), Some("Germany"));
-    assert_eq!(response.items[0].address.country_code.as_deref(), Some("DE"));
+    assert_eq!(
+        response.items[0].address.country.as_deref(),
+        Some("Germany")
+    );
+    assert_eq!(
+        response.items[0].address.country_code.as_deref(),
+        Some("DE")
+    );
 }
 
 #[tokio::test]
@@ -127,7 +133,10 @@ async fn test_reverse_geocode_contract() {
 
     let coordinate = Coordinate::new(52.52, 13.405).unwrap();
     let options = ReverseGeocodeOptions::default();
-    let response = geocoder.reverse_geocode(&coordinate, &options).await.unwrap();
+    let response = geocoder
+        .reverse_geocode(&coordinate, &options)
+        .await
+        .unwrap();
 
     assert_eq!(response.items.len(), 1);
     assert_eq!(

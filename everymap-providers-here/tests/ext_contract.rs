@@ -67,7 +67,10 @@ async fn test_geocoder_ext_discover() {
     let response = HereGeocoderExt::discover(&geocoder, req).await.unwrap();
 
     assert_eq!(response.items.len(), 1);
-    assert_eq!(response.items[0].title.as_ref().unwrap(), "Brandenburg Gate");
+    assert_eq!(
+        response.items[0].title.as_ref().unwrap(),
+        "Brandenburg Gate"
+    );
     assert_eq!(response.items[0].distance.unwrap(), 450.0);
 }
 
@@ -175,7 +178,10 @@ async fn test_traffic_ext_get_incidents() {
     .unwrap();
 
     assert_eq!(response.results.len(), 1);
-    assert_eq!(response.results[0].incident.id.as_deref(), Some("INC_EXT_1"));
+    assert_eq!(
+        response.results[0].incident.id.as_deref(),
+        Some("INC_EXT_1")
+    );
 }
 
 // --- HerePositionerExt tests ---
@@ -222,7 +228,9 @@ async fn test_positioner_ext_locate() {
         ..Default::default()
     };
 
-    let response = HerePositionerExt::locate(&positioner, options).await.unwrap();
+    let response = HerePositionerExt::locate(&positioner, options)
+        .await
+        .unwrap();
 
     assert_eq!(response.location.lat, 52.5201);
     assert_eq!(response.location.lng, 13.4051);
