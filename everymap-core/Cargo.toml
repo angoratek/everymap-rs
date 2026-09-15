@@ -8,7 +8,7 @@ rust-version.workspace = true
 description = "Core traits, types, and error handling for EveryMap — unified geospatial API abstraction"
 keywords = ["geospatial", "maps", "api", "abstraction"]
 categories = ["api-bindings", "science::geo"]
-readme = "../README.md"
+readme = "README.md"
 documentation = "https://docs.rs/everymap-core"
 authors.workspace = true
 
