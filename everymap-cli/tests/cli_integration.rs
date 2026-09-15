@@ -276,6 +276,24 @@ fn test_map_image_with_coords() {
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
 }
 
+#[test]
+fn test_map_image_with_width_height() {
+    cli_with_key()
+        .args([
+            "map-image",
+            "--lat",
+            BERLIN_LAT,
+            "--lng",
+            BERLIN_LNG,
+            "--width",
+            "1024",
+            "--height",
+            "768",
+        ])
+        .assert()
+        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
+}
+
 // ============================================================
 // Attributes command tests
 // ============================================================

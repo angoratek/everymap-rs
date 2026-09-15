@@ -246,6 +246,12 @@ enum Commands {
         /// Language for labels (e.g., en, fr, de)
         #[arg(long)]
         language: Option<String>,
+        /// Image width in pixels (default: 800)
+        #[arg(long)]
+        width: Option<u32>,
+        /// Image height in pixels (default: 600)
+        #[arg(long)]
+        height: Option<u32>,
         /// Output file path (default: map.png)
         #[arg(long, default_value = "map.png")]
         output_file: String,
@@ -727,6 +733,8 @@ async fn run_commands(
             zoom,
             format,
             language,
+            width,
+            height,
             output_file,
         } => {
             let image_provider = registry.image_provider();
@@ -735,6 +743,8 @@ async fn run_commands(
             let options = ImageOptions {
                 format: format.clone(),
                 language: language.clone(),
+                width: *width,
+                height: *height,
                 ..Default::default()
             };
             match image_provider

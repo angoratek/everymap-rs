@@ -4,7 +4,7 @@ use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
 use everymap_providers_here::domain::imaging::HereMapImageProvider;
 use std::sync::Arc;
-use wiremock::matchers::method;
+use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -79,4 +79,43 @@ async fn test_imaging_with_options() {
 
     assert_eq!(response.data, image_data.to_vec());
     assert_eq!(response.content_type.as_deref(), Some("image/jpeg"));
+}
+
+#[tokio::test]
+async fn test_imaging_width_height_override() {
+    let server = MockServer::start().await;
+
+    let image_data = b"fake_png_image_data";
+
+    Mock::given(method("GET"))
+        .and(path("/base/mc/center:52.52,13.405;zoom=10/640x480/png"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .insert_header("content-type", "image/png")
+                .set_body_bytes(image_data.to_vec()),
+        )
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
+    let client = Arc::new(HereClient::new(auth));
+    let provider = HereMapImageProvider::with_base_url(client, server.uri());
+
+    let center = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ImageOptions {
+        width: Some(640),
+        height: Some(480),
+        ..Default::default()
+    };
+
+    let response = provider
+        .get_image(&center, 10, (800, 600), &options)
+        .await
+        .unwrap();
+
+    assert_eq!(response.data, image_data.to_vec());
+    assert_eq!(response.content_type.as_deref(), Some("image/png"));
 }

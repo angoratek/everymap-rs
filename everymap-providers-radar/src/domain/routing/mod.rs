@@ -3,7 +3,7 @@ pub mod types;
 use crate::client::RadarClient;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode,
+    AvoidType, RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
@@ -69,6 +69,32 @@ fn map_transport_mode(mode: &TransportMode) -> &'static str {
     }
 }
 
+/// Map core `AvoidType` values to Radar Directions API avoid features.
+/// Radar supports a comma-separated list of: tolls, highways, ferries, borderCrossings.
+/// Returns the joined list, or None when nothing is supported.
+fn map_avoid_types(avoid_types: &[AvoidType]) -> Option<String> {
+    let mut features: Vec<&str> = Vec::new();
+    for avoid_type in avoid_types {
+        match avoid_type {
+            AvoidType::Tolls => features.push("tolls"),
+            AvoidType::Highways => features.push("highways"),
+            AvoidType::Ferries => features.push("ferries"),
+            unsupported => {
+                log::warn!(
+                    "Radar Directions API does not support avoiding {:?}; \
+                     supported avoid features are tolls, highways, ferries, borderCrossings",
+                    unsupported
+                );
+            }
+        }
+    }
+    if features.is_empty() {
+        None
+    } else {
+        Some(features.join(","))
+    }
+}
+
 impl From<RadarDirectionsRoute> for RouteResult {
     fn from(route: RadarDirectionsRoute) -> Self {
         let raw = serde_json::to_value(&route).unwrap_or_default();
@@ -127,18 +153,14 @@ impl everymap_core::domains::routing::Router for RadarRouter {
         if let Some(mode) = &options.transport_mode {
             params.push(("mode", map_transport_mode(mode).to_string()));
         }
-        if let Some(alternatives) = options.alternatives {
-            log::warn!(
-                "Radar Directions API does not support core alternatives field directly; \
-                 use provider_extra.alternatives instead"
-            );
-            let _ = alternatives;
+        if let Some(avoid) = map_avoid_types(&options.avoid) {
+            params.push(("avoid", avoid));
         }
-        if !options.avoid.is_empty() {
-            log::warn!(
-                "Radar Directions API does not support core avoid field directly; \
-                 use provider_extra.avoid instead"
-            );
+        if let Some(alternatives) = options.alternatives {
+            if alternatives > 0 {
+                // Radar's alternatives flag is boolean and only applies to two-location requests
+                params.push(("alternatives", "true".to_string()));
+            }
         }
         if options.arrival_time.is_some() {
             log::warn!(
@@ -154,6 +176,8 @@ impl everymap_core::domains::routing::Router for RadarRouter {
                     params.push(("units", v.to_string()));
                 }
                 if let Some(v) = obj.get("avoid").and_then(|v| v.as_str()) {
+                    // provider_extra.avoid overrides the core avoid mapping
+                    params.retain(|(key, _)| *key != "avoid");
                     params.push(("avoid", v.to_string()));
                 }
                 if let Some(v) = obj.get("geometry").and_then(|v| v.as_str()) {
@@ -163,6 +187,8 @@ impl everymap_core::domains::routing::Router for RadarRouter {
                     params.push(("heading", v.to_string()));
                 }
                 if let Some(v) = obj.get("alternatives").and_then(|v| v.as_bool()) {
+                    // provider_extra.alternatives overrides the core alternatives mapping
+                    params.retain(|(key, _)| *key != "alternatives");
                     params.push(("alternatives", v.to_string()));
                 }
                 if let Some(v) = obj.get("lang").and_then(|v| v.as_str()) {
@@ -223,6 +249,21 @@ mod tests {
         assert_eq!(map_transport_mode(&TransportMode::Pedestrian), "foot");
         assert_eq!(map_transport_mode(&TransportMode::Bicycle), "bike");
         assert_eq!(map_transport_mode(&TransportMode::Scooter), "foot");
+    }
+
+    #[test]
+    fn test_map_avoid_types() {
+        assert_eq!(
+            map_avoid_types(&[AvoidType::Tolls, AvoidType::Highways]),
+            Some("tolls,highways".to_string())
+        );
+        assert_eq!(
+            map_avoid_types(&[AvoidType::Ferries]),
+            Some("ferries".to_string())
+        );
+        // Unsupported types produce no features (warning is logged)
+        assert!(map_avoid_types(&[AvoidType::Tunnels, AvoidType::DirtRoads]).is_none());
+        assert!(map_avoid_types(&[]).is_none());
     }
 
     #[test]

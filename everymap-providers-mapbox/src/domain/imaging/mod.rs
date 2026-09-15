@@ -42,10 +42,14 @@ impl MapImageProvider for MapBoxMapImageProvider {
             .and_then(|v| v.as_str())
             .unwrap_or("mapbox/streets-v12");
 
+        // Core width/height override the size argument when set
+        let width = options.width.unwrap_or(size.0);
+        let height = options.height.unwrap_or(size.1);
+
         // Build the full style URL: /styles/v1/{username}/{style_id}/static/{lon},{lat},{zoom}/{width}x{height}@2x
         let url = format!(
             "{}/styles/v1/{}/static/{},{},{}/{}x{}@2x",
-            self.base_url, style, center.lng, center.lat, zoom, size.0, size.1
+            self.base_url, style, center.lng, center.lat, zoom, width, height
         );
 
         let mut params: Vec<(&str, String)> = Vec::new();

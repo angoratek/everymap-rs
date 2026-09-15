@@ -22,6 +22,7 @@ pub struct TrafficOptions {
 pub enum IncidentSeverity {
     Low,
     Minor,
+    Moderate,
     Major,
     Critical,
     Unknown,
@@ -103,6 +104,12 @@ mod tests {
         );
         let sev: IncidentSeverity = serde_json::from_str("\"Minor\"").unwrap();
         assert_eq!(sev, IncidentSeverity::Minor);
+        assert_eq!(
+            serde_json::to_string(&IncidentSeverity::Moderate).unwrap(),
+            "\"Moderate\""
+        );
+        let moderate: IncidentSeverity = serde_json::from_str("\"Moderate\"").unwrap();
+        assert_eq!(moderate, IncidentSeverity::Moderate);
     }
 
     #[test]

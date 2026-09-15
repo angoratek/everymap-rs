@@ -120,6 +120,10 @@ impl MapImageProvider for HereMapImageProvider {
     ) -> EveryMapResult<ImageResponse> {
         let here_options = image_options_from_core(options);
 
+        // Core width/height override the size argument when set
+        let width = options.width.unwrap_or(size.0);
+        let height = options.height.unwrap_or(size.1);
+
         let format_ext = match &here_options.format {
             ImageFormat::Png => "png",
             ImageFormat::Jpg => "jpg",
@@ -132,7 +136,7 @@ impl MapImageProvider for HereMapImageProvider {
 
         let url = format!(
             "{}/base/mc/center:{},{};zoom={}/{}x{}/{}",
-            self.base_url, center.lat, center.lng, zoom, size.0, size.1, format_ext
+            self.base_url, center.lat, center.lng, zoom, width, height, format_ext
         );
 
         let mut params: Vec<(String, String)> = vec![];

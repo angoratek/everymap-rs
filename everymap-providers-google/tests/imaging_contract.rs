@@ -4,7 +4,7 @@ use everymap_core::types::Coordinate;
 use everymap_providers_google::client::GoogleClient;
 use everymap_providers_google::GoogleMapImageProvider;
 use std::sync::Arc;
-use wiremock::matchers::method;
+use wiremock::matchers::{method, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -69,7 +69,7 @@ async fn test_imaging_with_format_and_language() {
     let options = ImageOptions {
         format: Some("jpg".to_string()),
         language: Some("en".to_string()),
-        provider_extra: None,
+        ..Default::default()
     };
 
     let response = provider
@@ -79,4 +79,43 @@ async fn test_imaging_with_format_and_language() {
 
     assert!(!response.data.is_empty());
     assert_eq!(response.content_type, Some("image/jpeg".to_string()));
+}
+
+#[tokio::test]
+async fn test_imaging_width_height_override() {
+    let server = MockServer::start().await;
+
+    let png_bytes: &[u8] = &[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]; // PNG header
+
+    Mock::given(method("GET"))
+        .and(query_param("size", "640x480"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_bytes(png_bytes)
+                .insert_header("content-type", "image/png"),
+        )
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let client = Arc::new(GoogleClient::new(auth));
+    let provider = GoogleMapImageProvider::with_base_url(client, server.uri());
+
+    let center = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ImageOptions {
+        width: Some(640),
+        height: Some(480),
+        ..Default::default()
+    };
+
+    let response = provider
+        .get_image(&center, 14, (800, 600), &options)
+        .await
+        .unwrap();
+
+    assert!(!response.data.is_empty());
+    assert_eq!(response.content_type, Some("image/png".to_string()));
 }
