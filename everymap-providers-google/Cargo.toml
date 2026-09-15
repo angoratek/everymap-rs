@@ -8,7 +8,7 @@ license.workspace = true
 repository.workspace = true
 keywords = ["geospatial", "maps", "google", "api"]
 categories = ["api-bindings", "science::geo"]
-readme = "../README.md"
+readme = "README.md"
 documentation = "https://docs.rs/everymap-providers-google"
 authors.workspace = true
 
