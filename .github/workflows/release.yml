@@ -51,7 +51,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: everymap-${{ matrix.target }}
-          path: target/${{ matrix.target }}/release/everymap*
+          path: target/${{ matrix.target }}/release/everymap${{ runner.os == 'Windows' && '.exe' || '' }}
 
   publish-crates:
     needs: check
@@ -76,6 +76,21 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+      # Artifacts share the binary name `everymap` across targets; rename each
+      # to its artifact name so the release assets do not collide.
+      - name: Rename binaries with target suffix
+        run: |
+          for artifact_dir in artifacts/*/; do
+            artifact_name="$(basename "$artifact_dir")"
+            for file in "$artifact_dir"everymap "$artifact_dir"everymap.exe; do
+              if [ -f "$file" ]; then
+                case "$(basename "$file")" in
+                  everymap.exe) mv "$file" "artifacts/${artifact_name}.exe" ;;
+                  *) mv "$file" "artifacts/${artifact_name}" ;;
+                esac
+              fi
+            done
+          done
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
