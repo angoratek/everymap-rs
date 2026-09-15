@@ -12,6 +12,11 @@ allow = ["MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "Unicode-3.
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# everymap-core has intentional path-only dev-dependencies on the provider
+# crates (contract round-trip tests); adding a version requirement there
+# would break `cargo publish` (registry resolution before the providers
+# themselves are indexed), so allow path-only dev-deps through the wildcard check.
+allow-wildcard-paths = true
 
 [sources]
 unknown-registry = "deny"
