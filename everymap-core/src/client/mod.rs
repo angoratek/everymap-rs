@@ -1,3 +1,5 @@
+mod macros;
+
 use crate::auth::AuthProvider;
 use crate::error::{EveryMapError, EveryMapResult};
 use async_trait::async_trait;
