@@ -35,13 +35,17 @@ impl MapImageProvider for GoogleMapImageProvider {
         size: (u32, u32),
         options: &ImageOptions,
     ) -> EveryMapResult<ImageResponse> {
+        // Core width/height override the size argument when set
+        let width = options.width.unwrap_or(size.0);
+        let height = options.height.unwrap_or(size.1);
+
         let mut params: Vec<(String, String)> = vec![
             (
                 "center".to_string(),
                 format!("{},{}", center.lat, center.lng),
             ),
             ("zoom".to_string(), zoom.to_string()),
-            ("size".to_string(), format!("{}x{}", size.0, size.1)),
+            ("size".to_string(), format!("{}x{}", width, height)),
         ];
 
         // Format: png (default), jpg, gif

@@ -4,7 +4,7 @@ use everymap_core::types::Coordinate;
 use everymap_providers_tomtom::client::TomTomClient;
 use everymap_providers_tomtom::TomTomMapImageProvider;
 use std::sync::Arc;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -31,11 +31,48 @@ async fn test_imaging_contract() {
     let options = ImageOptions {
         format: Some("png".to_string()),
         language: None,
-        provider_extra: None,
+        ..Default::default()
     };
 
     let response = imaging
         .get_image(&center, 10, (512, 512), &options)
+        .await
+        .unwrap();
+
+    assert_eq!(response.data.len(), 8);
+    assert_eq!(response.content_type, Some("image/png".to_string()));
+}
+
+#[tokio::test]
+async fn test_imaging_width_height_override() {
+    let server = MockServer::start().await;
+
+    let image_data = vec![0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+
+    Mock::given(method("GET"))
+        .and(path("/map/1/staticimage"))
+        .and(query_param("width", "640"))
+        .and(query_param("height", "480"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(image_data.clone(), "image/png"))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let client = Arc::new(TomTomClient::new(auth));
+    let imaging = TomTomMapImageProvider::with_base_url(client, server.uri());
+
+    let center = Coordinate::new(52.52, 13.405).unwrap();
+    let options = ImageOptions {
+        width: Some(640),
+        height: Some(480),
+        ..Default::default()
+    };
+
+    let response = imaging
+        .get_image(&center, 10, (800, 600), &options)
         .await
         .unwrap();
 

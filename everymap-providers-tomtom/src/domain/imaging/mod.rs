@@ -37,11 +37,15 @@ impl MapImageProvider for TomTomMapImageProvider {
     ) -> EveryMapResult<ImageResponse> {
         let url = format!("{}/map/1/staticimage", self.base_url);
 
+        // Core width/height override the size argument when set
+        let width = options.width.unwrap_or(size.0);
+        let height = options.height.unwrap_or(size.1);
+
         let mut params: Vec<(&str, String)> = vec![
             ("center", format!("{},{}", center.lng, center.lat)),
             ("zoom", zoom.to_string()),
-            ("width", size.0.to_string()),
-            ("height", size.1.to_string()),
+            ("width", width.to_string()),
+            ("height", height.to_string()),
         ];
 
         if let Some(fmt) = &options.format {
