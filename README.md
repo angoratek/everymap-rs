@@ -1,6 +1,8 @@
 # EveryMap-RS
 
 [![CI](https://github.com/angoratek/everymap-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/angoratek/everymap-rs/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/everymap-core.svg)](https://crates.io/crates/everymap-core)
+[![docs.rs](https://docs.rs/everymap-core/badge.svg)](https://docs.rs/everymap-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
@@ -52,6 +54,30 @@ everymap-rs/
 Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
 ## Quick Start
+
+### Installation
+
+EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.2.1**):
+
+```bash
+# Add the core + provider crates to your project
+cargo add everymap-core everymap-providers-here
+
+# Or install the CLI binary
+cargo install everymap-cli
+```
+
+| Crate | Description |
+|---|---|
+| [`everymap-core`](https://crates.io/crates/everymap-core) ([docs](https://docs.rs/everymap-core)) | Traits, types, auth, errors, shared HTTP client |
+| [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) ([docs](https://docs.rs/everymap-providers-here)) | HERE Technologies — 10 domains |
+| [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) ([docs](https://docs.rs/everymap-providers-google)) | Google Maps — 6 domains |
+| [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) ([docs](https://docs.rs/everymap-providers-tomtom)) | TomTom — 8 domains |
+| [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) ([docs](https://docs.rs/everymap-providers-mapbox)) | MapBox — 7 domains |
+| [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) ([docs](https://docs.rs/everymap-providers-radar)) | Radar — 4 domains |
+| [`everymap-cli`](https://crates.io/crates/everymap-cli) ([docs](https://docs.rs/everymap-cli)) | CLI with 11 commands |
+
+Prebuilt CLI binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows) are attached to each [GitHub Release](https://github.com/angoratek/everymap-rs/releases).
 
 ### Library Usage
 

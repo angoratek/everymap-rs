@@ -109,4 +109,4 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 - [ ] Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via `provider_extra`)
 - [ ] Provider client macro to reduce boilerplate across crates
 - [ ] Compile-time feature-gated providers in CLI to reduce binary size
-- [ ] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`
+- [x] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`

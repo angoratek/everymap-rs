@@ -37,6 +37,9 @@
 ### Removed
 - Obsolete `tmp/` planning documents.
 
+### Released
+- Published all 7 crates to crates.io (v0.2.1): `everymap-core`, the 5 provider crates, and `everymap-cli`, plus prebuilt CLI binaries for 5 targets on the [GitHub Release](https://github.com/angoratek/everymap-rs/releases/tag/v0.2.1).
+
 ## [0.2.0] — 2026-05-03
 
 ### Added
