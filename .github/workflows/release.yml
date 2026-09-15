@@ -49,7 +49,17 @@ jobs:
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
       - name: Build
+        if: matrix.target != 'aarch64-unknown-linux-gnu'
         run: cargo build --release --target ${{ matrix.target }} -p everymap-cli
+      # rust-lld (default for aarch64-unknown-linux-gnu since 1.90) fails on
+      # cross-compiles with "--fix-cortex-a53-843419 is only supported on
+      # AArch64"; use the system aarch64 gcc linker instead.
+      - name: Build (aarch64-unknown-linux-gnu, GNU linker)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: cargo build --release --target ${{ matrix.target }} -p everymap-cli
+        env:
+          RUSTFLAGS: "-C linker-features=-lld"
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
