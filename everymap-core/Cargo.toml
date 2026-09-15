@@ -34,6 +34,7 @@ everymap-providers-here = { path = "../everymap-providers-here" }
 everymap-providers-google = { path = "../everymap-providers-google" }
 everymap-providers-tomtom = { path = "../everymap-providers-tomtom" }
 everymap-providers-mapbox = { path = "../everymap-providers-mapbox" }
+wiremock = { workspace = true }
 
 [lints]
 workspace = true
