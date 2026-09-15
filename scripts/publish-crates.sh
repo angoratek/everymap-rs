@@ -26,6 +26,18 @@ CRATES=(
 PUBLISH_FLAGS=(--locked)
 $DRY_RUN && PUBLISH_FLAGS+=(--dry-run --allow-dirty)
 
+CRATE_VERSION=$(cargo metadata --format-version 1 --no-deps 2>/dev/null \
+    | jq -r '.packages[] | select(.name == "everymap-cli") | .version')
+
+# True if the crate's current version is already on crates.io (e.g. after a
+# partial publish run); makes the script safe to re-run.
+version_already_published() {
+    local crate_name="$1"
+    curl -fsSL -H "User-Agent: everymap-rs-release (github.com/angoratek/everymap-rs)" \
+            "https://crates.io/api/v1/crates/${crate_name}" 2>/dev/null \
+        | jq -e --arg version "$CRATE_VERSION" '.versions[]? | select(.num == $version)' > /dev/null 2>&1
+}
+
 FAILED=0
 
 # Wait until crates.io has indexed the crate (dependent crates need it in
@@ -49,6 +61,11 @@ for crate in "${CRATES[@]}"; do
     # Skip publish = false crates
     if grep -q 'publish\s*=\s*false' "$REPO_ROOT/$crate/Cargo.toml" 2>/dev/null; then
         echo "SKIP $crate (publish = false)"
+        continue
+    fi
+
+    if ! $DRY_RUN && version_already_published "$crate"; then
+        echo "SKIP $crate (v${CRATE_VERSION} already published)"
         continue
     fi
 
