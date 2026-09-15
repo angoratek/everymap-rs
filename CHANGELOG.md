@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+### Added
+- `OAuth2Provider` in `everymap-core`: OAuth 2.0 client-credentials flow with cached access tokens (30s refresh skew, 3600s fallback), `Authorization: Bearer` injection, and zeroized client secrets/tokens.
+- `Moderate` variant on core `IncidentSeverity`; TomTom "moderate" traffic severity no longer downgraded to `Minor`.
+- `width`/`height` fields on core `ImageOptions` (per-axis override of the size argument) and `--width`/`--height` flags on the `map-image` CLI command; wired to HERE, Google, TomTom, and MapBox static image APIs.
+- `everymap_core::provider_client!` macro generating provider client structs, deduplicating ~330 lines of client boilerplate across all 5 provider crates (public API unchanged).
+- Per-crate READMEs on crates.io, assembled from shared fragments in `docs/readme/` via `scripts/generate-readmes.sh` (`--check` mode for CI).
+
+### Changed
+- Google routing migrated from the legacy Directions API to Routes API v2 (`routes.googleapis.com/directions/v2:computeRoutes`, POST JSON body, required `X-Goog-FieldMask` header, API key as `key` query param); `transport_mode` now populated from `travelMode`; `provider_extra` `waypoints`→`intermediates`, `optimize_waypoints`→`optimizeWaypoints`, `units`→METRIC/IMPERIAL; `arrival_time` and avoid Tunnels/DirtRoads warn as unsupported.
+- Radar routing: core `avoid` (tolls/highways/ferries) and `alternatives` fields now wired to the Directions API (previously `provider_extra`-only with warnings); unsupported avoid types (tunnels, dirt roads) log a precise warning; `provider_extra` values remain as overrides.
+
 ## [0.2.1] — 2026-09-13
 
 ### Added

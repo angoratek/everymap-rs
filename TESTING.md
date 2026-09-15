@@ -3,7 +3,7 @@
 ## Quick Start
 
 ```bash
-cargo test                    # Run 623 tests (unit + contract + CLI integration + bench; 9 more skipped)
+cargo test                    # Run 654 tests (unit + contract + CLI integration + bench; 9 more skipped)
 cargo clippy -- -D warnings   # Lint (must pass clean)
 cargo build                   # Build all 8 workspace crates
 ```

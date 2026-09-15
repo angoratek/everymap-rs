@@ -58,7 +58,7 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - **`AuthProvider` Trait**: `async fn apply(&self, builder: RequestBuilder) -> Result<RequestBuilder>`
 - **`ApiKeyProvider`**: Injects API key as query param (HERE, Google, TomTom, MapBox).
 - **`HeaderAuthProvider`**: Injects API key as Authorization header (Radar).
-- **`OAuth2Auth`** (planned): Token caching/refresh logic.
+- **`OAuth2Provider`**: Client-credentials flow with cached access tokens (expiry-based refresh) and `Authorization: Bearer` injection.
 
 ---
 
@@ -72,6 +72,7 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 - **API accuracy**: typed `DepartureTime` enum across all providers, silent-parameter-drop warnings (24 locations), TomTom avoid wiring, HERE parameter wiring (reverse radius, imaging format, traffic language), Radar parameter wiring (search bbox, tour transport mode).
 - **Benchmark expansion**: all 10 domains, typed `ScenarioParams` dispatch, 15 scenarios, table/json/markdown output.
 - **OSS readiness**: community files (SECURITY.md, CHANGELOG.md, CODE_OF_CONDUCT.md, SUPPORT.md, CODEOWNERS, FUNDING.yml), CLI validation framework (374 assertions), 9-job CI pipeline, tag-triggered release workflow, MSRV 1.86, cargo-deny audit, reqwest 0.13 migration.
+- **Roadmap completion**: OAuth2 client-credentials provider, Google Routes API v2 migration, `Moderate` severity variant, configurable image size, Radar avoid/alternatives wiring, `provider_client!` macro.
 
 ---
 
@@ -82,7 +83,7 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 | Workspace crates | 8 |
 | Domain traits | 10 |
 | CLI commands | 11 |
-| Total tests | 623 run, 9 skipped (nextest) |
+| Total tests | 654 run, 9 skipped (nextest) |
 | Real implementations | 35 across 5 providers |
 | Clippy warnings | 0 |
 | MSRV | 1.86 |
@@ -91,7 +92,7 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 623 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest
+- **TDD**: 654 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
@@ -102,11 +103,11 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 
 ## Roadmap
 
-- [ ] OAuth2 auth provider implementation
-- [ ] Upgrade Google routing from legacy Directions API to Routes API v2
-- [ ] Add `Moderate` variant to core `IncidentSeverity` (TomTom traffic)
-- [ ] Configurable image size for `map-image` command
-- [ ] Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via `provider_extra`)
-- [ ] Provider client macro to reduce boilerplate across crates
+- [x] OAuth2 auth provider implementation
+- [x] Upgrade Google routing from legacy Directions API to Routes API v2
+- [x] Add `Moderate` variant to core `IncidentSeverity` (TomTom traffic)
+- [x] Configurable image size for `map-image` command
+- [x] Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via `provider_extra`)
+- [x] Provider client macro to reduce boilerplate across crates
 - [ ] Compile-time feature-gated providers in CLI to reduce binary size
 - [x] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`

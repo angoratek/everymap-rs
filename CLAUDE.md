@@ -125,7 +125,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 623 tests (unit + contract + CLI integration + error cases + bench; 9 more skipped)
+- `cargo test` — runs 654 tests (unit + contract + CLI integration + error cases + bench; 9 more skipped)
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
@@ -149,7 +149,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Adding a New Provider
 1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`
-2. Create `client.rs` — thin wrapper around `ProviderClient` from core (see `GoogleClient` as template)
+2. Create `client.rs` — use the `everymap_core::provider_client!` macro (see `GoogleClient` as template; provider-specific methods like Radar's `post_json` stay as inherent impls)
 3. Create `domain/geo.rs` — shared lat/lng type
 4. Implement supported domain traits (start with `Geocoder` + `Router`)
 5. Add `From<ProviderX> for CoreType` conversions for all response types
@@ -175,7 +175,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - `traffic` supports `--radius`, `--include-incidents`, `--language`
 - `tile` supports `--layer` (optional; HERE: base/core/hybrid, TomTom: basic/hybrid/labels, MapBox: no layer param), `--format` — HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
 - `attributes` supports `--layer`, `--format`, `--ids`, `--include`, `--language`
-- `map-image` supports `--format`, `--language`
+- `map-image` supports `--format`, `--language`, `--width`, `--height`
 - **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
@@ -193,12 +193,12 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - HERE Route Matching API v8 `mode` parameter uses compound format: `fastest;car;traffic:disabled` (not just transport mode)
 - HERE Route Matching API v8 transport modes: `car`, `carHov`, `truck`, `pedestrian`, `bicycle`, `bus`, `emergency`, `motorcycle`, `roadTrain` (camelCase)
 - `TourOptions` has `transport_mode: Option<TransportMode>` field for providers that support it (MapBox uses it for profile selection: driving/walking/cycling)
+- Google routing uses Routes API v2: POST JSON body to `routes.googleapis.com/directions/v2:computeRoutes` with camelCase fields, `X-Goog-FieldMask` header required, API key as `key` query param (header alternative documented by Google), durations are `"1234s"` strings
+- Radar Directions `avoid` accepts a comma-separated list of `tolls`, `highways`, `ferries`, `borderCrossings`; `alternatives` is boolean (two-location requests only)
 
 ## Known Issues (from comprehensive provider review)
-- **Google routing**: Uses legacy Directions API (not the recommended Routes API v2).
-- **TomTom traffic severity**: "moderate" maps to `Minor` (core `IncidentSeverity` has no `Moderate` variant).
-- **Radar routing**: Core `avoid` and `alternatives` fields only usable via `provider_extra` (core fields emit `log::warn!`).
 - **Google matching**: `transport_mode`, `heading`, `departure_time`, `avoid` are all ignored (logged as warnings).
+- **Radar routing avoid**: Tunnels and dirt-roads avoid types have no Radar API counterpart (Radar supports tolls, highways, ferries, borderCrossings) — they log a warning and are dropped.
 
 ## Fixed Issues (previously known)
 - **Silent parameter drops** (Phase 1): 24 locations across all 5 providers now emit `log::warn!` when core option fields are unsupported (Google: limit/radius/arrival_time/avoid/bbox/language; TomTom: avoid/tour/matching/traffic/isoline; MapBox: departure_time/arrival_time/avoid/format/tour; Radar: bounding_box/alternatives/avoid/arrival_time/transport_mode/tour/matching; HERE: reverse radius/traffic language/imaging format).
@@ -225,6 +225,10 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - **MapBox tour**: Fixed — now uses `transport_mode` from `TourOptions` instead of hardcoded `driving`.
 - **MapBox routing language**: Fixed — no longer sends unsupported `language` parameter to Directions API v5 (now emits warning).
 - **TomTom traffic bbox**: Fixed — longitude offset now uses `cos(lat)` correction for meridian convergence.
+- **Google routing Routes API v2**: Migrated from legacy Directions API to `routes.googleapis.com/directions/v2:computeRoutes` (POST + `X-Goog-FieldMask` header); `transport_mode` now populated from `travelMode`; `arrival_time`, avoid Tunnels/DirtRoads warn as unsupported.
+- **TomTom traffic severity**: "moderate" now maps to `IncidentSeverity::Moderate` (no longer downgraded to `Minor`).
+- **Radar routing avoid/alternatives**: Core `avoid` (tolls/highways/ferries) and `alternatives` fields now wired to the Radar Directions API; `provider_extra.avoid`/`alternatives` remain as overrides.
+- **Configurable image size**: Core `ImageOptions.width`/`height` override the `size` argument per-axis; `--width`/`--height` flags added to `map-image`.
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.
