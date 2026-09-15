@@ -10,7 +10,7 @@
 //! | Module | Purpose |
 //! |--------|---------|
 //! | [`domains`] | 10 domain traits with concrete option/response types |
-//! | [`auth`] | `AuthProvider`, `ApiKeyProvider`, `HeaderAuthProvider` |
+//! | [`auth`] | `AuthProvider`, `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` |
 //! | [`client`] | Shared `ProviderClient` HTTP logic |
 //! | [`types`] | `Coordinate`, `BoundingBox`, `Address`, `Polyline` |
 //! | [`error`] | Structured `EveryMapError` with 9 variants |
