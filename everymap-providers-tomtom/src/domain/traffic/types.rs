@@ -18,7 +18,7 @@ fn calculate_jam_factor(current: f64, free_flow: f64) -> f64 {
 fn map_severity(severity: &str) -> IncidentSeverity {
     match severity.to_lowercase().as_str() {
         "minor" => IncidentSeverity::Minor,
-        "moderate" => IncidentSeverity::Minor,
+        "moderate" => IncidentSeverity::Moderate,
         "major" => IncidentSeverity::Major,
         "critical" => IncidentSeverity::Critical,
         _ => IncidentSeverity::Unknown,
