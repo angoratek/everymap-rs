@@ -13,10 +13,11 @@ pub use domain::search::{
     GoogleGeometry, GooglePlusCode,
 };
 
-// Routing (Directions API)
+// Routing (Routes API v2)
 pub use domain::routing::{
-    GoogleDirectionsResponse, GoogleDistance, GoogleDuration, GoogleGeocodedWaypoint,
-    GooglePolyline, GoogleRoute, GoogleRouteLeg, GoogleRouteStep, GoogleRouter,
+    GoogleNavigationInstruction, GoogleRoute, GoogleRouteLeg, GoogleRouteModifiers,
+    GoogleRouteStep, GoogleRouter, GoogleRoutesLatLng, GoogleRoutesLocation, GoogleRoutesPolyline,
+    GoogleRoutesRequest, GoogleRoutesResponse, GoogleTravelMode, GoogleViewport, GoogleWaypoint,
 };
 
 // Matching (Roads API snapToRoads)
