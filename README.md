@@ -57,7 +57,7 @@ Unsupported domains return a clear `UnsupportedDomain` error: `"google does not 
 
 ### Installation
 
-EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.2.1**):
+EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.2.2**):
 
 ```bash
 # Add the core + provider crates to your project

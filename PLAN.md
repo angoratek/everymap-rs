@@ -87,7 +87,7 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 | Real implementations | 35 across 5 providers |
 | Clippy warnings | 0 |
 | MSRV | 1.86 |
-| Version | 0.2.1 |
+| Version | 0.2.2 |
 
 ---
 

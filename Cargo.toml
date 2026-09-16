@@ -12,7 +12,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 license = "MIT"
 authors = ["angoratek"]
@@ -44,9 +44,9 @@ wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
 chrono = "0.4"
 log = "0.4"
-everymap-core = { path = "everymap-core", version = "0.2.1" }
-everymap-providers-here = { path = "everymap-providers-here", version = "0.2.1" }
-everymap-providers-google = { path = "everymap-providers-google", version = "0.2.1" }
-everymap-providers-tomtom = { path = "everymap-providers-tomtom", version = "0.2.1" }
-everymap-providers-mapbox = { path = "everymap-providers-mapbox", version = "0.2.1" }
-everymap-providers-radar = { path = "everymap-providers-radar", version = "0.2.1" }
+everymap-core = { path = "everymap-core", version = "0.2.2" }
+everymap-providers-here = { path = "everymap-providers-here", version = "0.2.2" }
+everymap-providers-google = { path = "everymap-providers-google", version = "0.2.2" }
+everymap-providers-tomtom = { path = "everymap-providers-tomtom", version = "0.2.2" }
+everymap-providers-mapbox = { path = "everymap-providers-mapbox", version = "0.2.2" }
+everymap-providers-radar = { path = "everymap-providers-radar", version = "0.2.2" }

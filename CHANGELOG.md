@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.2] — 2026-09-15
 
 ### Added
 - `OAuth2Provider` in `everymap-core`: OAuth 2.0 client-credentials flow with cached access tokens (30s refresh skew, 3600s fallback), `Authorization: Bearer` injection, and zeroized client secrets/tokens.
@@ -12,6 +12,9 @@
 ### Changed
 - Google routing migrated from the legacy Directions API to Routes API v2 (`routes.googleapis.com/directions/v2:computeRoutes`, POST JSON body, required `X-Goog-FieldMask` header, API key as `key` query param); `transport_mode` now populated from `travelMode`; `provider_extra` `waypoints`→`intermediates`, `optimize_waypoints`→`optimizeWaypoints`, `units`→METRIC/IMPERIAL; `arrival_time` and avoid Tunnels/DirtRoads warn as unsupported.
 - Radar routing: core `avoid` (tolls/highways/ferries) and `alternatives` fields now wired to the Directions API (previously `provider_extra`-only with warnings); unsupported avoid types (tunnels, dirt roads) log a precise warning; `provider_extra` values remain as overrides.
+
+### Released
+- Published all 7 crates to crates.io (v0.2.2): `everymap-core`, the 5 provider crates, and `everymap-cli`, plus prebuilt CLI binaries for 5 targets on the [GitHub Release](https://github.com/angoratek/everymap-rs/releases/tag/v0.2.2). First release with per-crate READMEs on crates.io.
 
 ## [0.2.1] — 2026-09-13
 
