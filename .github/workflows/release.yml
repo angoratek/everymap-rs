@@ -86,7 +86,11 @@ jobs:
               if [ -f "$file" ]; then
                 case "$(basename "$file")" in
                   everymap.exe) mv "$file" "artifacts/${artifact_name}.exe" ;;
-                  *) mv "$file" "artifacts/${artifact_name}" ;;
+                  *)
+                    mv "$file" "artifacts/${artifact_name}.tmp"
+                    rmdir "$artifact_dir"
+                    mv "artifacts/${artifact_name}.tmp" "artifacts/${artifact_name}"
+                    ;;
                 esac
               fi
             done
