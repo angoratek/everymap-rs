@@ -112,6 +112,7 @@ EVERYMAP_HERE_API_KEY=your-here-key
 EVERYMAP_GOOGLE_API_KEY=your-google-key
 EVERYMAP_TOMTOM_API_KEY=your-tomtom-key
 EVERYMAP_MAPBOX_API_KEY=your-mapbox-key
+EVERYMAP_MAPQUEST_API_KEY=your-mapquest-consumer-key
 EVERYMAP_RADAR_API_KEY=your-radar-key
 ```
 
@@ -134,6 +135,10 @@ cargo test -p everymap-core --features integration -- --ignored
 #### HERE Live Tests
 
 Located in `everymap-providers-here/tests/live_api.rs`. Silently skip if `EVERYMAP_HERE_API_KEY` is not set.
+
+#### MapQuest Live Tests
+
+Located in `everymap-providers-mapquest/tests/live_api.rs` and covering geocoding, reverse geocoding, routing, the distance matrix, autocomplete, settled place search, traffic and raster tiles. They silently skip if `EVERYMAP_MAPQUEST_API_KEY` is not set; the crate's contract tests replay committed fixtures and never read it.
 
 #### CLI Smoke Testing
 
