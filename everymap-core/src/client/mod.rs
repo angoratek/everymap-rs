@@ -14,7 +14,7 @@ mod sleep;
 use crate::auth::AuthProvider;
 use crate::error::{EveryMapError, EveryMapResult};
 use crate::http::{default_transport, HttpRequest, HttpResponse, Method};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 pub use observer::{
@@ -23,6 +23,44 @@ pub use observer::{
 };
 pub use rate_limit::TokenBucket;
 pub use retry::RetryPolicy;
+
+/// The process-wide request observer, installed once by a host binding.
+static GLOBAL_REQUEST_OBSERVER: OnceLock<Mutex<Option<Arc<dyn RequestObserver>>>> = OnceLock::new();
+
+/// The slot holding the process-wide observer.
+fn global_request_observer_slot() -> &'static Mutex<Option<Arc<dyn RequestObserver>>> {
+    GLOBAL_REQUEST_OBSERVER.get_or_init(|| Mutex::new(None))
+}
+
+/// Installs a process-wide observer for every provider client.
+///
+/// A host binding that wants request diagnostics installs one observer here
+/// instead of threading it through every provider constructor. A client's own
+/// observer, when set with [`ProviderClient::set_observer`], takes precedence.
+///
+/// # Parameters
+/// - `observer` — the observer to call for each attempt.
+pub fn install_global_request_observer(observer: Arc<dyn RequestObserver>) {
+    *global_request_observer_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(observer);
+}
+
+/// Removes the process-wide observer, leaving each client's own observer in
+/// place.
+pub fn clear_global_request_observer() {
+    *global_request_observer_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+}
+
+/// The installed process-wide observer, when one is set.
+fn global_request_observer() -> Option<Arc<dyn RequestObserver>> {
+    global_request_observer_slot()
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+        .clone()
+}
 
 /// Maximum bytes of response body to display in verbose mode.
 const VERBOSE_BODY_LIMIT: usize = 10_240;
@@ -176,11 +214,17 @@ impl ProviderClient {
         };
 
         let mut last_error = EveryMapError::Unknown;
+        let observer = self.observer.clone().or_else(global_request_observer);
         for attempt in 1..=max_attempts {
             if let Some(rate_limiter) = &self.rate_limiter {
-                rate_limiter.acquire().await;
+                if !rate_limiter.acquire().await {
+                    return Err(EveryMapError::RateLimited {
+                        provider: self.provider_name.to_string(),
+                        retry_after_secs: None,
+                    });
+                }
             }
-            if let Some(observer) = &self.observer {
+            if let Some(observer) = &observer {
                 observer.on_request(&RequestObservation {
                     provider: self.provider_name,
                     method: request.method(),
@@ -193,7 +237,7 @@ impl ProviderClient {
             match self.transport.send(request.clone()).await {
                 Ok(response) => {
                     let elapsed = start.elapsed();
-                    if let Some(observer) = &self.observer {
+                    if let Some(observer) = &observer {
                         observer.on_response(&ResponseObservation {
                             provider: self.provider_name,
                             status: Some(response.status()),
@@ -387,6 +431,60 @@ pub fn truncate_str(s: &str, limit: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::auth::NoAuthProvider;
+    use crate::http::{HttpHeaders, HttpRequest, HttpResponse, HttpTransport};
+    use async_trait::async_trait;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// A transport that always answers an empty success.
+    struct FixedSuccessTransport;
+
+    #[async_trait]
+    impl HttpTransport for FixedSuccessTransport {
+        async fn send(&self, _request: HttpRequest) -> EveryMapResult<HttpResponse> {
+            Ok(HttpResponse::new(
+                200,
+                HttpHeaders::new(Vec::new()),
+                Vec::new(),
+            ))
+        }
+    }
+
+    /// Counts the observation callbacks it receives.
+    #[derive(Default)]
+    struct CountingRequestObserver {
+        requests: AtomicUsize,
+        responses: AtomicUsize,
+    }
+
+    impl RequestObserver for CountingRequestObserver {
+        fn on_request(&self, _observation: &RequestObservation<'_>) {
+            self.requests.fetch_add(1, Ordering::Relaxed);
+        }
+
+        fn on_response(&self, _observation: &ResponseObservation<'_>) {
+            self.responses.fetch_add(1, Ordering::Relaxed);
+        }
+    }
+
+    #[tokio::test]
+    async fn a_global_observer_sees_every_client_request() {
+        let observer = Arc::new(CountingRequestObserver::default());
+        install_global_request_observer(observer.clone());
+        let client = ProviderClient::with_transport(
+            Arc::new(FixedSuccessTransport),
+            Arc::new(NoAuthProvider::new()),
+            "global-observer-test",
+        );
+        client
+            .request(HttpRequest::get("https://example.com/probe"))
+            .await
+            .expect("the fixed transport answers");
+        clear_global_request_observer();
+        assert_eq!(observer.requests.load(Ordering::Relaxed), 1);
+        assert_eq!(observer.responses.load(Ordering::Relaxed), 1);
+        assert!(global_request_observer().is_none());
+    }
 
     #[test]
     fn test_redact_api_key_here() {

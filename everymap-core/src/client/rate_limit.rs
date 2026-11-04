@@ -17,10 +17,13 @@ struct BucketState {
 /// The bucket starts full and refills continuously at
 /// [`TokenBucket::refill_per_second`] up to [`TokenBucket::capacity`]. Each
 /// request removes one token; when none is available, [`TokenBucket::acquire`]
-/// waits until the next token refills.
+/// waits until the next token refills. A bucket created with
+/// [`TokenBucket::with_maximum_wait`] refuses instead of waiting past the
+/// ceiling.
 pub struct TokenBucket {
     capacity: f64,
     refill_per_second: f64,
+    maximum_wait: Option<Duration>,
     state: Mutex<BucketState>,
 }
 
@@ -41,11 +44,30 @@ impl TokenBucket {
         Self {
             capacity,
             refill_per_second,
+            maximum_wait: None,
             state: Mutex::new(BucketState {
                 tokens: capacity,
                 last_refill: Instant::now(),
             }),
         }
+    }
+
+    /// Sets the longest wait a single acquisition may spend before refusing.
+    ///
+    /// # Parameters
+    /// - `maximum_wait` — the ceiling; an acquisition that would wait past it
+    ///   returns `false` from [`TokenBucket::acquire`].
+    ///
+    /// # Returns
+    /// The same bucket, for chaining.
+    pub fn with_maximum_wait(mut self, maximum_wait: Duration) -> Self {
+        self.maximum_wait = Some(maximum_wait);
+        self
+    }
+
+    /// The longest wait a single acquisition may spend, when one is set.
+    pub fn maximum_wait(&self) -> Option<Duration> {
+        self.maximum_wait
     }
 
     /// Maximum number of tokens the bucket can hold.
@@ -59,11 +81,24 @@ impl TokenBucket {
     }
 
     /// Wait until one token is available and consume it.
-    pub async fn acquire(&self) {
+    ///
+    /// # Returns
+    /// `true` when the token was consumed, `false` when the bucket has a
+    /// maximum wait and the next token would arrive after it.
+    pub async fn acquire(&self) -> bool {
+        let mut waited = Duration::ZERO;
         loop {
             match self.consume().await {
-                None => return,
-                Some(wait) => sleep::sleep(wait).await,
+                None => return true,
+                Some(wait) => {
+                    if let Some(maximum_wait) = self.maximum_wait {
+                        if waited.saturating_add(wait) > maximum_wait {
+                            return false;
+                        }
+                    }
+                    sleep::sleep(wait).await;
+                    waited = waited.saturating_add(wait);
+                }
             }
         }
     }
@@ -126,5 +161,24 @@ mod tests {
         }
         assert_eq!(bucket.capacity(), 2.0);
         assert_eq!(bucket.refill_per_second(), 1000.0);
+    }
+
+    #[tokio::test]
+    async fn maximum_wait_admits_an_available_token() {
+        let bucket = TokenBucket::new(1, 1000.0).with_maximum_wait(Duration::from_millis(50));
+        assert_eq!(bucket.maximum_wait(), Some(Duration::from_millis(50)));
+        assert!(bucket.acquire().await);
+    }
+
+    #[tokio::test]
+    async fn maximum_wait_refuses_a_refill_past_the_ceiling() {
+        let bucket = TokenBucket::new(1, 1.0).with_maximum_wait(Duration::from_millis(50));
+        assert!(bucket.acquire().await);
+        let start = Instant::now();
+        assert!(!bucket.acquire().await);
+        assert!(
+            start.elapsed() < Duration::from_millis(40),
+            "the refusal returns without sleeping to the refill"
+        );
     }
 }

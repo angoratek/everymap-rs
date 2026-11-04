@@ -15,8 +15,8 @@
 //! One request is `GET {base_url}/directions/v2/route` with:
 //!
 //! - `from` and one `to` per remaining waypoint, in request order;
-//! - `unit=k` (the core contract carries meters, so the request asks for
-//!   kilometres and converts the answer);
+//! - `unit=k` or `unit=m` from the request's [`UnitSystem`] (the core
+//!   contract carries meters, so the answer is converted back);
 //! - `routeType` — `fastest` or `shortest` for automobile routing and the
 //!   fixed `bicycle` or `pedestrian` value for those modes;
 //! - `shapeFormat=raw`, `fullShape=true`, `narrativeType=text`;
@@ -47,7 +47,7 @@ use crate::json_coordinates::coordinate_to_location_query_text;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
     AvoidType, ManeuverType, RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult,
-    RouteStep, RouteStrategy, Router, TransportMode, TurnDirection,
+    RouteStep, RouteStrategy, Router, TransportMode, TurnDirection, UnitSystem,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{BoundingBox, Coordinate, Polyline};
@@ -68,6 +68,15 @@ const UNIT_PARAMETER: &str = "unit";
 
 /// Unit value requesting kilometres; the projection converts them to meters.
 const METRIC_UNIT_VALUE: &str = "k";
+
+/// Unit value requesting miles; the projection converts them to meters.
+const IMPERIAL_UNIT_VALUE: &str = "m";
+
+/// Meters in one kilometre.
+const METERS_PER_KILOMETER: f64 = 1000.0;
+
+/// Meters in one statute mile.
+const METERS_PER_MILE: f64 = 1609.344;
 
 /// Query parameter selecting the route cost model.
 const ROUTE_TYPE_PARAMETER: &str = "routeType";
@@ -119,9 +128,6 @@ const UNPAVED_AVOID_FEATURE: &str = "Unpaved";
 
 /// Separator between avoid features.
 const AVOID_FEATURE_SEPARATOR: &str = ",";
-
-/// Meters in one kilometre.
-const METERS_PER_KILOMETER: f64 = 1000.0;
 
 /// The fewest waypoints a route can connect.
 const MINIMUM_ROUTE_WAYPOINT_COUNT: usize = 2;
@@ -208,12 +214,16 @@ impl Router for MapQuestRouter {
             ));
         }
         let transport_mode = effective_transport_mode(options.transport_mode);
+        let (unit_value, meters_per_unit) = match options.unit_system.unwrap_or_default() {
+            UnitSystem::Metric => (METRIC_UNIT_VALUE, METERS_PER_KILOMETER),
+            UnitSystem::Imperial => (IMPERIAL_UNIT_VALUE, METERS_PER_MILE),
+        };
         let mut query_parameters = vec![
             (
                 FROM_PARAMETER.to_string(),
                 coordinate_to_location_query_text(&waypoints[0]),
             ),
-            (UNIT_PARAMETER.to_string(), METRIC_UNIT_VALUE.to_string()),
+            (UNIT_PARAMETER.to_string(), unit_value.to_string()),
             (
                 ROUTE_TYPE_PARAMETER.to_string(),
                 route_type_query_text(transport_mode, options.route_strategy).to_string(),
@@ -239,7 +249,7 @@ impl Router for MapQuestRouter {
         }
         report_unsupported_options(options);
         let payload = self.client.get_json(ROUTE_PATH, &query_parameters).await?;
-        parse_route_payload(&payload, transport_mode)
+        parse_route_payload(&payload, transport_mode, meters_per_unit)
     }
 
     /// Reports the choices this service honours.
@@ -348,6 +358,7 @@ fn report_unsupported_options(options: &RouteOptions) {
 pub fn parse_route_payload(
     payload: &Value,
     transport_mode: TransportMode,
+    meters_per_unit: f64,
 ) -> EveryMapResult<RouteResponse> {
     let route = payload
         .get("route")
@@ -381,15 +392,17 @@ pub fn parse_route_payload(
                 global_maneuver_index,
                 &maneuver_indexes,
                 &route_shape,
+                meters_per_unit,
             )?);
         }
         maneuver_offset_across_legs += maneuvers.len();
         flat_steps.extend(steps.iter().cloned());
         parsed_legs.push(RouteLeg {
-            distance: kilometers_to_meters(
+            distance: unit_distance_to_meters(
                 leg.get("distance")
                     .and_then(Value::as_f64)
                     .unwrap_or_default(),
+                meters_per_unit,
             ),
             duration: leg.get("time").and_then(Value::as_f64).unwrap_or_default(),
             steps,
@@ -400,11 +413,12 @@ pub fn parse_route_payload(
     let bounding_box = parse_route_bounding_box(route)?;
     Ok(RouteResponse {
         routes: vec![RouteResult {
-            distance: kilometers_to_meters(
+            distance: unit_distance_to_meters(
                 route
                     .get("distance")
                     .and_then(Value::as_f64)
                     .unwrap_or_default(),
+                meters_per_unit,
             ),
             duration: route
                 .get("time")
@@ -428,6 +442,7 @@ fn parse_maneuver_step(
     global_maneuver_index: usize,
     maneuver_indexes: &[usize],
     route_shape: &[Coordinate],
+    meters_per_unit: f64,
 ) -> EveryMapResult<RouteStep> {
     let narrative = maneuver
         .get("narrative")
@@ -463,7 +478,7 @@ fn parse_maneuver_step(
         distance: maneuver
             .get("distance")
             .and_then(Value::as_f64)
-            .map(kilometers_to_meters),
+            .map(|distance| unit_distance_to_meters(distance, meters_per_unit)),
         duration: maneuver.get("time").and_then(Value::as_f64),
         start_coordinate,
         end_coordinate,
@@ -581,8 +596,8 @@ fn parse_lat_lng(lat_lng: &Value) -> Option<Coordinate> {
 }
 
 /// Converts a kilometre value to meters.
-fn kilometers_to_meters(distance_kilometers: f64) -> f64 {
-    distance_kilometers * METERS_PER_KILOMETER
+fn unit_distance_to_meters(distance_in_unit: f64, meters_per_unit: f64) -> f64 {
+    distance_in_unit * meters_per_unit
 }
 
 /// Maps the documented Directions API `turnType` enumeration onto the core
@@ -650,7 +665,7 @@ pub fn extract_roundabout_exit_index(narrative: &str) -> Option<u8> {
 mod tests {
     use super::{
         extract_roundabout_exit_index, map_turn_type_to_maneuver_type, parse_route_payload,
-        route_type_query_text,
+        route_type_query_text, METERS_PER_KILOMETER,
     };
     use everymap_core::domains::routing::{
         ManeuverType, RouteStrategy, TransportMode, TurnDirection,
@@ -670,6 +685,7 @@ mod tests {
         let response = parse_route_payload(
             &fixture("directions_route_two_waypoints.json"),
             TransportMode::Car,
+            METERS_PER_KILOMETER,
         )
         .expect("the recorded route must project");
         assert_eq!(response.routes.len(), 1);
@@ -709,6 +725,7 @@ mod tests {
         let response = parse_route_payload(
             &fixture("directions_route_two_waypoints.json"),
             TransportMode::Car,
+            METERS_PER_KILOMETER,
         )
         .expect("the recorded route must project");
         let steps = &response.routes[0].legs[0].steps;
@@ -728,6 +745,7 @@ mod tests {
         let response = parse_route_payload(
             &fixture("directions_route_two_waypoints.json"),
             TransportMode::Car,
+            METERS_PER_KILOMETER,
         )
         .expect("the recorded route must project");
         let first_step = &response.routes[0].legs[0].steps[0];
@@ -830,11 +848,11 @@ mod tests {
                 }
             }
         });
-        assert!(parse_route_payload(&payload, TransportMode::Car).is_err());
+        assert!(parse_route_payload(&payload, TransportMode::Car, METERS_PER_KILOMETER).is_err());
     }
 
     #[test]
     fn a_missing_route_object_is_rejected() {
-        assert!(parse_route_payload(&json!({}), TransportMode::Car).is_err());
+        assert!(parse_route_payload(&json!({}), TransportMode::Car, METERS_PER_KILOMETER).is_err());
     }
 }
