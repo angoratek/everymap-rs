@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- Provider clients expose the shared pipeline: `set_rate_limiter`, `set_retry_policy`, `set_request_timeout` and `set_observer` are now on the `provider_client!`-generated clients and on the MapQuest client, so a host can carry a declared budget without rebuilding the provider.
 - `SearchQuality` on `SearchResult`: the nine granularity levels from a rooftop point to a country, filled by the MapQuest geocoder beside the existing confidence classification.
 - `PlaceSearchProvider`: a settled place-search contract beside `Geocoder` and `AutocompleteProvider`, implemented by the MapQuest provider with the documented fifteen-result cap.
 - Traffic incidents carry `start_coordinate` and `end_coordinate` when the provider reports a position; the MapQuest incident projection fills them.
