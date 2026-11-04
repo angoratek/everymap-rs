@@ -46,6 +46,35 @@ pub enum SearchResultType {
     Unknown,
 }
 
+/// The granularity a geocoder matched, from a rooftop point to a country.
+///
+/// A renderer uses the level to choose a label density; a map that matches a
+/// country must not place a street marker. Providers with a finer vocabulary
+/// map onto these levels rather than collapsing them into
+/// [`SearchResultType`], which describes confidence rather than granularity.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SearchQuality {
+    /// Rooftop or feature point.
+    Point,
+    /// Street address matched to the building level.
+    StreetAddress,
+    /// Street intersection.
+    Intersection,
+    /// Street level without a house number.
+    Street,
+    /// Postal code area.
+    PostalCode,
+    /// Settlement level (village, town or city).
+    City,
+    /// County or administrative district.
+    County,
+    /// First-level administrative division.
+    State,
+    /// Sovereign country level.
+    Country,
+}
+
 /// A unified search result returned by the core trait.
 ///
 /// Contains structured data that all providers can populate, plus an optional
@@ -62,6 +91,9 @@ pub struct SearchResult {
     pub title: Option<String>,
     /// Classification of match quality
     pub result_type: SearchResultType,
+    /// The granularity the provider matched, when it reports one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quality: Option<SearchQuality>,
     /// Distance from the search origin in meters (if applicable)
     pub distance: Option<f64>,
     /// Confidence score (0.0-1.0, higher = more confident)
@@ -102,9 +134,76 @@ pub trait Geocoder: Send + Sync {
     ) -> EveryMapResult<SearchResponse>;
 }
 
+/// Options for a settled place-search request.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct PlaceSearchOptions {
+    /// Maximum number of results to return.
+    pub limit: Option<u32>,
+    /// Preferred response language (BCP 47 language tag).
+    pub language: Option<String>,
+    /// An area to prefer or restrict results to, typically the viewport.
+    pub bounding_box: Option<BoundingBox>,
+    /// Provider-specific options for advanced use cases.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_extra: Option<serde_json::Value>,
+}
+
+/// Search over complete queries, as opposed to the autocomplete provider's
+/// partial-query completion.
+///
+/// A settled search returns full results in relevance order and is what a
+/// caller asks for after the user stops typing, so a provider can apply its
+/// ranking, deduplication and result-page rules that a completion endpoint
+/// does not.
+#[async_trait]
+pub trait PlaceSearchProvider: Send + Sync {
+    /// Returns full results for a settled query.
+    ///
+    /// # Parameters
+    /// - `query` — the complete query text.
+    /// - `options` — the result cap, language, preferred area and provider
+    ///   extras.
+    ///
+    /// # Returns
+    /// Matching places in the provider's relevance order, at most
+    /// [`PlaceSearchOptions::limit`].
+    ///
+    /// # Errors
+    /// Returns [`crate::error::EveryMapError::ValidationError`] for an
+    /// unusable query, the shared client's errors when the request cannot be
+    /// served, and [`crate::error::EveryMapError::SerializationError`] when
+    /// the response cannot be decoded.
+    async fn search_places(
+        &self,
+        query: &str,
+        options: &PlaceSearchOptions,
+    ) -> EveryMapResult<SearchResponse>;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_search_quality_serializes_in_snake_case() {
+        assert_eq!(
+            serde_json::to_string(&SearchQuality::StreetAddress).unwrap(),
+            "\"street_address\""
+        );
+        assert_eq!(
+            serde_json::to_string(&SearchQuality::Country).unwrap(),
+            "\"country\""
+        );
+    }
+
+    #[test]
+    fn test_place_search_options_default() {
+        let options = PlaceSearchOptions::default();
+        assert!(options.limit.is_none());
+        assert!(options.language.is_none());
+        assert!(options.bounding_box.is_none());
+        assert!(options.provider_extra.is_none());
+    }
 
     #[test]
     fn test_geocode_options_default() {
@@ -176,6 +275,7 @@ mod tests {
             address: Address::empty(),
             title: Some("Test Place".to_string()),
             result_type: SearchResultType::ExactMatch,
+            quality: None,
             distance: Some(150.0),
             confidence: Some(0.95),
             categories: vec!["restaurant".to_string()],
@@ -197,6 +297,7 @@ mod tests {
                 address: Address::empty(),
                 title: None,
                 result_type: SearchResultType::Unknown,
+                quality: None,
                 distance: None,
                 confidence: None,
                 categories: vec![],
@@ -269,6 +370,7 @@ mod tests {
                 address: Address::from_label("Brandenburg Gate".to_string()),
                 title: Some("Brandenburg Gate".to_string()),
                 result_type: SearchResultType::ExactMatch,
+                quality: None,
                 distance: Some(250.0),
                 confidence: Some(0.98),
                 categories: vec!["monument".to_string(), "landmark".to_string()],
@@ -339,6 +441,7 @@ mod tests {
             address: Address::empty(),
             title: None,
             result_type: SearchResultType::Unknown,
+            quality: None,
             distance: Some(0.0),
             confidence: Some(0.0),
             categories: vec![],
@@ -357,6 +460,7 @@ mod tests {
             address: Address::empty(),
             title: None,
             result_type: SearchResultType::Unknown,
+            quality: None,
             distance: None,
             confidence: None,
             categories: vec![],
@@ -374,6 +478,7 @@ mod tests {
             address: Address::empty(),
             title: None,
             result_type: SearchResultType::Approximate,
+            quality: None,
             distance: None,
             confidence: None,
             categories: vec![],

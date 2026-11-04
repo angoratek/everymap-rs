@@ -502,9 +502,18 @@ fn project_incident(incident: &Value) -> EveryMapResult<Option<TrafficIncident>>
         .get("lng")
         .and_then(Value::as_f64)
         .ok_or_else(|| invalid_response("incident lacks lng"))?;
-    // The core incident model carries no coordinate; validate the position so
-    // a malformed location is not silently accepted.
-    Coordinate::new(latitude, longitude).map_err(|error| invalid_response(error.to_string()))?;
+    let start_coordinate = Coordinate::new(latitude, longitude)
+        .map_err(|error| invalid_response(error.to_string()))?;
+    let end_coordinate = match (
+        incident.get("endLat").and_then(Value::as_f64),
+        incident.get("endLng").and_then(Value::as_f64),
+    ) {
+        (Some(end_latitude), Some(end_longitude)) => Some(
+            Coordinate::new(end_latitude, end_longitude)
+                .map_err(|error| invalid_response(error.to_string()))?,
+        ),
+        _ => None,
+    };
     let severity = map_incident_severity(
         incident
             .get("severity")
@@ -529,6 +538,8 @@ fn project_incident(incident: &Value) -> EveryMapResult<Option<TrafficIncident>>
             .get("endTime")
             .and_then(Value::as_str)
             .map(str::to_string),
+        start_coordinate: Some(start_coordinate),
+        end_coordinate,
     }))
 }
 
