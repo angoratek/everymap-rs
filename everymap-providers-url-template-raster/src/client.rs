@@ -9,7 +9,7 @@
 //! credentialed provider.
 
 use everymap_core::auth::NoAuthProvider;
-use everymap_core::client::{ProviderClient, TokenBucket};
+use everymap_core::client::ProviderClient;
 use everymap_core::http::HttpTransport;
 use std::sync::Arc;
 
@@ -52,13 +52,5 @@ impl UrlTemplateRasterClient {
                 URL_TEMPLATE_RASTER_PROVIDER_NAME,
             ),
         }
-    }
-
-    /// Installs the token bucket that paces every fetch.
-    ///
-    /// # Parameters
-    /// - `rate_limiter` — a bucket built from the source's declared pacing.
-    pub(crate) fn set_rate_limiter(&mut self, rate_limiter: Arc<TokenBucket>) {
-        self.inner.set_rate_limiter(rate_limiter);
     }
 }
