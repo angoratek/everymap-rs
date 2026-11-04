@@ -3,6 +3,9 @@
 ## [Unreleased]
 
 ### Added
+- A process-wide request observer in `everymap-core`: `install_global_request_observer` gives every provider client one redacting observer without threading it through each constructor, and a client's own observer still wins.
+- `UnitSystem` on `RouteOptions`: a route can ask for metric or imperial distances while the core result stays in meters; the MapQuest router requests `unit=m` and converts the answer back.
+- `TokenBucket::with_maximum_wait`: a bucket can refuse instead of waiting past a ceiling, and the shared client reports that refusal as `RateLimited`.
 - `everymap-providers-mapquest`: `Geocoder`, `Router` with ordered waypoints and maneuver legs, `DistanceMatrixProvider`, `AutocompleteProvider`, `TrafficProvider` (bounding-box flow with geometry and congestion levels plus incidents) and `RasterTileProvider` implementations over the MapQuest web services, with a shared key-authenticated client, user agent, typed quality/congestion/severity mappings, committed fixtures and wiremock contract tests.
 - `everymap-providers-url-template-raster`: a `RasterTileProvider` over any `{z}/{x}/{y}` raster URL template, with optional `{s}` subdomain/scheme substitution, attribution, terms, declared request headers, token-bucket pacing and typed tiles that echo the requested format and resolution.
 - `everymap-providers-url-template-vector`: a `VectorTileProvider` over any `{z}/{x}/{y}` vector URL template, with optional `{s}` subdomain/scheme substitution, a `VectorTileSourceDescriptor` (cache namespace, attribution, zoom span, wire encoding, style hints), declared request headers, token-bucket pacing and gzip-encoding sniffing.

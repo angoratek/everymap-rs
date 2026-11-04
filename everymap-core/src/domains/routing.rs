@@ -62,6 +62,21 @@ pub enum AvoidType {
     DirtRoads,
 }
 
+/// Unit system a route request asks the provider to express distances in.
+///
+/// The core records distances in meters regardless of this choice; a provider
+/// asks its service for the requested unit and converts the answer back. A
+/// provider that only serves one unit reports so by ignoring the other.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UnitSystem {
+    /// Kilometers or meters, the default.
+    #[default]
+    Metric,
+    /// Miles or feet.
+    Imperial,
+}
+
 /// Options for route calculation.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RouteOptions {
@@ -82,6 +97,10 @@ pub struct RouteOptions {
     /// reports so through [`Router::route_capabilities`].
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub route_strategy: Option<RouteStrategy>,
+    /// The unit system the provider should express distances in. The core
+    /// result stays in meters; a provider that serves one unit ignores this.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub unit_system: Option<UnitSystem>,
     /// Provider-specific options (HERE: routing_mode, spans, truck params; Google: waypoints, traffic_model)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider_extra: Option<serde_json::Value>,
@@ -510,6 +529,15 @@ mod tests {
     use super::*;
 
     #[test]
+    fn test_unit_system_defaults_to_metric_and_serializes() {
+        assert_eq!(UnitSystem::default(), UnitSystem::Metric);
+        assert_eq!(
+            serde_json::to_string(&UnitSystem::Imperial).unwrap(),
+            "\"imperial\""
+        );
+    }
+
+    #[test]
     fn test_route_options_default() {
         let options = RouteOptions::default();
         assert!(options.transport_mode.is_none());
@@ -525,6 +553,7 @@ mod tests {
     #[test]
     fn test_route_options_with_fields() {
         let options = RouteOptions {
+            unit_system: None,
             transport_mode: Some(TransportMode::Car),
             alternatives: Some(3),
             avoid: vec![AvoidType::Tolls, AvoidType::Ferries],
@@ -695,6 +724,7 @@ mod tests {
             arrival_time: None,
             language: Some("en".to_string()),
             route_strategy: Some(RouteStrategy::Shortest),
+            unit_system: None,
             provider_extra: Some(
                 serde_json::json!({"routing_mode": "fast", "truck": {"weight": 18}}),
             ),
