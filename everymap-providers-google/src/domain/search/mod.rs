@@ -75,6 +75,7 @@ impl From<GoogleGeocodeResult> for SearchResult {
             coordinate,
             address,
             result_type,
+            quality: None,
             distance: None,
             confidence: None,
             categories: vec![],
