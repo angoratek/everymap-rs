@@ -11,6 +11,7 @@ members = [
     "everymap-providers-valhalla",
     "everymap-providers-url-template-raster",
     "everymap-providers-url-template-vector",
+    "everymap-providers-mapquest",
     "everymap-bench",
 ]
 resolver = "2"
@@ -62,3 +63,4 @@ everymap-providers-osrm = { path = "everymap-providers-osrm", version = "0.2.2" 
 everymap-providers-valhalla = { path = "everymap-providers-valhalla", version = "0.2.2" }
 everymap-providers-url-template-raster = { path = "everymap-providers-url-template-raster", version = "0.2.2" }
 everymap-providers-url-template-vector = { path = "everymap-providers-url-template-vector", version = "0.2.2" }
+everymap-providers-mapquest = { path = "everymap-providers-mapquest", version = "0.2.2" }

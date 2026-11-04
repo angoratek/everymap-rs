@@ -532,6 +532,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "everymap-providers-mapquest"
+version = "0.2.2"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "everymap-providers-osrm"
 version = "0.2.2"
 dependencies = [

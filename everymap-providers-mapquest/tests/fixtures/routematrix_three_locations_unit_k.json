@@ -1,0 +1,139 @@
+{
+  "info": {
+    "statuscode": 0,
+    "copyright": {
+      "text": "© 2026 MapQuest, Inc.",
+      "imageUrl": "http://api.mqcdn.com/res/mqlogo.gif",
+      "imageAltText": "© 2026 MapQuest, Inc."
+    },
+    "messages": []
+  },
+  "time": [
+    [
+      0,
+      235,
+      320
+    ],
+    [
+      265,
+      0,
+      514
+    ],
+    [
+      403,
+      494,
+      0
+    ]
+  ],
+  "distance": [
+    [
+      0,
+      1.7,
+      2.6
+    ],
+    [
+      2,
+      0,
+      4.5
+    ],
+    [
+      5.4,
+      6.9,
+      0
+    ]
+  ],
+  "locations": [
+    {
+      "street": "1315 10th St",
+      "adminArea6": "Downtown Sacramento",
+      "adminArea6Type": "Neighborhood",
+      "adminArea5": "Sacramento",
+      "adminArea5Type": "City",
+      "adminArea4": "Sacramento",
+      "adminArea4Type": "County",
+      "adminArea3": "CA",
+      "adminArea3Type": "State",
+      "adminArea1": "US",
+      "adminArea1Type": "Country",
+      "postalCode": "95814-4905",
+      "geocodeQualityCode": "L1CAA",
+      "geocodeQuality": "ADDRESS",
+      "dragPoint": false,
+      "sideOfStreet": "N",
+      "linkId": "0",
+      "unknownInput": "",
+      "type": "s",
+      "latLng": {
+        "lat": 38.57693,
+        "lng": -121.49492
+      },
+      "displayLatLng": {
+        "lat": 38.57653,
+        "lng": -121.49343
+      },
+      "mapUrl": ""
+    },
+    {
+      "street": "Front St",
+      "adminArea6": "Old Sacramento Waterfront",
+      "adminArea6Type": "Neighborhood",
+      "adminArea5": "Sacramento",
+      "adminArea5Type": "City",
+      "adminArea4": "Sacramento",
+      "adminArea4Type": "County",
+      "adminArea3": "CA",
+      "adminArea3Type": "State",
+      "adminArea1": "US",
+      "adminArea1Type": "Country",
+      "postalCode": "95814",
+      "geocodeQualityCode": "B1CAA",
+      "geocodeQuality": "STREET",
+      "dragPoint": false,
+      "sideOfStreet": "N",
+      "linkId": "0",
+      "unknownInput": "",
+      "type": "s",
+      "latLng": {
+        "lat": 38.57874,
+        "lng": -121.50745
+      },
+      "displayLatLng": {
+        "lat": 38.57874,
+        "lng": -121.50745
+      },
+      "mapUrl": ""
+    },
+    {
+      "street": "2728 J St",
+      "adminArea6": "Midtown",
+      "adminArea6Type": "Neighborhood",
+      "adminArea5": "Sacramento",
+      "adminArea5Type": "City",
+      "adminArea4": "Sacramento",
+      "adminArea4Type": "County",
+      "adminArea3": "CA",
+      "adminArea3Type": "State",
+      "adminArea1": "US",
+      "adminArea1Type": "Country",
+      "postalCode": "95816-4359",
+      "geocodeQualityCode": "L1CAA",
+      "geocodeQuality": "ADDRESS",
+      "dragPoint": false,
+      "sideOfStreet": "N",
+      "linkId": "0",
+      "unknownInput": "",
+      "type": "s",
+      "latLng": {
+        "lat": 38.57393,
+        "lng": -121.46956
+      },
+      "displayLatLng": {
+        "lat": 38.57372,
+        "lng": -121.46965
+      },
+      "mapUrl": ""
+    }
+  ],
+  "allToAll": true,
+  "manyToOne": false
+}
