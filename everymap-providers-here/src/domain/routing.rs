@@ -718,7 +718,7 @@ impl Router for HereRouter {
         let url = format!("{}/routes", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereRouteApiResponse = self.client.request_json(builder).await?;

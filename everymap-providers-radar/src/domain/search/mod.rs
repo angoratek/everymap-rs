@@ -203,7 +203,7 @@ impl Geocoder for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.base_url)
+            .build_request(everymap_core::http::Method::GET, &self.base_url)
             .query(&params);
 
         let radar_res: RadarGeocodeResponse = self.client.request_json(builder).await?;
@@ -258,7 +258,7 @@ impl Geocoder for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.reverse_base_url)
+            .build_request(everymap_core::http::Method::GET, &self.reverse_base_url)
             .query(&params);
 
         let radar_res: RadarGeocodeResponse = self.client.request_json(builder).await?;

@@ -62,7 +62,7 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }
@@ -79,7 +79,7 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
             let params: Vec<(&str, String)> = vec![("q", query.clone())];
             let builder = self
                 .client
-                .build_request(reqwest::Method::GET, &url)
+                .build_request(everymap_core::http::Method::GET, &url)
                 .query(&params);
             let result: super::domain::search::MapBoxSearchResponse =
                 self.client.request_json(builder).await?;
@@ -126,7 +126,7 @@ impl MapBoxRouterExt for super::domain::routing::MapBoxRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
         self.client.request_json(builder).await
     }

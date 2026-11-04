@@ -1,5 +1,5 @@
 use everymap_core::auth::{AuthProvider, OAuth2Provider};
-use reqwest::header::AUTHORIZATION;
+use everymap_core::http::HttpRequest;
 use wiremock::matchers::{body_string_contains, header, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
@@ -12,8 +12,16 @@ fn provider_for(server: &MockServer, scope: Option<String>) -> OAuth2Provider {
     )
 }
 
-fn sample_request() -> reqwest::RequestBuilder {
-    reqwest::Client::new().get("http://localhost/unused")
+fn sample_request() -> HttpRequest {
+    HttpRequest::get("http://localhost/unused")
+}
+
+fn authorization(request: &HttpRequest) -> Option<&str> {
+    request
+        .headers()
+        .iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case("authorization"))
+        .map(|(_, value)| value.as_str())
 }
 
 #[tokio::test]
@@ -34,13 +42,8 @@ async fn test_apply_fetches_token_and_sets_bearer_header() {
         .await;
 
     let provider = provider_for(&server, None);
-    let builder = provider.apply(sample_request()).await.unwrap();
-    let request = builder.build().unwrap();
-
-    assert_eq!(
-        request.headers().get(AUTHORIZATION).unwrap(),
-        "Bearer token-abc"
-    );
+    let request = provider.apply(sample_request()).await.unwrap();
+    assert_eq!(authorization(&request), Some("Bearer token-abc"));
 
     let received = server.received_requests().await.unwrap();
     assert_eq!(received.len(), 1);
@@ -61,13 +64,8 @@ async fn test_apply_sends_scope_parameter() {
         .await;
 
     let provider = provider_for(&server, Some("maps.read routes.write".to_string()));
-    let builder = provider.apply(sample_request()).await.unwrap();
-    let request = builder.build().unwrap();
-
-    assert_eq!(
-        request.headers().get(AUTHORIZATION).unwrap(),
-        "Bearer token-abc"
-    );
+    let request = provider.apply(sample_request()).await.unwrap();
+    assert_eq!(authorization(&request), Some("Bearer token-abc"));
 }
 
 #[tokio::test]
@@ -85,12 +83,8 @@ async fn test_cached_token_is_reused_within_lifetime() {
 
     let provider = provider_for(&server, None);
     for _ in 0..3 {
-        let builder = provider.apply(sample_request()).await.unwrap();
-        let request = builder.build().unwrap();
-        assert_eq!(
-            request.headers().get(AUTHORIZATION).unwrap(),
-            "Bearer token-abc"
-        );
+        let request = provider.apply(sample_request()).await.unwrap();
+        assert_eq!(authorization(&request), Some("Bearer token-abc"));
     }
 
     let received = server.received_requests().await.unwrap();
@@ -114,12 +108,8 @@ async fn test_expired_token_triggers_refresh() {
 
     let provider = provider_for(&server, None);
     for _ in 0..2 {
-        let builder = provider.apply(sample_request()).await.unwrap();
-        let request = builder.build().unwrap();
-        assert_eq!(
-            request.headers().get(AUTHORIZATION).unwrap(),
-            "Bearer token-abc"
-        );
+        let request = provider.apply(sample_request()).await.unwrap();
+        assert_eq!(authorization(&request), Some("Bearer token-abc"));
     }
 
     let received = server.received_requests().await.unwrap();

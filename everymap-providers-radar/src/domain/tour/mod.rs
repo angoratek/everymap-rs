@@ -82,7 +82,7 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.base_url)
+            .build_request(everymap_core::http::Method::GET, &self.base_url)
             .query(&params);
 
         let radar_res: RadarOptimizeResponse = self.client.request_json(builder).await?;

@@ -127,7 +127,7 @@ impl RadarGeocoderExt for RadarGeocoder {
     async fn ip_geocode(&self) -> EveryMapResult<RadarIpGeocodeResponse> {
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.ip_geocode_url);
+            .build_request(everymap_core::http::Method::GET, &self.ip_geocode_url);
         self.client.request_json(builder).await
     }
 
@@ -154,7 +154,7 @@ impl RadarGeocoderExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.autocomplete_url)
+            .build_request(everymap_core::http::Method::GET, &self.autocomplete_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -186,7 +186,7 @@ impl RadarGeocoderExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.validate_url)
+            .build_request(everymap_core::http::Method::GET, &self.validate_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -227,7 +227,7 @@ impl RadarRouterExt for RadarRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.distance_url)
+            .build_request(everymap_core::http::Method::GET, &self.distance_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -268,7 +268,7 @@ impl RadarRouterExt for RadarRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.matrix_url)
+            .build_request(everymap_core::http::Method::GET, &self.matrix_url)
             .query(&params);
 
         self.client.request_json(builder).await
@@ -302,7 +302,7 @@ impl RadarSearchExt for RadarGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &self.places_url)
+            .build_request(everymap_core::http::Method::GET, &self.places_url)
             .query(&params);
 
         self.client.request_json(builder).await

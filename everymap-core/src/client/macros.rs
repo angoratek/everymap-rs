@@ -44,6 +44,7 @@ macro_rules! provider_client {
                 }
             }
 
+            #[cfg(not(target_arch = "wasm32"))]
             #[doc = concat!("Creates a `", stringify!($struct_name), "` with a custom `reqwest::Client` configuration.")]
             pub fn with_client_builder(
                 builder: ::reqwest::ClientBuilder,
@@ -71,26 +72,26 @@ macro_rules! provider_client {
             /// Builds a request to the given full URL with the specified HTTP method.
             pub fn build_request(
                 &self,
-                method: ::reqwest::Method,
+                method: $crate::http::Method,
                 url: &str,
-            ) -> ::reqwest::RequestBuilder {
+            ) -> $crate::http::HttpRequest {
                 self.inner.build_request(method, url)
             }
 
             /// Sends a request, applying authentication first.
             pub async fn request(
                 &self,
-                builder: ::reqwest::RequestBuilder,
-            ) -> $crate::error::EveryMapResult<::reqwest::Response> {
-                self.inner.request(builder).await
+                request: $crate::http::HttpRequest,
+            ) -> $crate::error::EveryMapResult<$crate::http::HttpResponse> {
+                self.inner.request(request).await
             }
 
             /// Sends a request and deserializes the JSON response into `T`.
             pub async fn request_json<T: ::serde::de::DeserializeOwned>(
                 &self,
-                builder: ::reqwest::RequestBuilder,
+                request: $crate::http::HttpRequest,
             ) -> $crate::error::EveryMapResult<T> {
-                self.inner.request_json(builder).await
+                self.inner.request_json(request).await
             }
         }
     };

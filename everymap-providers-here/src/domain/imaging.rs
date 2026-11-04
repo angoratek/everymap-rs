@@ -162,7 +162,7 @@ impl MapImageProvider for HereMapImageProvider {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let response = self.client.request(builder).await?;
@@ -170,10 +170,9 @@ impl MapImageProvider for HereMapImageProvider {
         let content_type = response
             .headers()
             .get("content-type")
-            .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());
 
-        let data = response.bytes().await?.to_vec();
+        let data = response.into_body();
 
         Ok(ImageResponse { data, content_type })
     }

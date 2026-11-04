@@ -176,7 +176,7 @@ impl Router for MapBoxRouter {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let result: MapBoxRouteResponse = self.client.request_json(builder).await?;

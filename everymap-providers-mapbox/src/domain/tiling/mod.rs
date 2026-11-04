@@ -47,17 +47,18 @@ impl TileProvider for MapBoxTileProvider {
             self.base_url, tileset_id, z, x, y, format
         );
 
-        let builder = self.client.build_request(reqwest::Method::GET, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         let response = self.client.request(builder).await?;
 
         let content_type = response
             .headers()
             .get("content-type")
-            .and_then(|v| v.to_str().ok())
             .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());
 
-        let data = response.bytes().await?.to_vec();
+        let data = response.into_body();
 
         Ok(TileResponse { data, content_type })
     }

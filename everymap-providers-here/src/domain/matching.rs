@@ -820,7 +820,7 @@ impl RouteMatcher for HereRouteMatcher {
         let url = format!("{}/match/routelinks", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereMatchApiResponseWrapper = self.client.request_json(builder).await?;

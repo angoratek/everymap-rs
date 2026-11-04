@@ -103,7 +103,7 @@ impl HereTraffic {
         let url = format!("{}/flow", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereFlowResponse = self.client.request_json(builder).await?;
@@ -182,7 +182,7 @@ impl HereTraffic {
         let url = format!("{}/incidents", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereIncidentsResponse = self.client.request_json(builder).await?;

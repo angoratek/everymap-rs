@@ -94,7 +94,7 @@ impl HereGeocoder {
         let url = format!("{}/discover", self.discover_base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereDiscoverResponse = self.client.request_json(builder).await?;
@@ -114,7 +114,7 @@ impl HereGeocoder {
         let url = format!("{}/autosuggest", self.autosuggest_base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereAutosuggestResponse = self.client.request_json(builder).await?;
@@ -525,7 +525,7 @@ impl Geocoder for HereGeocoder {
         let url = format!("{}/geocode", self.geocode_base_url);
         let mut builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         if let Some(rid) = &here_options.request_id {
@@ -553,7 +553,7 @@ impl Geocoder for HereGeocoder {
         let url = format!("{}/revgeocode", self.reverse_geocode_base_url);
         let mut builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         if let Some(rid) = &here_options.request_id {
