@@ -532,6 +532,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "everymap-providers-osrm"
+version = "0.2.2"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "everymap-providers-radar"
 version = "0.2.2"
 dependencies = [
@@ -557,6 +571,20 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
+name = "everymap-providers-valhalla"
+version = "0.2.2"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "log",
+ "reqwest",
+ "serde",
+ "serde_json",
  "tokio",
  "wiremock",
 ]

@@ -1,0 +1,134 @@
+{
+  "code": "Ok",
+  "waypoints": [
+    {
+      "hint": "ferry________",
+      "distance": 4.214,
+      "name": "The Embarcadero",
+      "location": [-122.3937, 37.7955]
+    },
+    {
+      "hint": "ferry________",
+      "distance": 3.118,
+      "name": "Jack London Square",
+      "location": [-122.2711, 37.8044]
+    }
+  ],
+  "routes": [
+    {
+      "legs": [
+        {
+          "steps": [
+            {
+              "maneuver": {
+                "location": [-122.3937, 37.7955],
+                "bearing_before": 0,
+                "bearing_after": 350,
+                "type": "depart",
+                "modifier": "left"
+              },
+              "name": "The Embarcadero",
+              "weight": 24.6,
+              "duration": 24.6,
+              "distance": 118.4,
+              "mode": "driving",
+              "geometry": {
+                "coordinates": [
+                  [-122.3937, 37.7955],
+                  [-122.39395, 37.79615]
+                ],
+                "type": "LineString"
+              },
+              "intersections": [
+                {
+                  "location": [-122.3937, 37.7955],
+                  "bearings": [350],
+                  "entry": [true],
+                  "out": 0
+                }
+              ]
+            },
+            {
+              "maneuver": {
+                "location": [-122.39395, 37.79615],
+                "bearing_before": 350,
+                "bearing_after": 80,
+                "type": "notification"
+              },
+              "name": "San Francisco Bay Ferry",
+              "weight": 1500.0,
+              "duration": 1500.0,
+              "distance": 10860.0,
+              "mode": "ferry",
+              "geometry": {
+                "coordinates": [
+                  [-122.39395, 37.79615],
+                  [-122.38, 37.7982],
+                  [-122.35, 37.801],
+                  [-122.31, 37.803],
+                  [-122.2711, 37.8044]
+                ],
+                "type": "LineString"
+              },
+              "intersections": [
+                {
+                  "location": [-122.39395, 37.79615],
+                  "bearings": [80],
+                  "entry": [true],
+                  "out": 0
+                }
+              ]
+            },
+            {
+              "maneuver": {
+                "location": [-122.2711, 37.8044],
+                "bearing_before": 80,
+                "bearing_after": 0,
+                "type": "arrive",
+                "modifier": "right"
+              },
+              "name": "Jack London Square",
+              "weight": 0.0,
+              "duration": 0.0,
+              "distance": 0.0,
+              "mode": "driving",
+              "geometry": {
+                "coordinates": [
+                  [-122.2711, 37.8044]
+                ],
+                "type": "LineString"
+              },
+              "intersections": [
+                {
+                  "location": [-122.2711, 37.8044],
+                  "bearings": [0],
+                  "entry": [true],
+                  "out": 0
+                }
+              ]
+            }
+          ],
+          "weight": 1524.6,
+          "duration": 1524.6,
+          "distance": 10978.4,
+          "summary": "The Embarcadero, San Francisco Bay Ferry"
+        }
+      ],
+      "weight_name": "routability",
+      "weight": 1524.6,
+      "duration": 1524.6,
+      "distance": 10978.4,
+      "geometry": {
+        "coordinates": [
+          [-122.3937, 37.7955],
+          [-122.39395, 37.79615],
+          [-122.38, 37.7982],
+          [-122.35, 37.801],
+          [-122.31, 37.803],
+          [-122.2711, 37.8044]
+        ],
+        "type": "LineString"
+      }
+    }
+  ]
+}
