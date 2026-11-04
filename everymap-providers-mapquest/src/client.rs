@@ -139,6 +139,39 @@ impl MapQuestClient {
         }
     }
 
+    /// Installs a token bucket that paces every request this client sends.
+    ///
+    /// # Parameters
+    /// - `rate_limiter` — the bucket shared by the client's requests.
+    pub fn set_rate_limiter(&mut self, rate_limiter: Arc<everymap_core::client::TokenBucket>) {
+        self.inner.set_rate_limiter(rate_limiter);
+    }
+
+    /// Replaces the retry policy applied to idempotent requests.
+    ///
+    /// # Parameters
+    /// - `retry_policy` — the attempt budget and backoff.
+    pub fn set_retry_policy(&mut self, retry_policy: everymap_core::client::RetryPolicy) {
+        self.inner.set_retry_policy(retry_policy);
+    }
+
+    /// Sets the per-request timeout, or removes it.
+    ///
+    /// # Parameters
+    /// - `timeout` — the deadline, or `None` to wait without one.
+    pub fn set_request_timeout(&mut self, timeout: Option<std::time::Duration>) {
+        self.inner.set_request_timeout(timeout);
+    }
+
+    /// Installs an observer that receives every attempt's redacted facts.
+    ///
+    /// # Parameters
+    /// - `observer` — the observer; it replaces any earlier one on this
+    ///   client and takes precedence over a process-wide observer.
+    pub fn set_observer(&mut self, observer: Arc<dyn everymap_core::client::RequestObserver>) {
+        self.inner.set_observer(observer);
+    }
+
     /// The platform root URL requests are built against.
     pub fn base_url(&self) -> &str {
         &self.base_url
@@ -388,5 +421,14 @@ mod tests {
         assert_eq!(client.base_url(), "https://mapquest.example.test");
         assert_eq!(client.user_agent(), "everymap-mapquest-tests");
         assert!(!client.is_verbose());
+    }
+
+    #[test]
+    fn the_request_pipeline_can_be_reconfigured() {
+        let mut client = MapQuestClient::new(configuration());
+        client.set_rate_limiter(Arc::new(everymap_core::client::TokenBucket::new(30, 5.0)));
+        client.set_retry_policy(everymap_core::client::RetryPolicy::disabled());
+        client.set_request_timeout(Some(std::time::Duration::from_secs(10)));
+        client.set_request_timeout(None);
     }
 }
