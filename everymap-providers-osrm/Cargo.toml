@@ -6,6 +6,7 @@ description = "OSRM routing provider for EveryMap — self-hosted turn-by-turn r
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 keywords = ["geospatial", "maps", "osrm", "routing"]
 categories = ["api-bindings", "science::geo"]
 documentation = "https://docs.rs/everymap-providers-osrm"

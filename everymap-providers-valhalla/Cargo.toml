@@ -6,6 +6,7 @@ description = "Valhalla routing provider for EveryMap — self-hosted turn-by-tu
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 keywords = ["geospatial", "maps", "valhalla", "routing"]
 categories = ["api-bindings", "science::geo"]
 documentation = "https://docs.rs/everymap-providers-valhalla"

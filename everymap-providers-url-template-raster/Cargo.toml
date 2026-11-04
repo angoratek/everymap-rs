@@ -6,6 +6,7 @@ description = "EveryMap raster-tile provider driven by a {z}/{x}/{y} URL templat
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 keywords = ["geospatial", "maps", "raster-tiles"]
 categories = ["api-bindings", "science::geo"]
 documentation = "https://docs.rs/everymap-providers-url-template-raster"
