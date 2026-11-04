@@ -4,6 +4,10 @@ on:
   push:
     tags:
       - 'v*'
+  # Manual re-run of the crate publish. The publish script skips versions that
+  # are already on crates.io, so this is the recovery path for a partial
+  # publish; binaries and the GitHub Release are produced only for a tag push.
+  workflow_dispatch:
 
 jobs:
   check:
@@ -25,6 +29,7 @@ jobs:
 
   build-binaries:
     needs: check
+    if: github.event_name == 'push'
     strategy:
       matrix:
         include:
@@ -68,6 +73,7 @@ jobs:
 
   create-release:
     needs: [build-binaries, publish-crates]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
