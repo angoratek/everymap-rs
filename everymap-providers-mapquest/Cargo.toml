@@ -6,6 +6,7 @@ description = "MapQuest provider for EveryMap — geocoding, routing, autocomple
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true
+readme = "README.md"
 keywords = ["geospatial", "maps", "mapquest", "geocoding", "routing"]
 categories = ["api-bindings", "science::geo"]
 documentation = "https://docs.rs/everymap-providers-mapquest"

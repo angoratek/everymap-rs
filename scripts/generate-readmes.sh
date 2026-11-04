@@ -18,6 +18,11 @@ crates=(
   everymap-providers-tomtom
   everymap-providers-mapbox
   everymap-providers-radar
+  everymap-providers-mapquest
+  everymap-providers-osrm
+  everymap-providers-valhalla
+  everymap-providers-url-template-raster
+  everymap-providers-url-template-vector
   everymap-cli
 )
 
