@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-11-04
+
+The provider layer this release exists for: a transport seam with a browser implementation, navigation-grade routing and typed tile contracts, bounding-box traffic, autocomplete/matrix/elevation/offline-routing traits, and the MapQuest, OSRM, Valhalla and URL-template provider crates the Rustic Maps SDK consumes.
+
 ### Added
 - Provider clients expose the shared pipeline: `set_rate_limiter`, `set_retry_policy`, `set_request_timeout` and `set_observer` are now on the `provider_client!`-generated clients and on the MapQuest client, so a host can carry a declared budget without rebuilding the provider.
 - `SearchQuality` on `SearchResult`: the nine granularity levels from a rooftop point to a country, filled by the MapQuest geocoder beside the existing confidence classification.
