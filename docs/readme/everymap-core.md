@@ -7,7 +7,7 @@ Core traits, types, and error handling for [EveryMap-RS](https://github.com/ango
 - **10 domain traits** with concrete option/response types (no associated types, so `Box<dyn Trait>` runtime dispatch works): `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`
 - **Shared types**: `Coordinate`, `BoundingBox`, `Address`, `Polyline`
 - **Auth**: `AuthProvider` trait with `ApiKeyProvider` and `HeaderAuthProvider` — API keys are zeroized on drop
-- **HTTP**: `ProviderClient` with shared request, JSON, and API-key redaction logic
+- **HTTP**: backend-neutral `ProviderClient` on the `HttpTransport` seam — `reqwest` natively, `window.fetch` on WebAssembly, with token-bucket rate limiting, idempotent-GET retries, timeouts, and credential redaction
 - **Errors**: structured `EveryMapError` (`HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, and more)
 - **Stub macros**: 7 `unsupported_*!` macros so provider crates stub out unsupported domains cleanly
 

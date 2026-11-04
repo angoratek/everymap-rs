@@ -11,9 +11,13 @@
 //! |--------|---------|
 //! | [`domains`] | 10 domain traits with concrete option/response types |
 //! | [`auth`] | `AuthProvider`, `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` |
-//! | [`client`] | Shared `ProviderClient` HTTP logic |
+//! | [`client`] | Shared `ProviderClient` HTTP logic, rate limiting, retries, observers |
+//! | [`http`] | Backend-neutral `HttpRequest`, `HttpResponse`, `HttpTransport` |
 //! | [`types`] | `Coordinate`, `BoundingBox`, `Address`, `Polyline` |
-//! | [`error`] | Structured `EveryMapError` with 9 variants |
+//! | [`error`] | Structured `EveryMapError` with 10 variants |
+//!
+//! The crate builds for `wasm32-unknown-unknown`; on that target the default
+//! transport is `window.fetch` and `reqwest` is not compiled.
 //!
 //! # Quick Start
 //!
@@ -32,6 +36,7 @@ pub mod auth;
 pub mod client;
 pub mod domains;
 pub mod error;
+pub mod http;
 pub mod types;
 pub mod unsupported;
 

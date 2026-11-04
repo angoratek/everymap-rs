@@ -230,7 +230,7 @@ impl Geocoder for TomTomGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let result: TomTomSearchResponse = self.client.request_json(builder).await?;
@@ -267,7 +267,7 @@ impl Geocoder for TomTomGeocoder {
 
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let result: TomTomSearchResponse = self.client.request_json(builder).await?;

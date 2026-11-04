@@ -188,7 +188,7 @@ impl Geocoder for GoogleGeocoder {
         let url = self.base_url.clone();
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let google_res: GoogleGeocodeResponse = self.client.request_json(builder).await?;
@@ -256,7 +256,7 @@ impl Geocoder for GoogleGeocoder {
         let url = self.base_url.clone();
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let google_res: GoogleGeocodeResponse = self.client.request_json(builder).await?;

@@ -1,10 +1,11 @@
+use crate::auth::header::{is_valid_header_value, AUTHORIZATION_HEADER};
 use crate::auth::provider::AuthProvider;
 use crate::client::truncate_str;
 use crate::error::{EveryMapError, EveryMapResult};
+use crate::http::{default_transport, HttpRequest, HttpTransport, Method};
 use async_trait::async_trait;
-use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::RequestBuilder;
 use serde::Deserialize;
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
 use zeroize::Zeroize;
@@ -27,12 +28,15 @@ const OAUTH2_PROVIDER_NAME: &str = "oauth2";
 /// token endpoint via the `client_credentials` grant when missing or expired)
 /// and injects it as an `Authorization: Bearer <token>` header.
 ///
+/// Token requests travel through the same [`HttpTransport`] seam as provider
+/// requests, so the provider works on native and WebAssembly targets alike.
+///
 /// The client secret and cached tokens are zeroized on drop to prevent
 /// lingering sensitive data in memory.
 pub struct OAuth2Provider {
     credentials: ClientCredentials,
     token_endpoint: String,
-    http_client: reqwest::Client,
+    transport: Arc<dyn HttpTransport>,
     cached_token: Mutex<Option<CachedToken>>,
 }
 
@@ -73,6 +77,23 @@ impl OAuth2Provider {
         client_secret: String,
         scope: Option<String>,
     ) -> Self {
+        Self::with_transport(
+            default_transport(),
+            token_endpoint,
+            client_id,
+            client_secret,
+            scope,
+        )
+    }
+
+    /// Create a provider that fetches tokens through an explicit transport.
+    pub fn with_transport(
+        transport: Arc<dyn HttpTransport>,
+        token_endpoint: String,
+        client_id: String,
+        client_secret: String,
+        scope: Option<String>,
+    ) -> Self {
         Self {
             credentials: ClientCredentials {
                 client_id,
@@ -80,7 +101,7 @@ impl OAuth2Provider {
                 scope,
             },
             token_endpoint,
-            http_client: reqwest::Client::new(),
+            transport,
             cached_token: Mutex::new(None),
         }
     }
@@ -114,21 +135,17 @@ impl OAuth2Provider {
             form_pairs.push(("scope", scope));
         }
 
-        let response = self
-            .http_client
-            .post(&self.token_endpoint)
-            .form(&form_pairs)
-            .send()
-            .await?;
+        let request = HttpRequest::new(Method::Post, &self.token_endpoint).form(&form_pairs);
+        let response = self.transport.send(request).await?;
 
         let status = response.status();
-        let body = response.text().await?;
-        if !status.is_success() {
+        let body = response.text();
+        if !response.is_success() {
             return Err(EveryMapError::auth(
                 OAUTH2_PROVIDER_NAME,
                 format!(
                     "Token endpoint returned HTTP {}: {}",
-                    status.as_u16(),
+                    status,
                     truncate_str(&body, ERROR_BODY_LIMIT)
                 ),
             ));
@@ -156,16 +173,16 @@ impl OAuth2Provider {
 
 #[async_trait]
 impl AuthProvider for OAuth2Provider {
-    async fn apply(&self, request: RequestBuilder) -> EveryMapResult<RequestBuilder> {
+    async fn apply(&self, request: HttpRequest) -> EveryMapResult<HttpRequest> {
         let access_token = self.access_token().await?;
-        let header_value =
-            HeaderValue::from_str(&format!("Bearer {}", access_token)).map_err(|error| {
-                EveryMapError::auth(
-                    OAUTH2_PROVIDER_NAME,
-                    format!("Invalid bearer token header value: {}", error),
-                )
-            })?;
-        Ok(request.header(AUTHORIZATION, header_value))
+        let header_value = format!("Bearer {}", access_token);
+        if !is_valid_header_value(&header_value) {
+            return Err(EveryMapError::auth(
+                OAUTH2_PROVIDER_NAME,
+                "Invalid bearer token header value",
+            ));
+        }
+        Ok(request.header(AUTHORIZATION_HEADER, header_value))
     }
 }
 
@@ -219,5 +236,12 @@ mod tests {
     fn test_token_response_missing_access_token_fails() {
         let parse_result = serde_json::from_str::<TokenResponse>(r#"{"expires_in":60}"#);
         assert!(parse_result.is_err());
+    }
+
+    #[test]
+    fn header_value_validation_rejects_controls() {
+        assert!(is_valid_header_value("Bearer token-abc"));
+        assert!(!is_valid_header_value("Bearer token\nabc"));
+        assert!(!is_valid_header_value(""));
     }
 }

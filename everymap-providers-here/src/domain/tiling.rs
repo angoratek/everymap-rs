@@ -103,7 +103,9 @@ impl TileProvider for HereTileProvider {
             self.base_url, layer, z, x, y, format_ext
         );
 
-        let mut builder = self.client.build_request(reqwest::Method::GET, &url);
+        let mut builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         if let Some(political_view) = &here_options.political_view {
             builder = builder.query(&[("politicalView", political_view)]);
@@ -111,16 +113,12 @@ impl TileProvider for HereTileProvider {
 
         let response = self.client.request(builder).await?;
 
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .map(|s| {
-                // Strip any charset suffix
-                s.split(';').next().unwrap_or(s).trim().to_string()
-            });
+        let content_type = response.headers().get("content-type").map(|s| {
+            // Strip any charset suffix
+            s.split(';').next().unwrap_or(s).trim().to_string()
+        });
 
-        let data = response.bytes().await?.to_vec();
+        let data = response.into_body();
 
         Ok(TileResponse { data, content_type })
     }

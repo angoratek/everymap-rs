@@ -1,9 +1,11 @@
 use crate::auth::provider::AuthProvider;
-use crate::error::EveryMapResult;
+use crate::error::{EveryMapError, EveryMapResult};
+use crate::http::HttpRequest;
 use async_trait::async_trait;
-use reqwest::header::{HeaderValue, AUTHORIZATION};
-use reqwest::RequestBuilder;
 use zeroize::Zeroize;
+
+/// Header used by [`HeaderAuthProvider`].
+pub(crate) const AUTHORIZATION_HEADER: &str = "authorization";
 
 /// Provider for header-based authentication (e.g., Radar's `Authorization` header).
 ///
@@ -24,15 +26,44 @@ impl HeaderAuthProvider {
     }
 }
 
+/// Whether a value can be sent as an HTTP header value.
+///
+/// Rejects control characters (except horizontal tab) and the empty value.
+pub(crate) fn is_valid_header_value(value: &str) -> bool {
+    !value.is_empty()
+        && value
+            .bytes()
+            .all(|byte| byte == b'\t' || (0x20..=0x7e).contains(&byte) || byte >= 0x80)
+}
+
 #[async_trait]
 impl AuthProvider for HeaderAuthProvider {
-    async fn apply(&self, request: RequestBuilder) -> EveryMapResult<RequestBuilder> {
-        let header_value = HeaderValue::from_str(&self.value).map_err(|e| {
-            crate::error::EveryMapError::AuthError {
-                provider: "unknown".to_string(),
-                message: format!("Invalid auth header value: {}", e),
-            }
-        })?;
-        Ok(request.header(AUTHORIZATION, header_value))
+    async fn apply(&self, request: HttpRequest) -> EveryMapResult<HttpRequest> {
+        if !is_valid_header_value(&self.value) {
+            return Err(EveryMapError::auth(
+                "unknown",
+                "Invalid auth header value: contains control characters or is empty",
+            ));
+        }
+        Ok(request.header(AUTHORIZATION_HEADER, self.value.clone()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn accepts_visible_ascii_and_tab() {
+        assert!(is_valid_header_value("prj_live_pk_123"));
+        assert!(is_valid_header_value("Bearer abc\tdef"));
+    }
+
+    #[test]
+    fn rejects_empty_and_control_characters() {
+        assert!(!is_valid_header_value(""));
+        assert!(!is_valid_header_value("line\nbreak"));
+        assert!(!is_valid_header_value("carriage\rreturn"));
+        assert!(!is_valid_header_value("nul\0byte"));
     }
 }

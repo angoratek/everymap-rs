@@ -359,9 +359,9 @@ impl Router for GoogleRouter {
         let url = self.base_url.clone();
         let builder = self
             .client
-            .build_request(reqwest::Method::POST, &url)
+            .build_request(everymap_core::http::Method::POST, &url)
             .header("X-Goog-FieldMask", ROUTES_FIELD_MASK)
-            .json(&request);
+            .json(&request)?;
 
         let google_response: GoogleRoutesResponse = self.client.request_json(builder).await?;
 

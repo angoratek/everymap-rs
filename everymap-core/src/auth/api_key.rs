@@ -1,7 +1,7 @@
 use crate::auth::provider::AuthProvider;
 use crate::error::EveryMapResult;
+use crate::http::HttpRequest;
 use async_trait::async_trait;
-use reqwest::RequestBuilder;
 use zeroize::Zeroize;
 
 /// Provider for API Key based authentication.
@@ -16,6 +16,7 @@ pub struct ApiKeyProvider {
 }
 
 impl ApiKeyProvider {
+    /// Create a provider that adds the key as the named query parameter.
     pub fn new(key: String, param_name: String) -> Self {
         Self { key, param_name }
     }
@@ -23,7 +24,7 @@ impl ApiKeyProvider {
 
 #[async_trait]
 impl AuthProvider for ApiKeyProvider {
-    async fn apply(&self, request: RequestBuilder) -> EveryMapResult<RequestBuilder> {
-        Ok(request.query(&[(&self.param_name, &self.key)]))
+    async fn apply(&self, request: HttpRequest) -> EveryMapResult<HttpRequest> {
+        Ok(request.query_param(self.param_name.clone(), self.key.clone()))
     }
 }

@@ -81,8 +81,8 @@ impl HereTourPlanner {
         let url = format!("{}/problems", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::POST, &url)
-            .json(&problem);
+            .build_request(everymap_core::http::Method::POST, &url)
+            .json(&problem)?;
 
         let solution: TourSolution = self.client.request_json(builder).await?;
         Ok(solution)
@@ -94,8 +94,8 @@ impl HereTourPlanner {
         let url = format!("{}/problems/async", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::POST, &url)
-            .json(&problem);
+            .build_request(everymap_core::http::Method::POST, &url)
+            .json(&problem)?;
 
         let result: AsyncSubmissionResult = self.client.request_json(builder).await?;
         Ok(result)
@@ -104,7 +104,9 @@ impl HereTourPlanner {
     /// Get async job status (GET /status/{statusId}).
     pub async fn get_async_status(&self, status_id: &str) -> EveryMapResult<AsyncJobStatus> {
         let url = format!("{}/status/{}", self.base_url, status_id);
-        let builder = self.client.build_request(reqwest::Method::GET, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         let status: AsyncJobStatus = self.client.request_json(builder).await?;
         Ok(status)
@@ -113,7 +115,9 @@ impl HereTourPlanner {
     /// Get solution for an async problem (GET /problems/{problemId}/solution).
     pub async fn get_solution(&self, problem_id: &str) -> EveryMapResult<TourSolution> {
         let url = format!("{}/problems/{}/solution", self.base_url, problem_id);
-        let builder = self.client.build_request(reqwest::Method::GET, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         let solution: TourSolution = self.client.request_json(builder).await?;
         Ok(solution)
@@ -122,7 +126,9 @@ impl HereTourPlanner {
     /// Cancel an async problem (PUT /problems/{problemId}/cancel).
     pub async fn cancel(&self, problem_id: &str) -> EveryMapResult<CancellationStatus> {
         let url = format!("{}/problems/{}/cancel", self.base_url, problem_id);
-        let builder = self.client.build_request(reqwest::Method::PUT, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::PUT, &url);
 
         let status: CancellationStatus = self.client.request_json(builder).await?;
         Ok(status)
@@ -131,7 +137,9 @@ impl HereTourPlanner {
     /// Get API version (GET /version).
     pub async fn version(&self) -> EveryMapResult<VersionResponse> {
         let url = format!("{}/version", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         let version: VersionResponse = self.client.request_json(builder).await?;
         Ok(version)
@@ -140,7 +148,9 @@ impl HereTourPlanner {
     /// Health check (GET /health).
     pub async fn health(&self) -> EveryMapResult<HealthResponse> {
         let url = format!("{}/health", self.base_url);
-        let builder = self.client.build_request(reqwest::Method::GET, &url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::GET, &url);
 
         let health: HealthResponse = self.client.request_json(builder).await?;
         Ok(health)

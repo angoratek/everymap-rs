@@ -1,10 +1,28 @@
+//! Shared provider HTTP client.
+//!
+//! [`ProviderClient`] owns the request pipeline used by every provider crate:
+//! authentication, optional rate limiting, transport dispatch, retry for
+//! idempotent requests, timeout enforcement, and response/error mapping. The
+//! actual HTTP backend is any [`crate::http::HttpTransport`].
+
 mod macros;
+mod observer;
+mod rate_limit;
+mod retry;
+mod sleep;
 
 use crate::auth::AuthProvider;
 use crate::error::{EveryMapError, EveryMapResult};
-use async_trait::async_trait;
+use crate::http::{default_transport, HttpRequest, HttpResponse, Method};
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
+
+pub use observer::{
+    is_sensitive_header, redact_url, RequestObservation, RequestObserver, ResponseObservation,
+    REDACTED_HEADER_NAMES, REDACTED_QUERY_PARAMETERS, REDACTED_VALUE,
+};
+pub use rate_limit::TokenBucket;
+pub use retry::RetryPolicy;
 
 /// Maximum bytes of response body to display in verbose mode.
 const VERBOSE_BODY_LIMIT: usize = 10_240;
@@ -18,55 +36,80 @@ const RETRY_AFTER_HEADER: &str = "retry-after";
 /// Error code for JSON deserialization failures.
 const DESERIALIZATION_ERROR: &str = "DESERIALIZATION_ERROR";
 
-/// Fallback status text when `canonical_reason()` returns `None`.
+/// Default per-request timeout when the caller does not set one.
+pub const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
+
+/// Longest `Retry-After` the client waits on a `429` before returning it.
+const MAX_RETRY_AFTER: Duration = Duration::from_secs(5);
+
+/// HTTP status code for rate limiting.
+const STATUS_TOO_MANY_REQUESTS: u16 = 429;
+
+/// Lower bound of the retryable server-error range.
+const STATUS_SERVER_ERROR_START: u16 = 500;
+
+/// Upper bound of the retryable server-error range.
+const STATUS_SERVER_ERROR_END: u16 = 600;
+
+/// Status text used when the status code has no known phrase.
 const UNKNOWN_STATUS: &str = "Unknown";
 
-/// Trait for HTTP clients, allowing dependency injection and testing.
+/// A provider HTTP client that consolidates the common request/response logic
+/// shared across all provider implementations (HERE, Google, TomTom, MapBox,
+/// Radar).
 ///
-/// Custom implementations can be used for testing (mock clients),
-/// retry logic, or custom transport configuration (timeouts, proxies).
-#[async_trait]
-pub trait HttpClient: Send + Sync {
-    /// Send an HTTP request and return the response.
-    async fn send(&self, builder: reqwest::RequestBuilder) -> EveryMapResult<reqwest::Response>;
-}
-
-/// A generic provider HTTP client that consolidates the common request/response logic
-/// shared across all provider implementations (HERE, Google, TomTom, MapBox, Radar).
-///
-/// Each provider crate should use this instead of maintaining its own duplicated client.
-/// The only configuration specific to each provider is the `provider_name` (used in
-/// error messages) and the auth mechanism (injected via `AuthProvider`).
+/// The client is backend-agnostic: requests are [`HttpRequest`] values sent
+/// through an [`crate::http::HttpTransport`]. Native builds default to
+/// `reqwest`; WebAssembly builds default to `window.fetch`.
 pub struct ProviderClient {
-    http_client: reqwest::Client,
+    transport: Arc<dyn crate::http::HttpTransport>,
     auth_provider: Arc<dyn AuthProvider>,
     verbose: bool,
     provider_name: &'static str,
+    request_timeout: Option<Duration>,
+    retry_policy: RetryPolicy,
+    rate_limiter: Option<Arc<TokenBucket>>,
+    observer: Option<Arc<dyn RequestObserver>>,
 }
 
 impl ProviderClient {
-    /// Creates a new `ProviderClient` with the given authentication provider.
+    /// Creates a new `ProviderClient` with the given authentication provider
+    /// and the target's default transport.
     pub fn new(auth_provider: Arc<dyn AuthProvider>, provider_name: &'static str) -> Self {
+        Self::with_transport(default_transport(), auth_provider, provider_name)
+    }
+
+    /// Creates a `ProviderClient` with an explicit transport.
+    pub fn with_transport(
+        transport: Arc<dyn crate::http::HttpTransport>,
+        auth_provider: Arc<dyn AuthProvider>,
+        provider_name: &'static str,
+    ) -> Self {
         Self {
-            http_client: reqwest::Client::new(),
+            transport,
             auth_provider,
             verbose: false,
             provider_name,
+            request_timeout: Some(DEFAULT_REQUEST_TIMEOUT),
+            retry_policy: RetryPolicy::default(),
+            rate_limiter: None,
+            observer: None,
         }
     }
 
     /// Creates a `ProviderClient` with a custom `reqwest::Client` configuration.
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn with_client_builder(
         builder: reqwest::ClientBuilder,
         auth_provider: Arc<dyn AuthProvider>,
         provider_name: &'static str,
     ) -> EveryMapResult<Self> {
-        Ok(Self {
-            http_client: builder.build()?,
+        let client = builder.build()?;
+        Ok(Self::with_transport(
+            Arc::new(crate::http::ReqwestTransport::with_client(client)),
             auth_provider,
-            verbose: false,
             provider_name,
-        })
+        ))
     }
 
     /// Enable or disable verbose output (request/response logging to stderr).
@@ -84,70 +127,166 @@ impl ProviderClient {
         self.provider_name
     }
 
-    /// Builds a request to the given full URL with the specified HTTP method.
-    pub fn build_request(&self, method: reqwest::Method, url: &str) -> reqwest::RequestBuilder {
-        self.http_client.request(method, url)
+    /// Override the timeout applied to each request attempt.
+    pub fn set_request_timeout(&mut self, timeout: Option<Duration>) {
+        self.request_timeout = timeout;
     }
 
-    /// Sends a request, applying authentication first.
+    /// Replace the retry policy.
+    pub fn set_retry_policy(&mut self, retry_policy: RetryPolicy) {
+        self.retry_policy = retry_policy;
+    }
+
+    /// Pace requests through a token bucket.
+    pub fn set_rate_limiter(&mut self, rate_limiter: Arc<TokenBucket>) {
+        self.rate_limiter = Some(rate_limiter);
+    }
+
+    /// Install an observer that receives redacted request and response data.
+    pub fn set_observer(&mut self, observer: Arc<dyn RequestObserver>) {
+        self.observer = Some(observer);
+    }
+
+    /// Builds a request to the given full URL with the specified HTTP method.
     ///
-    /// Returns an `EveryMapError::HttpError` for non-2xx status codes,
-    /// and `EveryMapError::RateLimited` for 429 responses.
-    pub async fn request(
-        &self,
-        builder: reqwest::RequestBuilder,
-    ) -> EveryMapResult<reqwest::Response> {
-        let start = Instant::now();
-        let builder = self.auth_provider.apply(builder).await?;
-        let response: reqwest::Response = builder.send().await?;
-        let elapsed = start.elapsed();
-        let status = response.status();
-
-        if self.verbose {
-            let url = response.url().to_string();
-            eprintln!(
-                "[VERBOSE] {} {} — {} ({:.0}ms)",
-                status.as_u16(),
-                redact_api_key(&url),
-                status.canonical_reason().unwrap_or(UNKNOWN_STATUS),
-                elapsed.as_secs_f64() * 1000.0
-            );
+    /// The client's request timeout is applied unless the caller overrides it
+    /// with [`HttpRequest::timeout`].
+    pub fn build_request(&self, method: Method, url: &str) -> HttpRequest {
+        let request = HttpRequest::new(method, url);
+        match self.request_timeout {
+            Some(timeout) => request.timeout(timeout),
+            None => request,
         }
+    }
 
-        if status.is_success() {
-            Ok(response)
+    /// Sends a request, applying authentication, pacing, retries, and
+    /// response mapping.
+    ///
+    /// Returns `EveryMapError::HttpError` for non-2xx status codes,
+    /// `EveryMapError::RateLimited` for 429 responses, and
+    /// `EveryMapError::ClientError`/`EveryMapError::TransportError` for
+    /// transport failures.
+    pub async fn request(&self, request: HttpRequest) -> EveryMapResult<HttpResponse> {
+        let request = self.auth_provider.apply(request).await?;
+        let redacted_url = redact_url(&request.url_with_query());
+        let max_attempts = if request.method().is_idempotent() {
+            self.retry_policy.max_attempts.max(1)
         } else {
-            let status_code = status.as_u16();
-            let status_text = status
-                .canonical_reason()
-                .unwrap_or(UNKNOWN_STATUS)
-                .to_string();
-            let retry_after = if status_code == 429 {
-                response
-                    .headers()
-                    .get(RETRY_AFTER_HEADER)
-                    .and_then(|v| v.to_str().ok())
-                    .and_then(|v| v.parse::<u64>().ok())
-            } else {
-                None
-            };
-            let body = response.text().await.unwrap_or_default();
+            1
+        };
 
-            if self.verbose {
-                let snippet = truncate_str(&body, VERBOSE_BODY_LIMIT);
-                eprintln!("[VERBOSE] Error response body:\n{}", snippet);
+        let mut last_error = EveryMapError::Unknown;
+        for attempt in 1..=max_attempts {
+            if let Some(rate_limiter) = &self.rate_limiter {
+                rate_limiter.acquire().await;
+            }
+            if let Some(observer) = &self.observer {
+                observer.on_request(&RequestObservation {
+                    provider: self.provider_name,
+                    method: request.method(),
+                    url: &redacted_url,
+                    attempt,
+                });
             }
 
-            if status_code == 429 {
-                Err(EveryMapError::rate_limited(self.provider_name, retry_after))
-            } else {
-                Err(EveryMapError::http_with_body(
-                    status_code,
-                    format!("HTTP error: {}", status_text),
-                    body,
-                ))
+            let start = Instant::now();
+            match self.transport.send(request.clone()).await {
+                Ok(response) => {
+                    let elapsed = start.elapsed();
+                    if let Some(observer) = &self.observer {
+                        observer.on_response(&ResponseObservation {
+                            provider: self.provider_name,
+                            status: Some(response.status()),
+                            elapsed,
+                            attempt,
+                        });
+                    }
+                    if response.is_success() {
+                        if self.verbose {
+                            eprintln!(
+                                "[VERBOSE] {} {} — {} ({:.0}ms)",
+                                response.status(),
+                                redacted_url,
+                                status_text(response.status()),
+                                elapsed.as_secs_f64() * 1000.0
+                            );
+                        }
+                        return Ok(response);
+                    }
+
+                    let status = response.status();
+                    let retry_after = if status == STATUS_TOO_MANY_REQUESTS {
+                        response
+                            .headers()
+                            .get(RETRY_AFTER_HEADER)
+                            .and_then(|value| value.trim().parse::<u64>().ok())
+                    } else {
+                        None
+                    };
+                    let body = response.text();
+                    if self.verbose {
+                        eprintln!(
+                            "[VERBOSE] {} {} — {} ({:.0}ms)",
+                            status,
+                            redacted_url,
+                            status_text(status),
+                            elapsed.as_secs_f64() * 1000.0
+                        );
+                        eprintln!(
+                            "[VERBOSE] Error response body:\n{}",
+                            truncate_str(&body, VERBOSE_BODY_LIMIT)
+                        );
+                    }
+
+                    let error = if status == STATUS_TOO_MANY_REQUESTS {
+                        EveryMapError::rate_limited(self.provider_name, retry_after)
+                    } else {
+                        EveryMapError::http_with_body(
+                            status,
+                            format!("HTTP error: {}", status_text(status)),
+                            body,
+                        )
+                    };
+
+                    if attempt < max_attempts && self.should_retry(status, retry_after) {
+                        let delay = retry_after
+                            .map(Duration::from_secs)
+                            .unwrap_or_else(|| self.retry_policy.delay_after_attempt(attempt));
+                        sleep::sleep(delay).await;
+                        last_error = error;
+                        continue;
+                    }
+                    return Err(error);
+                }
+                Err(error) => {
+                    let elapsed = start.elapsed();
+                    if let Some(observer) = &self.observer {
+                        observer.on_response(&ResponseObservation {
+                            provider: self.provider_name,
+                            status: None,
+                            elapsed,
+                            attempt,
+                        });
+                    }
+                    if attempt < max_attempts {
+                        sleep::sleep(self.retry_policy.delay_after_attempt(attempt)).await;
+                        last_error = error;
+                        continue;
+                    }
+                    return Err(error);
+                }
             }
         }
+        Err(last_error)
+    }
+
+    /// Whether a response status is retryable for an idempotent request.
+    fn should_retry(&self, status: u16, retry_after: Option<u64>) -> bool {
+        if status == STATUS_TOO_MANY_REQUESTS {
+            return retry_after
+                .is_none_or(|seconds| Duration::from_secs(seconds) <= MAX_RETRY_AFTER);
+        }
+        (STATUS_SERVER_ERROR_START..STATUS_SERVER_ERROR_END).contains(&status)
     }
 
     /// Sends a request and deserializes the JSON response into `T`.
@@ -157,19 +296,18 @@ impl ProviderClient {
     /// a truncated excerpt of the raw response body for debugging.
     pub async fn request_json<T: serde::de::DeserializeOwned>(
         &self,
-        builder: reqwest::RequestBuilder,
+        request: HttpRequest,
     ) -> EveryMapResult<T> {
         let start = Instant::now();
-        let response = self.request(builder).await?;
-        let body = response.text().await.map_err(EveryMapError::ClientError)?;
+        let response = self.request(request).await?;
+        let body = response.text();
 
         if self.verbose {
-            let snippet = truncate_str(&body, VERBOSE_BODY_LIMIT);
             eprintln!(
                 "[VERBOSE] Response body ({:.0}ms, {} bytes):\n{}",
                 start.elapsed().as_secs_f64() * 1000.0,
                 body.len(),
-                snippet
+                truncate_str(&body, VERBOSE_BODY_LIMIT)
             );
         }
 
@@ -192,30 +330,43 @@ impl ProviderClient {
         url: &str,
         body: &serde_json::Value,
     ) -> EveryMapResult<T> {
-        let builder = self.build_request(reqwest::Method::POST, url).json(body);
-        self.request_json(builder).await
+        let request = self.build_request(Method::Post, url).json(body)?;
+        self.request_json(request).await
     }
 }
 
-/// API key query parameter names to redact from URLs in verbose output.
-const REDACTED_PARAMS: &[&str] = &["apiKey", "key", "access_token"];
-
-/// Redact API key values from a URL string for verbose output.
-/// Replaces the value of common API key query params with `***`.
-pub fn redact_api_key(url: &str) -> String {
-    let mut result = url.to_string();
-    for param in REDACTED_PARAMS {
-        let prefix = format!("{}=", param);
-        if let Some(start) = result.find(&prefix) {
-            let val_start = start + prefix.len();
-            let val_end = result[val_start..]
-                .find('&')
-                .map(|i| val_start + i)
-                .unwrap_or(result.len());
-            result.replace_range(val_start..val_end, "***");
-        }
+/// Human-readable phrase for common HTTP status codes.
+fn status_text(status: u16) -> &'static str {
+    match status {
+        200 => "OK",
+        201 => "Created",
+        202 => "Accepted",
+        204 => "No Content",
+        301 => "Moved Permanently",
+        302 => "Found",
+        304 => "Not Modified",
+        400 => "Bad Request",
+        401 => "Unauthorized",
+        403 => "Forbidden",
+        404 => "Not Found",
+        405 => "Method Not Allowed",
+        408 => "Request Timeout",
+        409 => "Conflict",
+        410 => "Gone",
+        422 => "Unprocessable Entity",
+        429 => "Too Many Requests",
+        500 => "Internal Server Error",
+        501 => "Not Implemented",
+        502 => "Bad Gateway",
+        503 => "Service Unavailable",
+        504 => "Gateway Timeout",
+        _ => UNKNOWN_STATUS,
     }
-    result
+}
+
+/// Backward-compatible alias for [`redact_url`].
+pub fn redact_api_key(url: &str) -> String {
+    redact_url(url)
 }
 
 /// Truncate a string to the given byte limit, appending info if truncated.
@@ -293,6 +444,8 @@ mod tests {
         let client = ProviderClient::new(auth, "test");
         assert_eq!(client.provider_name(), "test");
         assert!(!client.is_verbose());
+        assert_eq!(client.request_timeout, Some(DEFAULT_REQUEST_TIMEOUT));
+        assert!(client.retry_policy.is_enabled());
     }
 
     #[test]
@@ -304,5 +457,39 @@ mod tests {
         let mut client = ProviderClient::new(auth, "test");
         client.set_verbose(true);
         assert!(client.is_verbose());
+    }
+
+    #[test]
+    fn build_request_applies_client_timeout() {
+        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new(
+            "test".to_string(),
+            "key".to_string(),
+        ));
+        let mut client = ProviderClient::new(auth, "test");
+        client.set_request_timeout(Some(Duration::from_secs(7)));
+        let request = client.build_request(Method::Get, "https://example.com");
+        assert_eq!(request.timeout_value(), Some(Duration::from_secs(7)));
+    }
+
+    #[test]
+    fn retry_status_classification() {
+        let auth: Arc<dyn AuthProvider> = Arc::new(crate::auth::ApiKeyProvider::new(
+            "test".to_string(),
+            "key".to_string(),
+        ));
+        let client = ProviderClient::new(auth, "test");
+        assert!(client.should_retry(503, None));
+        assert!(client.should_retry(429, None));
+        assert!(client.should_retry(429, Some(2)));
+        assert!(!client.should_retry(429, Some(60)));
+        assert!(!client.should_retry(400, None));
+        assert!(!client.should_retry(401, None));
+    }
+
+    #[test]
+    fn status_text_covers_common_codes() {
+        assert_eq!(status_text(401), "Unauthorized");
+        assert_eq!(status_text(429), "Too Many Requests");
+        assert_eq!(status_text(599), UNKNOWN_STATUS);
     }
 }

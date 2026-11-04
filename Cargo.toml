@@ -28,6 +28,9 @@ module_name_repetitions = "allow"
 must_use_candidate = "allow"
 enum_variant_names = "allow"
 doc_markdown = "allow"
+# `async_trait` expands to pinned boxed futures that already carry `#[must_use]`;
+# the lint fires on the macro expansion rather than on our code.
+double_must_use = "allow"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

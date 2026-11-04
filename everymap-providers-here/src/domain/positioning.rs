@@ -66,8 +66,8 @@ impl HerePositioner {
         let body = PositionRequestBody::from(options);
         let builder = self
             .client
-            .build_request(reqwest::Method::POST, &url)
-            .json(&body);
+            .build_request(everymap_core::http::Method::POST, &url)
+            .json(&body)?;
 
         let result: PositioningResponse = self.client.request_json(builder).await?;
         Ok(result)

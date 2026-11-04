@@ -390,7 +390,7 @@ impl IsolineProvider for HereIsoline {
         let url = format!("{}/isolines", self.base_url);
         let builder = self
             .client
-            .build_request(reqwest::Method::GET, &url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
         let here_res: HereIsolineLegacyResponse = self.client.request_json(builder).await?;

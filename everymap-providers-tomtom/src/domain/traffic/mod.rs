@@ -55,7 +55,7 @@ impl TrafficProvider for TomTomTraffic {
 
         let flow_builder = self
             .client
-            .build_request(reqwest::Method::GET, &flow_url)
+            .build_request(everymap_core::http::Method::GET, &flow_url)
             .query(&flow_params);
         let flow_res: TomTomFlowResponse = self.client.request_json(flow_builder).await?;
 
@@ -86,7 +86,7 @@ impl TrafficProvider for TomTomTraffic {
 
                 let inc_builder = self
                     .client
-                    .build_request(reqwest::Method::GET, &inc_url)
+                    .build_request(everymap_core::http::Method::GET, &inc_url)
                     .query(&inc_params);
                 let inc_res: TomTomIncidentsResponse =
                     self.client.request_json(inc_builder).await?;
