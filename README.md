@@ -22,7 +22,8 @@ everymap-rs/
 │       ├── domains/            # 10 domain traits + concrete Options/Response types
 │       ├── types/              # Coordinate, BoundingBox, Address, Polyline
 │       ├── auth/               # AuthProvider, ApiKeyProvider, HeaderAuthProvider
-│       ├── client/             # ProviderClient (shared HTTP logic), HttpClient trait
+│       ├── client/             # ProviderClient (auth, pacing, retries, timeouts, observers)
+│       ├── http/               # HttpRequest/HttpResponse/HttpTransport seam (reqwest, fetch)
 │       ├── unsupported.rs      # 7 stub macros for unsupported domains
 │       └── error/              # EveryMapError (structured errors)
 ├── everymap-providers-here/    # HERE Technologies (10 domains implemented)
