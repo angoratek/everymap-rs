@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- `everymap-providers-url-template-raster`: a `RasterTileProvider` over any `{z}/{x}/{y}` raster URL template, with optional `{s}` subdomain/scheme substitution, attribution, terms, declared request headers, token-bucket pacing and typed tiles that echo the requested format and resolution.
+- `everymap-providers-url-template-vector`: a `VectorTileProvider` over any `{z}/{x}/{y}` vector URL template, with optional `{s}` subdomain/scheme substitution, a `VectorTileSourceDescriptor` (cache namespace, attribution, zoom span, wire encoding, style hints), declared request headers, token-bucket pacing and gzip-encoding sniffing.
 - `everymap-providers-osrm`: a `Router` implementation over the OSRM HTTP route service with ordered waypoints, per-leg steps, maneuver classification, authored instructions, GeoJSON shapes and the service's `code` error envelope.
 - `everymap-providers-valhalla`: a `Router` implementation over the Valhalla `/route` endpoint with POST JSON requests, costing options, precision-6 polyline shapes and the full maneuver table.
 - Traffic queries honour a bounding box: `TrafficOptions::bounding_box` asks for exactly the ground a viewport draws, and `TrafficFlow` carries an ordered `geometry` polyline and a `CongestionLevel` classification (`from_jam_factor` maps a HERE-style 0–10 score). HERE and TomTom conversions fill both.
