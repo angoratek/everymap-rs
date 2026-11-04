@@ -15,6 +15,8 @@ Core traits, types, and error handling for [EveryMap-RS](https://github.com/ango
 ## What's inside
 
 - **10 domain traits** with concrete option/response types (no associated types, so `Box<dyn Trait>` runtime dispatch works): `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`
+- **Navigation-grade routing**: `Router::calculate_route_with_waypoints` takes ordered waypoints and returns legs, typed maneuvers with stable labels, display and speech instructions, lane guidance, step and leg shapes, and `route_capabilities`
+- **Typed tiles**: `RasterTileProvider` with a typed request and a response that echoes format and resolution; `VectorTileProvider` with a source descriptor carrying cache namespace, attribution, zoom span, wire encoding and style hints
 - **Shared types**: `Coordinate`, `BoundingBox`, `Address`, `Polyline`
 - **Auth**: `AuthProvider` trait with `ApiKeyProvider` and `HeaderAuthProvider` — API keys are zeroized on drop
 - **HTTP**: backend-neutral `ProviderClient` on the `HttpTransport` seam — `reqwest` natively, `window.fetch` on WebAssembly, with token-bucket rate limiting, idempotent-GET retries, timeouts, and credential redaction

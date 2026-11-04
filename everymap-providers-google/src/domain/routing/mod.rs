@@ -159,6 +159,10 @@ impl From<GoogleRoute> for RouteResult {
                             .end_location
                             .as_ref()
                             .and_then(coordinate_from_location),
+                        maneuver_type: None,
+                        speech_instruction: None,
+                        lane_guidances: Vec::new(),
+                        shape: Vec::new(),
                     })
                     .collect()
             })
@@ -183,6 +187,7 @@ impl From<GoogleRoute> for RouteResult {
             steps,
             bounding_box,
             raw: None,
+            legs: Vec::new(),
         }
     }
 }

@@ -93,6 +93,10 @@ impl From<MapBoxRoute> for RouteResult {
                     })
                 }),
                 end_coordinate: None,
+                maneuver_type: None,
+                speech_instruction: None,
+                lane_guidances: Vec::new(),
+                shape: Vec::new(),
             })
             .collect();
 
@@ -104,6 +108,7 @@ impl From<MapBoxRoute> for RouteResult {
             steps,
             bounding_box: None,
             raw: None,
+            legs: Vec::new(),
         }
     }
 }

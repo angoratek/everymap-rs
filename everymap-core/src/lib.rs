@@ -1,15 +1,17 @@
 //! Core traits, types, and error handling for the EveryMap geospatial API abstraction.
 //!
-//! This crate defines 10 domain traits (geocoding, routing, isolines, map matching,
-//! tour planning, traffic, tiling, positioning, attributes, and imaging) that provider
-//! crates implement. It also provides shared infrastructure: authentication, HTTP client
-//! logic, error types, and unsupported-domain stub macros.
+//! This crate defines the vendor-neutral domain contracts provider crates implement:
+//! the original 10 domain traits (geocoding, routing, isolines, map matching, tour
+//! planning, traffic, tiling, positioning, attributes, and imaging) plus the
+//! navigation-grade routing surface and the typed raster and vector tile surfaces.
+//! It also provides shared infrastructure: authentication, HTTP client logic, error
+//! types, and unsupported-domain stub macros.
 //!
 //! # Architecture
 //!
 //! | Module | Purpose |
 //! |--------|---------|
-//! | [`domains`] | 10 domain traits with concrete option/response types |
+//! | [`domains`] | Domain traits with concrete option/response types, including navigation-grade routing and typed tiles |
 //! | [`auth`] | `AuthProvider`, `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` |
 //! | [`client`] | Shared `ProviderClient` HTTP logic, rate limiting, retries, observers |
 //! | [`http`] | Backend-neutral `HttpRequest`, `HttpResponse`, `HttpTransport` |

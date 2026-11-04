@@ -44,6 +44,10 @@ impl From<HereRoute> for RouteResult {
                         duration: a.duration,
                         start_coordinate: None,
                         end_coordinate: None,
+                        maneuver_type: None,
+                        speech_instruction: None,
+                        lane_guidances: Vec::new(),
+                        shape: Vec::new(),
                     })
                     .collect();
                 (total_distance, total_duration, geom, route_steps)
@@ -58,6 +62,7 @@ impl From<HereRoute> for RouteResult {
             steps,
             bounding_box: None,
             raw: None,
+            legs: Vec::new(),
         }
     }
 }
@@ -92,6 +97,10 @@ impl From<HereRouteSection> for RouteResult {
                 duration: a.duration,
                 start_coordinate: None,
                 end_coordinate: None,
+                maneuver_type: None,
+                speech_instruction: None,
+                lane_guidances: Vec::new(),
+                shape: Vec::new(),
             })
             .collect();
         Self {
@@ -102,6 +111,7 @@ impl From<HereRouteSection> for RouteResult {
             steps,
             bounding_box: None,
             raw: None,
+            legs: Vec::new(),
         }
     }
 }

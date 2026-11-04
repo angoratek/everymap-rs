@@ -122,6 +122,10 @@ impl From<RadarDirectionsRoute> for RouteResult {
                 end_coordinate: s.end_location.map(|l| {
                     Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)
                 }),
+                maneuver_type: None,
+                speech_instruction: None,
+                lane_guidances: Vec::new(),
+                shape: Vec::new(),
             })
             .collect();
 
@@ -135,6 +139,7 @@ impl From<RadarDirectionsRoute> for RouteResult {
             steps,
             bounding_box: None,
             raw: Some(raw),
+            legs: Vec::new(),
         }
     }
 }
