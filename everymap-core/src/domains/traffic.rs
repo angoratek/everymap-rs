@@ -1,5 +1,5 @@
 use crate::error::EveryMapResult;
-use crate::types::Coordinate;
+use crate::types::{BoundingBox, Coordinate};
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +8,11 @@ use serde::{Deserialize, Serialize};
 pub struct TrafficOptions {
     /// Search radius in meters from the location
     pub radius: Option<f64>,
+    /// Restrict the query to this bounding box. A provider that honours boxes
+    /// uses it in place of `radius`, so a map viewport asks for exactly the
+    /// ground it draws.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bounding_box: Option<BoundingBox>,
     /// Preferred response language (BCP 47 language tag)
     pub language: Option<String>,
     /// Whether to include traffic incidents in the response
@@ -47,6 +52,48 @@ pub struct TrafficIncident {
     pub end_time: Option<String>,
 }
 
+/// Congestion classification of one road segment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CongestionLevel {
+    /// At or above free-flow speed.
+    FreeFlow,
+    /// Moderately below free-flow speed.
+    Slow,
+    /// Stop-and-go traffic.
+    Congested,
+    /// Roadway effectively closed.
+    Blocked,
+}
+
+/// Jam factors at or below this value classify as [`CongestionLevel::FreeFlow`].
+pub const JAM_FACTOR_FREE_FLOW_CEILING: f64 = 2.0;
+/// Jam factors at or below this value classify as [`CongestionLevel::Slow`].
+pub const JAM_FACTOR_SLOW_CEILING: f64 = 5.0;
+/// Jam factors at or below this value classify as [`CongestionLevel::Congested`];
+/// anything higher is [`CongestionLevel::Blocked`].
+pub const JAM_FACTOR_CONGESTED_CEILING: f64 = 8.0;
+
+impl CongestionLevel {
+    /// Classifies a HERE-style jam factor (0 free-flow, 10 gridlock).
+    ///
+    /// # Parameters
+    /// - `jam_factor` — the provider's congestion score from 0 to 10.
+    ///
+    /// # Returns
+    /// The matching congestion level.
+    pub fn from_jam_factor(jam_factor: f64) -> Self {
+        if jam_factor <= JAM_FACTOR_FREE_FLOW_CEILING {
+            Self::FreeFlow
+        } else if jam_factor <= JAM_FACTOR_SLOW_CEILING {
+            Self::Slow
+        } else if jam_factor <= JAM_FACTOR_CONGESTED_CEILING {
+            Self::Congested
+        } else {
+            Self::Blocked
+        }
+    }
+}
+
 /// A traffic flow measurement for a road segment.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrafficFlow {
@@ -60,6 +107,14 @@ pub struct TrafficFlow {
     pub confidence: Option<f64>,
     /// Road name (if available)
     pub road_name: Option<String>,
+    /// Segment geometry, ordered along the road, when the provider reports
+    /// it. A renderer draws this polyline; a single-point measurement leaves
+    /// it empty.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub geometry: Vec<Coordinate>,
+    /// Congestion classification derived from the reported speeds.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub congestion_level: Option<CongestionLevel>,
 }
 
 /// A unified traffic response from the core trait.
@@ -91,9 +146,36 @@ mod tests {
     fn test_traffic_options_default() {
         let options = TrafficOptions::default();
         assert!(options.radius.is_none());
+        assert!(options.bounding_box.is_none());
         assert!(options.language.is_none());
         assert!(options.include_incidents.is_none());
         assert!(options.provider_extra.is_none());
+    }
+
+    #[test]
+    fn test_traffic_flow_keeps_geometry_and_congestion() {
+        let flow = TrafficFlow {
+            speed: Some(35.0),
+            free_flow_speed: Some(65.0),
+            jam_factor: None,
+            confidence: None,
+            road_name: Some("J Street".to_string()),
+            geometry: vec![
+                Coordinate {
+                    lat: 38.5,
+                    lng: -121.5,
+                },
+                Coordinate {
+                    lat: 38.51,
+                    lng: -121.49,
+                },
+            ],
+            congestion_level: Some(CongestionLevel::Slow),
+        };
+        let json = serde_json::to_string(&flow).unwrap();
+        let back: TrafficFlow = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.geometry.len(), 2);
+        assert_eq!(back.congestion_level, Some(CongestionLevel::Slow));
     }
 
     #[test]
@@ -120,6 +202,8 @@ mod tests {
             jam_factor: Some(3.5),
             confidence: Some(0.9),
             road_name: Some("A100".to_string()),
+            geometry: Vec::new(),
+            congestion_level: Some(CongestionLevel::Slow),
         };
         assert_eq!(flow.speed, Some(80.0));
         assert_eq!(flow.jam_factor, Some(3.5));
@@ -135,6 +219,8 @@ mod tests {
                 jam_factor: Some(5.0),
                 confidence: Some(0.85),
                 road_name: None,
+                geometry: Vec::new(),
+                congestion_level: None,
             }],
             incidents: vec![],
             raw: None,
@@ -190,6 +276,8 @@ mod tests {
                 jam_factor: Some(2.5),
                 confidence: Some(0.9),
                 road_name: Some("A9".to_string()),
+                geometry: Vec::new(),
+                congestion_level: Some(CongestionLevel::FreeFlow),
             }],
             incidents: vec![TrafficIncident {
                 id: Some("inc-1".to_string()),
@@ -229,6 +317,7 @@ mod tests {
     fn test_traffic_options_serde_roundtrip() {
         let options = TrafficOptions {
             radius: Some(5000.0),
+            bounding_box: None,
             language: Some("de".to_string()),
             include_incidents: Some(true),
             provider_extra: Some(serde_json::json!({"min_jam_factor": 4.0})),
@@ -270,6 +359,8 @@ mod tests {
             jam_factor: Some(10.0),
             confidence: Some(0.5),
             road_name: Some("A100".to_string()),
+            geometry: Vec::new(),
+            congestion_level: Some(CongestionLevel::Blocked),
         };
         let json = serde_json::to_string(&flow).unwrap();
         let back: TrafficFlow = serde_json::from_str(&json).unwrap();
@@ -287,6 +378,8 @@ mod tests {
             jam_factor: Some(10.0),
             confidence: Some(1.0),
             road_name: None,
+            geometry: Vec::new(),
+            congestion_level: None,
         };
         assert_eq!(flow.speed, Some(0.0));
         assert_eq!(flow.jam_factor, Some(10.0));

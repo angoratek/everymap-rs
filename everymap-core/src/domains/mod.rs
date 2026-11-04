@@ -1,7 +1,11 @@
 pub mod attributes;
+pub mod autocomplete;
+pub mod elevation;
 pub mod imaging;
 pub mod isoline;
 pub mod matching;
+pub mod matrix;
+pub mod offline;
 pub mod positioning;
 pub mod routing;
 pub mod search;
@@ -10,9 +14,13 @@ pub mod tour;
 pub mod traffic;
 
 pub use attributes::*;
+pub use autocomplete::*;
+pub use elevation::*;
 pub use imaging::*;
 pub use isoline::*;
 pub use matching::*;
+pub use matrix::*;
+pub use offline::*;
 pub use positioning::*;
 pub use routing::*;
 pub use search::*;

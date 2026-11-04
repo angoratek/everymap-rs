@@ -3,7 +3,8 @@
 //! This crate defines the vendor-neutral domain contracts provider crates implement:
 //! the original 10 domain traits (geocoding, routing, isolines, map matching, tour
 //! planning, traffic, tiling, positioning, attributes, and imaging) plus the
-//! navigation-grade routing surface and the typed raster and vector tile surfaces.
+//! navigation-grade routing surface, the typed raster and vector tile surfaces, and
+//! the autocomplete, distance-matrix, elevation and offline-routing traits.
 //! It also provides shared infrastructure: authentication, HTTP client logic, error
 //! types, and unsupported-domain stub macros.
 //!

@@ -268,12 +268,16 @@ pub enum TrafficUnits {
 
 impl From<HereFlowItem> for everymap_core::domains::traffic::TrafficFlow {
     fn from(item: HereFlowItem) -> Self {
+        let jam_factor = item.current_flow.jam_factor;
         Self {
             speed: item.current_flow.speed,
             free_flow_speed: item.current_flow.free_flow,
-            jam_factor: item.current_flow.jam_factor,
+            jam_factor,
             confidence: item.current_flow.confidence,
             road_name: item.road_info.and_then(|ri| ri.road_name),
+            geometry: Vec::new(),
+            congestion_level: jam_factor
+                .map(everymap_core::domains::traffic::CongestionLevel::from_jam_factor),
         }
     }
 }
