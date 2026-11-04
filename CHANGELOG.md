@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Navigation-grade routing in `everymap-core`: `Router::calculate_route_with_waypoints` for ordered waypoints (two-endpoint default that reports intermediate stops as unsupported), `Router::route_capabilities`, `RouteLeg`, `ManeuverType` with stable kebab-case labels, `TurnDirection`, `LaneGuidance`, `RouteStrategy`, and serde-defaulted `legs`, `maneuver_type`, `speech_instruction`, `lane_guidances` and `shape` fields on the route records.
+- Typed raster tiles in `everymap-core`: `RasterTileProvider`, `RasterTileRequest`, `RasterTileData` (echoing format and resolution), `RasterImageFormat` and `RasterTileResolution`.
+- Vector tiles in `everymap-core`: `VectorTileProvider`, `VectorTileSourceDescriptor` (cache namespace, attribution, zoom span, wire encoding, style hints), `VectorTileData` with gzip encoding sniffing, and `VectorTileEncoding`.
+- Contract tests with committed fixtures and an in-process transport fake; no test opens a socket.
+
 ## [0.2.2] — 2026-09-15
 
 ### Added
