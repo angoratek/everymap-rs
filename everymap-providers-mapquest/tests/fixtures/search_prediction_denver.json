@@ -1,0 +1,114 @@
+{
+  "results": [
+    {
+      "collection": [
+        "airport"
+      ],
+      "displayString": "Denver Int'l Airport, 8500 Pena Blvd, Denver, CO 80249-6205, United States",
+      "language": "en",
+      "id": "mqId:423213150",
+      "mqId": 423213150,
+      "name": "Denver Int'l Airport",
+      "place": {
+        "geometry": {
+          "coordinates": [
+            -104.67377,
+            39.85352
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "country": "United States",
+          "countryCode": "US",
+          "state": "Colorado",
+          "stateCode": "CO",
+          "county": "Denver",
+          "postalCode": "80249-6205",
+          "city": "Denver",
+          "neighborhood": "Denver International Airport",
+          "street": "8500 Pena Blvd",
+          "type": "address"
+        },
+        "type": "Feature"
+      },
+      "recordType": "airport",
+      "slug": "/us/colorado/denver-intl-airport-423213150"
+    },
+    {
+      "collection": [
+        "poi"
+      ],
+      "displayString": "Denver Art Museum, 100 W 13th Ave, Denver, CO 80204, United States",
+      "language": "en",
+      "id": "mqId:9955633",
+      "mqId": 9955633,
+      "name": "Denver Art Museum",
+      "place": {
+        "geometry": {
+          "coordinates": [
+            -104.98935,
+            39.73719
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "country": "United States",
+          "countryCode": "US",
+          "state": "Colorado",
+          "stateCode": "CO",
+          "county": "Denver",
+          "postalCode": "80204",
+          "city": "Denver",
+          "neighborhood": "Civic Center",
+          "street": "100 W 13th Ave",
+          "type": "address"
+        },
+        "type": "Feature"
+      },
+      "recordType": "poi",
+      "slug": "/us/colorado/denver-art-museum-9955633"
+    },
+    {
+      "collection": [
+        "poi"
+      ],
+      "displayString": "Denver Zoo, 2300 Steele St, Denver, CO 80205, United States",
+      "language": "en",
+      "id": "mqId:380801062",
+      "mqId": 380801062,
+      "name": "Denver Zoo",
+      "place": {
+        "geometry": {
+          "coordinates": [
+            -104.95085,
+            39.7496
+          ],
+          "type": "Point"
+        },
+        "properties": {
+          "country": "United States",
+          "countryCode": "US",
+          "state": "Colorado",
+          "stateCode": "CO",
+          "county": "Denver",
+          "postalCode": "80205",
+          "city": "Denver",
+          "neighborhood": "City Park",
+          "street": "2300 Steele St",
+          "type": "address"
+        },
+        "type": "Feature"
+      },
+      "recordType": "poi",
+      "slug": "/us/colorado/denver-zoo-380801062"
+    }
+  ],
+  "request": {
+    "q": "denver",
+    "collection": [
+      "address",
+      "poi"
+    ],
+    "limit": 4
+  }
+}

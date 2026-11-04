@@ -1,0 +1,57 @@
+{
+  "info": {
+    "statuscode": 0,
+    "copyright": {
+      "text": "© 2026 MapQuest, Inc.",
+      "imageUrl": "http://api.mqcdn.com/res/mqlogo.gif",
+      "imageAltText": "© 2026 MapQuest, Inc."
+    },
+    "messages": []
+  },
+  "options": {
+    "maxResults": 1,
+    "ignoreLatLngInput": false
+  },
+  "results": [
+    {
+      "providedLocation": {
+        "latLng": {
+          "lat": 38.5766,
+          "lng": -121.4944
+        }
+      },
+      "locations": [
+        {
+          "street": "1315 10th St",
+          "adminArea6": "Capitol Mall",
+          "adminArea6Type": "Neighborhood",
+          "adminArea5": "Sacramento",
+          "adminArea5Type": "City",
+          "adminArea4": "Sacramento",
+          "adminArea4Type": "County",
+          "adminArea3": "CA",
+          "adminArea3Type": "State",
+          "adminArea1": "US",
+          "adminArea1Type": "Country",
+          "postalCode": "95814",
+          "geocodeQualityCode": "P1AAA",
+          "geocodeQuality": "POINT",
+          "dragPoint": false,
+          "sideOfStreet": "N",
+          "linkId": "0",
+          "unknownInput": "",
+          "type": "s",
+          "latLng": {
+            "lat": 38.5766,
+            "lng": -121.4944
+          },
+          "displayLatLng": {
+            "lat": 38.5766,
+            "lng": -121.4944
+          },
+          "mapUrl": ""
+        }
+      ]
+    }
+  ]
+}
