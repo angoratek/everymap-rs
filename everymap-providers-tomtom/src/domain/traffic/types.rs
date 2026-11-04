@@ -34,6 +34,10 @@ impl From<TomTomFlowSegmentData> for TrafficFlow {
             jam_factor: Some(jam_factor),
             confidence: seg.confidence,
             road_name: seg.road_name,
+            geometry: Vec::new(),
+            congestion_level: Some(
+                everymap_core::domains::traffic::CongestionLevel::from_jam_factor(jam_factor),
+            ),
         }
     }
 }

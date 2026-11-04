@@ -3,6 +3,11 @@
 ## [Unreleased]
 
 ### Added
+- Traffic queries honour a bounding box: `TrafficOptions::bounding_box` asks for exactly the ground a viewport draws, and `TrafficFlow` carries an ordered `geometry` polyline and a `CongestionLevel` classification (`from_jam_factor` maps a HERE-style 0–10 score). HERE and TomTom conversions fill both.
+- Autocomplete in `everymap-core`: the `AutocompleteProvider` trait with `AutocompleteOptions` (cap, language, preferred box, country codes) and `AutocompleteResult`/`AutocompleteResponse`, where a suggestion may be a region with no single point.
+- Distance matrix in `everymap-core`: the `DistanceMatrixProvider` trait with `DistanceMatrixOptions` (transport mode, strategy) and row-major `DistanceMatrixEntry` results.
+- Elevation in `everymap-core`: the `ElevationProvider` trait returning one ordered `ElevationSample` per requested point.
+- Offline routing in `everymap-core`: the `OfflineRoutingProvider` trait (graph loading from bytes or a path, navigation-grade route results) with the engine and format left to each implementation.
 - Navigation-grade routing in `everymap-core`: `Router::calculate_route_with_waypoints` for ordered waypoints (two-endpoint default that reports intermediate stops as unsupported), `Router::route_capabilities`, `RouteLeg`, `ManeuverType` with stable kebab-case labels, `TurnDirection`, `LaneGuidance`, `RouteStrategy`, and serde-defaulted `legs`, `maneuver_type`, `speech_instruction`, `lane_guidances` and `shape` fields on the route records.
 - Typed raster tiles in `everymap-core`: `RasterTileProvider`, `RasterTileRequest`, `RasterTileData` (echoing format and resolution), `RasterImageFormat` and `RasterTileResolution`.
 - Vector tiles in `everymap-core`: `VectorTileProvider`, `VectorTileSourceDescriptor` (cache namespace, attribution, zoom span, wire encoding, style hints), `VectorTileData` with gzip encoding sniffing, and `VectorTileEncoding`.
