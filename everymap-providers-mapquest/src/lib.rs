@@ -66,6 +66,7 @@ mod error_mapping;
 pub mod geocoding;
 mod json_coordinates;
 pub mod matrix;
+pub mod place_search;
 pub mod routing;
 pub mod tiles;
 pub mod traffic;
@@ -77,6 +78,7 @@ pub use client::{
 };
 pub use geocoding::MapQuestGeocoder;
 pub use matrix::MapQuestDistanceMatrix;
+pub use place_search::MapQuestPlaceSearchProvider;
 pub use routing::MapQuestRouter;
 pub use tiles::{MapQuestRasterTileProvider, DEFAULT_MAPQUEST_TILE_STYLE};
 pub use traffic::MapQuestTrafficProvider;

@@ -52,6 +52,8 @@ impl From<TomTomIncident> for TrafficIncident {
             road_name: None,
             start_time: inc.start_time,
             end_time: inc.end_time,
+            start_coordinate: None,
+            end_coordinate: None,
         }
     }
 }

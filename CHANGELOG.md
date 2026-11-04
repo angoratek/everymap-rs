@@ -3,6 +3,10 @@
 ## [Unreleased]
 
 ### Added
+- `SearchQuality` on `SearchResult`: the nine granularity levels from a rooftop point to a country, filled by the MapQuest geocoder beside the existing confidence classification.
+- `PlaceSearchProvider`: a settled place-search contract beside `Geocoder` and `AutocompleteProvider`, implemented by the MapQuest provider with the documented fifteen-result cap.
+- Traffic incidents carry `start_coordinate` and `end_coordinate` when the provider reports a position; the MapQuest incident projection fills them.
+- Named public vector sources: `openstreetmap_us_vector_source` and `openfreemap_vector_source` construct the OSM US Sourdough and OpenFreeMap planet descriptors with their templates, attribution, terms and encoding.
 - A process-wide request observer in `everymap-core`: `install_global_request_observer` gives every provider client one redacting observer without threading it through each constructor, and a client's own observer still wins.
 - `UnitSystem` on `RouteOptions`: a route can ask for metric or imperial distances while the core result stays in meters; the MapQuest router requests `unit=m` and converts the answer back.
 - `TokenBucket::with_maximum_wait`: a bucket can refuse instead of waiting past a ceiling, and the shared client reports that refusal as `RateLimited`.

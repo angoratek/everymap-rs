@@ -148,6 +148,7 @@ impl From<MapBoxFeature> for SearchResult {
             address,
             title,
             result_type,
+            quality: None,
             distance: None,
             confidence: props.and_then(|p| p.relevance),
             categories,

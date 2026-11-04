@@ -50,6 +50,12 @@ pub struct TrafficIncident {
     pub start_time: Option<String>,
     /// End time (ISO 8601 string)
     pub end_time: Option<String>,
+    /// Where the incident starts, when the provider reports a position.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_coordinate: Option<Coordinate>,
+    /// Where the incident ends, when the provider reports an extent.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_coordinate: Option<Coordinate>,
 }
 
 /// Congestion classification of one road segment.
@@ -287,6 +293,8 @@ mod tests {
                 road_name: Some("A9".to_string()),
                 start_time: Some("2024-01-01T08:00:00".to_string()),
                 end_time: Some("2024-01-01T12:00:00".to_string()),
+                start_coordinate: None,
+                end_coordinate: None,
             }],
             raw: Some(serde_json::json!({"source": "here"})),
         };
@@ -341,6 +349,8 @@ mod tests {
             road_name: Some("B96".to_string()),
             start_time: Some("2024-03-01T06:00:00".to_string()),
             end_time: Some("2024-09-01T18:00:00".to_string()),
+            start_coordinate: None,
+            end_coordinate: None,
         };
         let json = serde_json::to_string(&incident).unwrap();
         let back: TrafficIncident = serde_json::from_str(&json).unwrap();
@@ -395,6 +405,8 @@ mod tests {
             road_name: None,
             start_time: None,
             end_time: None,
+            start_coordinate: None,
+            end_coordinate: None,
         };
         assert!(incident.id.is_none());
         assert!(incident.severity.is_none());

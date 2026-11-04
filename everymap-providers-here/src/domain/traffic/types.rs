@@ -301,6 +301,8 @@ impl From<HereIncident> for everymap_core::domains::traffic::TrafficIncident {
             road_name: None, // Not directly available on HereIncident
             start_time: incident.start_time,
             end_time: incident.end_time,
+            start_coordinate: None,
+            end_coordinate: None,
         }
     }
 }
