@@ -23,25 +23,25 @@ use serde_json::Value;
 use std::sync::Arc;
 
 /// Service path of the prediction endpoint.
-const PREDICTION_PATH: &str = "search/v3/prediction";
+pub(crate) const PREDICTION_PATH: &str = "search/v3/prediction";
 
 /// Collections queried on every prediction call.
-const QUERY_COLLECTIONS: &str = "address,adminArea,airport,category,franchise,poi";
+pub(crate) const QUERY_COLLECTIONS: &str = "address,adminArea,airport,category,franchise,poi";
 
 /// Result cap used when the caller does not set one.
 const DEFAULT_AUTOCOMPLETE_LIMIT: u32 = 5;
 
 /// Query parameter carrying the partial query text.
-const QUERY_PARAMETER: &str = "q";
+pub(crate) const QUERY_PARAMETER: &str = "q";
 
 /// Query parameter naming the collections to search.
-const COLLECTION_PARAMETER: &str = "collection";
+pub(crate) const COLLECTION_PARAMETER: &str = "collection";
 
 /// Query parameter capping the number of candidates.
-const LIMIT_PARAMETER: &str = "limit";
+pub(crate) const LIMIT_PARAMETER: &str = "limit";
 
 /// Query parameter naming the ranking centre.
-const LOCATION_PARAMETER: &str = "location";
+pub(crate) const LOCATION_PARAMETER: &str = "location";
 
 /// Type-ahead completion through the MapQuest Search Ahead prediction
 /// endpoint.
@@ -137,7 +137,7 @@ impl AutocompleteProvider for MapQuestAutocompleteProvider {
 }
 
 /// Returns the midpoint of a bounding box.
-fn bounding_box_center(bounding_box: &BoundingBox) -> EveryMapResult<Coordinate> {
+pub(crate) fn bounding_box_center(bounding_box: &BoundingBox) -> EveryMapResult<Coordinate> {
     Coordinate::new(
         (bounding_box.south_west.lat + bounding_box.north_east.lat) / 2.0,
         (bounding_box.south_west.lng + bounding_box.north_east.lng) / 2.0,

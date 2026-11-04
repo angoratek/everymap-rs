@@ -159,6 +159,7 @@ impl From<RadarAddress> for SearchResult {
             coordinate,
             address,
             result_type,
+            quality: None,
             distance,
             confidence,
             categories: vec![],

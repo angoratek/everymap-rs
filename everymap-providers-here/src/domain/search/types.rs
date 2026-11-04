@@ -206,6 +206,7 @@ impl From<HereSearchItem> for SearchResult {
             address,
             title: item.title,
             result_type,
+            quality: None,
             distance: item.distance,
             confidence: None,
             categories: item.categories.into_iter().filter_map(|c| c.name).collect(),

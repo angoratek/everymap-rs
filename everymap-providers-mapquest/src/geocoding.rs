@@ -22,7 +22,8 @@ use crate::client::MapQuestClient;
 use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchQuality, SearchResponse, SearchResult,
+    SearchResultType,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Address, Coordinate};
@@ -255,12 +256,50 @@ fn project_location(location: &Value) -> EveryMapResult<SearchResult> {
         address,
         title: non_empty(label),
         result_type: map_geocode_quality(quality_text, quality_code),
+        quality: map_search_quality(quality_text, quality_code),
         distance: None,
         confidence: None,
         categories: Vec::new(),
         bounding_box: None,
         raw: Some(location.clone()),
     })
+}
+
+/// Maps the documented `geocodeQuality` vocabulary to the core granularity.
+///
+/// # Parameters
+/// - `quality_text` — the service's `geocodeQuality` value, such as `CITY`.
+/// - `quality_code` — the service's `geocodeQualityCode` value, such as
+///   `A5XAX`.
+///
+/// # Returns
+/// The matching [`SearchQuality`], or `None` when the service reports a value
+/// this crate does not recognise.
+pub fn map_search_quality(quality_text: &str, quality_code: &str) -> Option<SearchQuality> {
+    let quality = match quality_text {
+        "POINT" => SearchQuality::Point,
+        "ADDRESS" => SearchQuality::StreetAddress,
+        "INTERSECTION" => SearchQuality::Intersection,
+        "STREET" => SearchQuality::Street,
+        "ZIP" => SearchQuality::PostalCode,
+        "NEIGHBORHOOD" | "CITY" => SearchQuality::City,
+        "COUNTY" => SearchQuality::County,
+        "STATE" => SearchQuality::State,
+        "COUNTRY" => SearchQuality::Country,
+        _ => match quality_code.chars().next() {
+            Some('P') => SearchQuality::Point,
+            Some('L' | 'A') => SearchQuality::StreetAddress,
+            Some('I') => SearchQuality::Intersection,
+            Some('S') => SearchQuality::Street,
+            Some('Z') => SearchQuality::PostalCode,
+            Some('C') => SearchQuality::City,
+            Some('D') => SearchQuality::County,
+            Some('T') => SearchQuality::State,
+            Some('R') => SearchQuality::Country,
+            _ => return None,
+        },
+    };
+    Some(quality)
 }
 
 /// Maps the documented `geocodeQuality` vocabulary to the core result type.
@@ -327,8 +366,31 @@ fn non_empty(value: String) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{map_geocode_quality, parse_geocoding_payload};
-    use everymap_core::domains::search::SearchResultType;
+    use super::{map_geocode_quality, map_search_quality, parse_geocoding_payload};
+    use everymap_core::domains::search::{SearchQuality, SearchResultType};
+
+    #[test]
+    fn the_service_quality_vocabulary_maps_to_granularity_levels() {
+        assert_eq!(map_search_quality("POINT", ""), Some(SearchQuality::Point));
+        assert_eq!(
+            map_search_quality("ADDRESS", ""),
+            Some(SearchQuality::StreetAddress)
+        );
+        assert_eq!(
+            map_search_quality("STREET", ""),
+            Some(SearchQuality::Street)
+        );
+        assert_eq!(map_search_quality("CITY", ""), Some(SearchQuality::City));
+        assert_eq!(
+            map_search_quality("COUNTRY", ""),
+            Some(SearchQuality::Country)
+        );
+        assert_eq!(
+            map_search_quality("UNRECOGNISED", "A5XAX"),
+            Some(SearchQuality::StreetAddress)
+        );
+        assert_eq!(map_search_quality("", "???"), None);
+    }
 
     fn fixture(name: &str) -> serde_json::Value {
         let fixture_path = format!("{}/tests/fixtures/{name}", env!("CARGO_MANIFEST_DIR"));

@@ -97,6 +97,10 @@ async fn flow_and_incidents_honour_the_requested_bounding_box() {
         first_incident.start_time.as_deref(),
         Some("2026-10-26T12:03:28")
     );
+    assert!(
+        first_incident.start_coordinate.is_some(),
+        "an incident carries the position the service reported"
+    );
 }
 
 #[tokio::test]

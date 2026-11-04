@@ -61,11 +61,13 @@
 //! ```
 
 mod client;
+pub mod descriptors;
 pub mod pacing;
 pub mod provider;
 pub mod url_template;
 
 pub use client::URL_TEMPLATE_VECTOR_PROVIDER_NAME;
+pub use descriptors::{openfreemap_vector_source, openstreetmap_us_vector_source};
 pub use pacing::{TileSourcePacing, DEFAULT_CAPACITY_TOKENS, DEFAULT_REFILL_TOKENS_PER_SECOND};
 pub use provider::{UrlTemplateVectorTileProvider, UrlTemplateVectorTileSource};
 pub use url_template::UrlTemplate;
