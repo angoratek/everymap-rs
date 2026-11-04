@@ -93,6 +93,34 @@ macro_rules! provider_client {
             ) -> $crate::error::EveryMapResult<T> {
                 self.inner.request_json(request).await
             }
+
+            /// Installs a token bucket that paces every request this client
+            /// sends.
+            pub fn set_rate_limiter(
+                &mut self,
+                rate_limiter: ::std::sync::Arc<$crate::client::TokenBucket>,
+            ) {
+                self.inner.set_rate_limiter(rate_limiter);
+            }
+
+            /// Replaces the retry policy applied to idempotent requests.
+            pub fn set_retry_policy(&mut self, retry_policy: $crate::client::RetryPolicy) {
+                self.inner.set_retry_policy(retry_policy);
+            }
+
+            /// Sets the per-request timeout, or removes it.
+            pub fn set_request_timeout(&mut self, timeout: ::std::option::Option<::std::time::Duration>) {
+                self.inner.set_request_timeout(timeout);
+            }
+
+            /// Installs an observer that receives every attempt's redacted
+            /// facts, replacing any earlier observer on this client.
+            pub fn set_observer(
+                &mut self,
+                observer: ::std::sync::Arc<dyn $crate::client::RequestObserver>,
+            ) {
+                self.inner.set_observer(observer);
+            }
         }
     };
 }
