@@ -68,6 +68,7 @@ impl From<TomTomRoute> for RouteResult {
             steps: Vec::new(), // TomTom doesn't provide step-level instructions in basic response
             bounding_box: None,
             raw: None,
+            legs: Vec::new(),
         }
     }
 }

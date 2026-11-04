@@ -1,0 +1,120 @@
+{
+  "routes": [
+    {
+      "distance": 4200.0,
+      "duration": 620.0,
+      "geometry": {
+        "points": [
+          { "lat": 52.5219, "lng": 13.4132 },
+          { "lat": 52.5163, "lng": 13.3777 },
+          { "lat": 52.5096, "lng": 13.3760 }
+        ]
+      },
+      "transport_mode": "Car",
+      "steps": [
+        {
+          "instruction": "Head west on Karl-Liebknecht-Straße",
+          "distance": 1800.0,
+          "duration": 260.0,
+          "start_coordinate": { "lat": 52.5219, "lng": 13.4132 },
+          "end_coordinate": { "lat": 52.5163, "lng": 13.3777 },
+          "maneuver_type": "departure",
+          "speech_instruction": "Head west on Karl-Liebknecht Street.",
+          "lane_guidances": [],
+          "shape": [
+            { "lat": 52.5219, "lng": 13.4132 },
+            { "lat": 52.5163, "lng": 13.3777 }
+          ]
+        },
+        {
+          "instruction": "At the roundabout, take the second exit onto Ebertstraße",
+          "distance": 2400.0,
+          "duration": 360.0,
+          "start_coordinate": { "lat": 52.5163, "lng": 13.3777 },
+          "end_coordinate": { "lat": 52.5096, "lng": 13.3760 },
+          "maneuver_type": "roundabout-2",
+          "speech_instruction": "At the roundabout, take the second exit onto Ebert Street.",
+          "lane_guidances": [
+            {
+              "lane_index": 0,
+              "permitted_directions": ["straight"],
+              "is_recommended": false
+            },
+            {
+              "lane_index": 1,
+              "permitted_directions": ["left", "u_turn"],
+              "is_recommended": true
+            }
+          ],
+          "shape": [
+            { "lat": 52.5163, "lng": 13.3777 },
+            { "lat": 52.5096, "lng": 13.3760 }
+          ]
+        }
+      ],
+      "bounding_box": {
+        "north_east": { "lat": 52.5219, "lng": 13.4132 },
+        "south_west": { "lat": 52.5096, "lng": 13.3760 }
+      },
+      "legs": [
+        {
+          "distance": 1800.0,
+          "duration": 260.0,
+          "shape": [
+            { "lat": 52.5219, "lng": 13.4132 },
+            { "lat": 52.5163, "lng": 13.3777 }
+          ],
+          "steps": [
+            {
+              "instruction": "Head west on Karl-Liebknecht-Straße",
+              "distance": 1800.0,
+              "duration": 260.0,
+              "start_coordinate": { "lat": 52.5219, "lng": 13.4132 },
+              "end_coordinate": { "lat": 52.5163, "lng": 13.3777 },
+              "maneuver_type": "departure",
+              "speech_instruction": "Head west on Karl-Liebknecht Street."
+            }
+          ]
+        },
+        {
+          "distance": 2400.0,
+          "duration": 360.0,
+          "shape": [
+            { "lat": 52.5163, "lng": 13.3777 },
+            { "lat": 52.5096, "lng": 13.3760 }
+          ],
+          "steps": [
+            {
+              "instruction": "At the roundabout, take the second exit onto Ebertstraße",
+              "distance": 2400.0,
+              "duration": 360.0,
+              "start_coordinate": { "lat": 52.5163, "lng": 13.3777 },
+              "end_coordinate": { "lat": 52.5096, "lng": 13.3760 },
+              "maneuver_type": "roundabout-2",
+              "speech_instruction": "At the roundabout, take the second exit onto Ebert Street.",
+              "lane_guidances": [
+                {
+                  "lane_index": 1,
+                  "permitted_directions": ["left", "u_turn"],
+                  "is_recommended": true
+                }
+              ],
+              "shape": [
+                { "lat": 52.5163, "lng": 13.3777 },
+                { "lat": 52.5096, "lng": 13.3760 }
+              ]
+            },
+            {
+              "instruction": "Arrive at Potsdamer Platz",
+              "distance": 0.0,
+              "duration": 0.0,
+              "maneuver_type": "arrival",
+              "speech_instruction": "You have arrived at Potsdamer Platz.",
+              "shape": [{ "lat": 52.5096, "lng": 13.3760 }]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
