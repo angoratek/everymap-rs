@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- `everymap-providers-osrm`: a `Router` implementation over the OSRM HTTP route service with ordered waypoints, per-leg steps, maneuver classification, authored instructions, GeoJSON shapes and the service's `code` error envelope.
+- `everymap-providers-valhalla`: a `Router` implementation over the Valhalla `/route` endpoint with POST JSON requests, costing options, precision-6 polyline shapes and the full maneuver table.
 - Traffic queries honour a bounding box: `TrafficOptions::bounding_box` asks for exactly the ground a viewport draws, and `TrafficFlow` carries an ordered `geometry` polyline and a `CongestionLevel` classification (`from_jam_factor` maps a HERE-style 0–10 score). HERE and TomTom conversions fill both.
 - Autocomplete in `everymap-core`: the `AutocompleteProvider` trait with `AutocompleteOptions` (cap, language, preferred box, country codes) and `AutocompleteResult`/`AutocompleteResponse`, where a suggestion may be a region with no single point.
 - Distance matrix in `everymap-core`: the `DistanceMatrixProvider` trait with `DistanceMatrixOptions` (transport mode, strategy) and row-major `DistanceMatrixEntry` results.

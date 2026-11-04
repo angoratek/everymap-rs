@@ -1,0 +1,33 @@
+[package]
+name = "everymap-providers-osrm"
+version.workspace = true
+edition.workspace = true
+description = "OSRM routing provider for EveryMap — self-hosted turn-by-turn routes"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+keywords = ["geospatial", "maps", "osrm", "routing"]
+categories = ["api-bindings", "science::geo"]
+documentation = "https://docs.rs/everymap-providers-osrm"
+authors.workspace = true
+
+[dependencies]
+everymap-core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+async-trait = { workspace = true }
+log = { workspace = true }
+
+# The provider client macro expands a `with_client_builder` constructor that
+# names `reqwest::ClientBuilder`. The constructor is native-only, so the
+# dependency is scoped the same way and the crate builds for WebAssembly
+# without reqwest.
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+reqwest = { workspace = true }
+
+[dev-dependencies]
+wiremock = { workspace = true }
+tokio = { workspace = true }
+
+[lints]
+workspace = true

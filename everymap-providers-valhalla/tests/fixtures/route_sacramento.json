@@ -1,0 +1,115 @@
+{
+  "trip": {
+    "language": "en-US",
+    "summary": {
+      "has_toll": false,
+      "has_highway": false,
+      "has_time_restrictions": false,
+      "has_ferry": false,
+      "min_lat": 38.57652,
+      "min_lon": -121.50797,
+      "max_lat": 38.57887,
+      "max_lon": -121.4936,
+      "time": 420,
+      "length": 3.2,
+      "cost": 0.0
+    },
+    "locations": [
+      {
+        "type": "break",
+        "lat": 38.57657,
+        "lon": -121.4936,
+        "side_of_street": "right",
+        "original_index": 0
+      },
+      {
+        "type": "break",
+        "lat": 38.57887,
+        "lon": -121.50797,
+        "side_of_street": "left",
+        "original_index": 1
+      }
+    ],
+    "legs": [
+      {
+        "maneuvers": [
+          {
+            "type": 1,
+            "instruction": "Drive west on N Street.",
+            "verbal_pre_transition_instruction": "Drive west on N Street.",
+            "length": 0.45,
+            "time": 60,
+            "begin_shape_index": 0,
+            "end_shape_index": 2,
+            "street_names": ["N Street"],
+            "travel_mode": "drive",
+            "travel_type": "car"
+          },
+          {
+            "type": 10,
+            "instruction": "Turn right onto 10th Street.",
+            "verbal_pre_transition_instruction": "Turn right onto Tenth Street.",
+            "length": 0.4,
+            "time": 55,
+            "begin_shape_index": 2,
+            "end_shape_index": 4,
+            "street_names": ["10th Street"],
+            "travel_mode": "drive",
+            "travel_type": "car"
+          },
+          {
+            "type": 8,
+            "instruction": "Continue on 10th Street.",
+            "verbal_pre_transition_instruction": "Continue on 10th Street.",
+            "length": 0.6,
+            "time": 80,
+            "begin_shape_index": 4,
+            "end_shape_index": 6,
+            "street_names": ["10th Street"],
+            "travel_mode": "drive",
+            "travel_type": "car"
+          },
+          {
+            "type": 15,
+            "instruction": "Turn left onto Capitol Mall.",
+            "verbal_pre_transition_instruction": "Turn left onto Capitol Mall.",
+            "length": 1.75,
+            "time": 225,
+            "begin_shape_index": 6,
+            "end_shape_index": 9,
+            "street_names": ["Capitol Mall"],
+            "travel_mode": "drive",
+            "travel_type": "car"
+          },
+          {
+            "type": 4,
+            "instruction": "You have arrived at your destination.",
+            "verbal_pre_transition_instruction": "You have arrived at your destination.",
+            "length": 0.0,
+            "time": 0,
+            "begin_shape_index": 9,
+            "end_shape_index": 11,
+            "travel_mode": "drive",
+            "travel_type": "car"
+          }
+        ],
+        "summary": {
+          "has_toll": false,
+          "has_highway": false,
+          "has_time_restrictions": false,
+          "has_ferry": false,
+          "min_lat": 38.57652,
+          "min_lon": -121.50797,
+          "max_lat": 38.57887,
+          "max_lon": -121.4936,
+          "time": 420,
+          "length": 3.2,
+          "cost": 0.0
+        },
+        "shape": "szoqhA~dkvfFf@nd@z@fw@gc@vcAwj@vcAg^~iAgEv|AgEv|A?v|AoKnoBgEfiBkCzzA"
+      }
+    ],
+    "status": 0,
+    "units": "kilometers"
+  }
+}
