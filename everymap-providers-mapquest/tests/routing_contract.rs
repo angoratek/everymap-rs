@@ -9,6 +9,7 @@ mod common;
 use common::{client_for, fixture, TEST_API_KEY, TEST_USER_AGENT};
 use everymap_core::domains::routing::{
     AvoidType, ManeuverType, RouteOptions, RouteStrategy, Router, TransportMode, TurnDirection,
+    UnitSystem,
 };
 use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
@@ -216,6 +217,42 @@ async fn a_bicycle_request_selects_the_bicycle_route_type() {
         .calculate_route_with_waypoints(&sacramento_waypoints(), &options)
         .await
         .expect("the recorded route must project");
+    server.verify().await;
+}
+
+#[tokio::test]
+async fn an_imperial_request_asks_for_miles_and_converts_them_to_meters() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/directions/v2/route"))
+        .and(query_param("unit", "m"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_json(fixture("directions_route_two_waypoints.json")),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        unit_system: Some(UnitSystem::Imperial),
+        ..RouteOptions::default()
+    };
+    let response = MapQuestRouter::new(client_for(&server))
+        .calculate_route_with_waypoints(&sacramento_waypoints(), &options)
+        .await
+        .expect("the recorded route must project");
+    let payload = fixture("directions_route_two_waypoints.json");
+    let fixture_distance = payload
+        .pointer("/route/distance")
+        .and_then(serde_json::Value::as_f64)
+        .expect("the fixture carries a route distance");
+    let expected_meters = fixture_distance * 1609.344;
+    assert!(
+        (response.routes[0].distance - expected_meters).abs() < 0.001,
+        "a mile answers project back to meters"
+    );
     server.verify().await;
 }
 
