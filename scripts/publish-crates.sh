@@ -12,16 +12,45 @@ DRY_RUN=false
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Publish order: dependencies first, consumers last
-CRATES=(
-    everymap-core
-    everymap-providers-here
-    everymap-providers-google
-    everymap-providers-tomtom
-    everymap-providers-mapbox
-    everymap-providers-radar
-    everymap-cli
-)
+# Publish order comes from the workspace graph, so a crate added to the
+# workspace can never be silently left out of a release. Dependencies are
+# emitted before the crates that use them; normal and build dependencies
+# count, dev-dependencies do not (they may form cycles without affecting
+# publish order), and packages that set `publish = false` are skipped.
+crates_in_publish_order() {
+    cargo metadata --format-version 1 --no-deps 2>/dev/null | jq -r '
+        [.packages[] | select(.publish == null or (.publish | length) > 0)] as $packages
+        | [$packages[].name] as $members
+        | [$packages[]
+           | {name: .name,
+              deps: [.dependencies[]
+                     | select(.kind != "dev")
+                     | .name
+                     | . as $dependency
+                     | select($members | index($dependency))]}]
+        | def emit($remaining; $emitted):
+            if ($remaining | length) == 0 then empty
+            else
+                ($remaining
+                 | map(select(. as $node
+                              | [$node.deps[]
+                                 | . as $dependency
+                                 | select($emitted | index($dependency) | not)]
+                              | length == 0))) as $ready
+                | if ($ready | length) == 0
+                  then error("workspace dependency cycle")
+                  else ($ready | map(.name)) as $ready_names
+                       | $ready_names[], emit($remaining - $ready; $emitted + $ready_names)
+                  end
+            end;
+          emit(.; [])
+    '
+}
+
+CRATES=()
+while IFS= read -r crate_name; do
+    CRATES+=("$crate_name")
+done < <(crates_in_publish_order)
 
 PUBLISH_FLAGS=(--locked)
 $DRY_RUN && PUBLISH_FLAGS+=(--dry-run --allow-dirty)
