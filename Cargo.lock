@@ -576,6 +576,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "everymap-providers-url-template-raster"
+version = "0.2.2"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "everymap-providers-url-template-vector",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
+name = "everymap-providers-url-template-vector"
+version = "0.2.2"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "url",
+ "wiremock",
+]
+
+[[package]]
 name = "everymap-providers-valhalla"
 version = "0.2.2"
 dependencies = [
