@@ -42,8 +42,13 @@ pub enum EveryMapError {
     SerializationError { source: serde_json::Error },
 
     /// An error occurred in the underlying HTTP client.
+    #[cfg(not(target_arch = "wasm32"))]
     #[error("HTTP client error: {0}")]
     ClientError(#[from] reqwest::Error),
+
+    /// The HTTP transport failed before a response was received.
+    #[error("HTTP transport error: {0}")]
+    TransportError(String),
 
     /// The requested domain is not supported by this provider.
     #[error("{provider} does not support {domain}")]
