@@ -1,0 +1,13 @@
+{
+  "info": {
+    "statuscode": 500,
+    "copyright": {
+      "text": "© 2026 MapQuest, Inc.",
+      "imageUrl": "http://api.mqcdn.com/res/mqlogo.gif",
+      "imageAltText": "© 2026 MapQuest, Inc."
+    },
+    "messages": [
+      "Error processing request: Encountered an error while trying to batch geocode: Geocode Failed: 400: [\"Illegal argument from request: Invalid LatLng specified.[0]\"]"
+    ]
+  }
+}

@@ -1,0 +1,397 @@
+{
+  "route": {
+    "sessionId": "AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car",
+    "realTime": 315,
+    "distance": 1.7,
+    "time": 235,
+    "formattedTime": "00:03:55",
+    "hasHighway": false,
+    "hasTollRoad": false,
+    "hasBridge": false,
+    "hasSeasonalClosure": false,
+    "hasTunnel": false,
+    "hasFerry": false,
+    "hasUnpaved": false,
+    "hasTimedRestriction": false,
+    "hasCountryCross": false,
+    "hasUTurn": false,
+    "hasDifficultTurn": false,
+    "legs": [
+      {
+        "index": 0,
+        "hasTollRoad": false,
+        "hasHighway": false,
+        "hasBridge": false,
+        "hasUnpaved": false,
+        "hasTunnel": false,
+        "hasSeasonalClosure": false,
+        "hasFerry": false,
+        "hasCountryCross": false,
+        "hasTimedRestriction": false,
+        "hasUTurn": false,
+        "hasDifficultTurn": false,
+        "distance": 1.7,
+        "time": 315,
+        "formattedTime": "00:05:15",
+        "origIndex": 0,
+        "origNarrative": "",
+        "destIndex": 0,
+        "destNarrative": "",
+        "maneuvers": [
+          {
+            "index": 0,
+            "distance": 0.1,
+            "narrative": "Head toward Capitol Mall on 10th St. Go for 140 m.",
+            "time": 27,
+            "direction": 3,
+            "directionName": "Northeast",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:00:27",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.57693,
+              "lng": -121.49492
+            },
+            "turnType": 0,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": [
+              "10th St"
+            ],
+            "mapUrl": "https://www.mapquestapi.com/staticmap/v5/map?key=REDACTED&size=225,160&locations=38.57693,-121.49492|marker-1||38.57812,-121.49439|marker-2||&center=38.577524999999994,-121.494655&defaultMarker=none&zoom=16&session=AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car"
+          },
+          {
+            "index": 1,
+            "distance": 0.9,
+            "narrative": "Turn left onto L St. Go for 864 m.",
+            "time": 160,
+            "direction": 7,
+            "directionName": "West",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:02:40",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.57812,
+              "lng": -121.49439
+            },
+            "turnType": 6,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": [
+              "L St"
+            ],
+            "mapUrl": "https://www.mapquestapi.com/staticmap/v5/map?key=REDACTED&size=225,160&locations=38.57812,-121.49439|marker-2||38.58060000000001,-121.50371000000001|marker-3||&center=38.57936000000001,-121.49905000000001&defaultMarker=none&zoom=13&session=AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car"
+          },
+          {
+            "index": 2,
+            "distance": 0.4,
+            "narrative": "Turn left onto 3rd St. Go for 393 m.",
+            "time": 64,
+            "direction": 6,
+            "directionName": "Southwest",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:01:04",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.58060000000001,
+              "lng": -121.50371000000001
+            },
+            "turnType": 6,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": [
+              "3rd St"
+            ],
+            "mapUrl": "https://www.mapquestapi.com/staticmap/v5/map?key=REDACTED&size=225,160&locations=38.58060000000001,-121.50371000000001|marker-3||38.57725000000001,-121.50517000000002|marker-4||&center=38.57892500000001,-121.50444000000002&defaultMarker=none&zoom=15&session=AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car"
+          },
+          {
+            "index": 3,
+            "distance": 0.2,
+            "narrative": "Turn right onto O St. Go for 243 m.",
+            "time": 51,
+            "direction": 7,
+            "directionName": "West",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:00:51",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.57725000000001,
+              "lng": -121.50517000000002
+            },
+            "turnType": 2,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": [
+              "O St"
+            ],
+            "mapUrl": "https://www.mapquestapi.com/staticmap/v5/map?key=REDACTED&size=225,160&locations=38.57725000000001,-121.50517000000002|marker-4||38.57795000000001,-121.50780000000005|marker-5||&center=38.577600000000004,-121.50648500000003&defaultMarker=none&zoom=15&session=AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car"
+          },
+          {
+            "index": 4,
+            "distance": 0.1,
+            "narrative": "Turn right onto Front St. Go for 93 m.",
+            "time": 13,
+            "direction": 3,
+            "directionName": "Northeast",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:00:13",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.57795000000001,
+              "lng": -121.50780000000005
+            },
+            "turnType": 2,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": [
+              "Front St"
+            ],
+            "mapUrl": "https://www.mapquestapi.com/staticmap/v5/map?key=REDACTED&size=225,160&locations=38.57795000000001,-121.50780000000005|marker-5||38.578739000000006,-121.50744700000004|marker-6||&center=38.57834450000001,-121.50762350000005&defaultMarker=none&zoom=16&session=AG4A_v___w4AAQCfAAAAeNpjmM_AwMTAwMCekVqUapWc-5TXQ4IBCjh4GBgi2mZp2m3Pi0anGbAAmBlXnnlJgvj8d4xOMgHNSLeboTmDOz8aRncB6V4gzYADRBzJk9EF0g88uAVWMQAATCch8bMuBzY:car"
+          },
+          {
+            "index": 5,
+            "distance": 0,
+            "narrative": "Arrive at Front St.",
+            "time": 0,
+            "direction": 0,
+            "directionName": "None",
+            "signs": [],
+            "maneuverNotes": [],
+            "formattedTime": "00:00:00",
+            "transportMode": "car",
+            "startPoint": {
+              "lat": 38.578739000000006,
+              "lng": -121.50744700000004
+            },
+            "turnType": 0,
+            "attributes": 0,
+            "iconUrl": "",
+            "streets": []
+          }
+        ]
+      }
+    ],
+    "options": {
+      "routeType": "FASTEST",
+      "narrativeType": "text",
+      "fullShape": "true",
+      "shapeFormat": "raw",
+      "unit": "K",
+      "enhancedNarrative": false,
+      "walkingSpeed": -1,
+      "highwayEfficiency": 22,
+      "avoids": false,
+      "hazardousGoods": false,
+      "tollPaymentMethods": false,
+      "generalize": -1,
+      "locale": "en_US",
+      "useTraffic": false,
+      "timeType": 0,
+      "dateType": 0,
+      "doReverseGeocode": true,
+      "manMaps": true,
+      "tollCost": false,
+      "tollSummary": false,
+      "sideOfStreetDisplay": true
+    },
+    "boundingBox": {
+      "ul": {
+        "lat": 38.58060000000001,
+        "lng": -121.50780000000005
+      },
+      "lr": {
+        "lat": 38.57693,
+        "lng": -121.49439
+      }
+    },
+    "routeWarnings": [],
+    "name": "L St and 3rd St",
+    "shape": {
+      "shapePoints": [
+        38.57693,
+        -121.49492,
+        38.57705,
+        -121.49487,
+        38.57812,
+        -121.49439,
+        38.57836,
+        -121.49532,
+        38.57847,
+        -121.49576,
+        38.57857,
+        -121.49613,
+        38.57871,
+        -121.49662,
+        38.5788,
+        -121.49694,
+        38.57884,
+        -121.49708,
+        38.57895,
+        -121.49751,
+        38.57906,
+        -121.49793,
+        38.57909,
+        -121.49802,
+        38.57919,
+        -121.4984,
+        38.57937,
+        -121.49908,
+        38.57951,
+        -121.49963,
+        38.57954,
+        -121.49973,
+        38.57969,
+        -121.5003,
+        38.57981,
+        -121.50074,
+        38.57989,
+        -121.50105,
+        38.58005,
+        -121.50164,
+        38.58009,
+        -121.50181,
+        38.58025,
+        -121.50241,
+        38.58035,
+        -121.50278,
+        38.58044,
+        -121.50313,
+        38.58051,
+        -121.50339,
+        38.5806,
+        -121.50371,
+        38.58016,
+        -121.50391,
+        38.57993,
+        -121.50401,
+        38.57957,
+        -121.50417,
+        38.57938,
+        -121.50425,
+        38.57836,
+        -121.5047,
+        38.57737,
+        -121.50512,
+        38.57725,
+        -121.50517,
+        38.57745,
+        -121.50595,
+        38.5776,
+        -121.50654,
+        38.57765,
+        -121.50674,
+        38.57767,
+        -121.50684,
+        38.57774,
+        -121.50706,
+        38.57779,
+        -121.50723,
+        38.57785,
+        -121.50746,
+        38.5779,
+        -121.50765,
+        38.57795,
+        -121.5078,
+        38.5782,
+        -121.50767,
+        38.57864,
+        -121.50749,
+        38.578739,
+        -121.507447
+      ],
+      "legIndexes": [
+        0,
+        45
+      ],
+      "maneuverIndexes": [
+        0,
+        2,
+        25,
+        32,
+        41,
+        44
+      ]
+    },
+    "maxRoutes": "",
+    "locations": [
+      {
+        "street": "1315 10th St",
+        "adminArea6": "Downtown Sacramento",
+        "adminArea6Type": "Neighborhood",
+        "adminArea5": "Sacramento",
+        "adminArea5Type": "City",
+        "adminArea4": "Sacramento",
+        "adminArea4Type": "County",
+        "adminArea3": "CA",
+        "adminArea3Type": "State",
+        "adminArea1": "US",
+        "adminArea1Type": "Country",
+        "postalCode": "95814-4905",
+        "geocodeQualityCode": "L1CAA",
+        "geocodeQuality": "ADDRESS",
+        "dragPoint": false,
+        "sideOfStreet": "N",
+        "linkId": "0",
+        "unknownInput": "",
+        "type": "s",
+        "latLng": {
+          "lat": 38.57693,
+          "lng": -121.49492
+        },
+        "displayLatLng": {
+          "lat": 38.57653,
+          "lng": -121.49343
+        },
+        "mapUrl": ""
+      },
+      {
+        "street": "Front St",
+        "adminArea6": "Old Sacramento Waterfront",
+        "adminArea6Type": "Neighborhood",
+        "adminArea5": "Sacramento",
+        "adminArea5Type": "City",
+        "adminArea4": "Sacramento",
+        "adminArea4Type": "County",
+        "adminArea3": "CA",
+        "adminArea3Type": "State",
+        "adminArea1": "US",
+        "adminArea1Type": "Country",
+        "postalCode": "95814",
+        "geocodeQualityCode": "B1CAA",
+        "geocodeQuality": "STREET",
+        "dragPoint": false,
+        "sideOfStreet": "N",
+        "linkId": "0",
+        "unknownInput": "",
+        "type": "s",
+        "latLng": {
+          "lat": 38.57874,
+          "lng": -121.50745
+        },
+        "displayLatLng": {
+          "lat": 38.57874,
+          "lng": -121.50745
+        },
+        "mapUrl": ""
+      }
+    ],
+    "locationSequence": [
+      0,
+      1
+    ]
+  },
+  "info": {
+    "statuscode": 0,
+    "copyright": {
+      "text": "© 2026 MapQuest, Inc.",
+      "imageUrl": "http://api.mqcdn.com/res/mqlogo.gif",
+      "imageAltText": "© 2026 MapQuest, Inc."
+    },
+    "messages": []
+  }
+}
