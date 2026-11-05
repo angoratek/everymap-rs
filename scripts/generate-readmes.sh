@@ -19,6 +19,7 @@ crates=(
   everymap-providers-mapbox
   everymap-providers-radar
   everymap-providers-mapquest
+  everymap-providers-photon
   everymap-providers-osrm
   everymap-providers-valhalla
   everymap-providers-url-template-raster

@@ -565,6 +565,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "everymap-providers-photon"
+version = "0.3.1"
+dependencies = [
+ "async-trait",
+ "everymap-core",
+ "log",
+ "serde",
+ "serde_json",
+ "tokio",
+ "wiremock",
+]
+
+[[package]]
 name = "everymap-providers-radar"
 version = "0.3.1"
 dependencies = [

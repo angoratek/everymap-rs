@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- `everymap-providers-photon`: a keyless Photon provider covering forward and reverse geocoding, settled place search and type-ahead over the public instance or a self-hosted deployment, with Photon's feature classes mapped onto the core's quality scale and its GeoJSON `FeatureCollection` projected onto the core records. It builds for the browser and joins the CI closure; seven wiremock contract cases replay the committed fixtures.
 - `everymap-cli` and `everymap-bench` select MapQuest, OSRM and Valhalla beside the five original providers. MapQuest serves geocoding, routing and traffic; OSRM and Valhalla serve routing and take their deployment base URL in the credential slot (an empty value reaches the documented local default). A domain a provider does not serve answers with the documented unsupported-domain error. The CLI's provider validation moved ahead of credential resolution so the keyless engines need no key, and the error keeps its documented "API key required" prefix.
 - `unsupported_geocoder!` and `unsupported_matcher!` join the unsupported-domain macros, so a routing-only provider can declare the two domains it lacks.
 

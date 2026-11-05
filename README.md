@@ -34,6 +34,7 @@ everymap-rs/
 ├── everymap-providers-mapbox/              # MapBox
 ├── everymap-providers-radar/               # Radar
 ├── everymap-providers-mapquest/            # MapQuest — geocoding, search, routing, matrix, traffic, tiles
+├── everymap-providers-photon/              # Photon — keyless geocoding, place search, type-ahead
 ├── everymap-providers-osrm/                # OSRM routing
 ├── everymap-providers-valhalla/            # Valhalla routing
 ├── everymap-providers-url-template-raster/ # Any {z}/{x}/{y} raster source
@@ -72,6 +73,14 @@ The crates built on the newest contracts:
 | Raster tiles | `RasterTileProvider` | ✅ | — | — | ✅ | — |
 | Vector tiles | `VectorTileProvider` | — | — | — | — | ✅ |
 
+Photon serves the same search family without a credential:
+
+| Contract | Trait | Photon |
+|----------|-------|--------|
+| Geocoding | `Geocoder` | ✅ |
+| Place search | `PlaceSearchProvider` | ✅ |
+| Type-ahead | `AutocompleteProvider` | ✅ |
+
 ✅ = real implementation, — = unsupported (stub or N/A).
 
 An unsupported domain returns a clear `UnsupportedDomain` error: `"google does not support traffic"`.
@@ -99,6 +108,7 @@ cargo install everymap-cli
 | [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) ([docs](https://docs.rs/everymap-providers-mapbox)) | MapBox — 7 domains |
 | [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) ([docs](https://docs.rs/everymap-providers-radar)) | Radar — 4 domains |
 | [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) ([docs](https://docs.rs/everymap-providers-mapquest)) | MapQuest — geocoding, place search, type-ahead, routing, matrix, traffic, raster tiles |
+| [`everymap-providers-photon`](https://crates.io/crates/everymap-providers-photon) ([docs](https://docs.rs/everymap-providers-photon)) | Photon — keyless geocoding, place search and type-ahead |
 | [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) ([docs](https://docs.rs/everymap-providers-osrm)) | OSRM — navigation-grade routing |
 | [`everymap-providers-valhalla`](https://crates.io/crates/everymap-providers-valhalla) ([docs](https://docs.rs/everymap-providers-valhalla)) | Valhalla — navigation-grade routing |
 | [`everymap-providers-url-template-raster`](https://crates.io/crates/everymap-providers-url-template-raster) ([docs](https://docs.rs/everymap-providers-url-template-raster)) | Any `{z}/{x}/{y}` raster source |

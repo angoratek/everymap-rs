@@ -1,0 +1,19 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-121.493, 38.579] },
+      "properties": {
+        "osm_id": 111,
+        "osm_type": "W",
+        "type": "street",
+        "name": "Capitol Mall",
+        "street": "Capitol Mall",
+        "city": "Sacramento",
+        "state": "California",
+        "country": "United States"
+      }
+    }
+  ]
+}

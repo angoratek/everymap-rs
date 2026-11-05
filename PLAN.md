@@ -137,10 +137,10 @@ The 0.2.2-era prose still describes five providers, ten traits and eight crates.
 
 > Verify: a provider crate implements `Geocoder`, `PlaceSearchProvider` and `AutocompleteProvider` against the public Photon instance and a configurable base URL, its contract tests replay committed fixtures without a network call, it builds and lints for `wasm32`, and a release carrying it lets the Rustic Maps SDK delete its own Photon crate and its transport crate.
 
-- [ ] Crate and client: one keyless client over the Photon API (`/api`), a configurable base URL, the identifying User-Agent, pacing, retry and the shared pipeline.
-- [ ] Contracts: forward and reverse geocoding, settled place search and type-ahead, with the SDK's existing fixture vocabulary (feature types, extent, country-code filtering) mapped onto `SearchResult`/`SearchQuality`/`AutocompleteResult`.
-- [ ] Contract tests from the SDK's committed fixtures, plus error-path and malformed-payload cases.
-- [ ] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog.
+- [x] Crate and client (round 198): one keyless client over the Photon API (`/api`, `/reverse`), a configurable base URL, the identifying User-Agent, and the shared pipeline (`/api`), a configurable base URL, the identifying User-Agent, pacing, retry and the shared pipeline.
+- [x] Contracts (round 198): forward and reverse geocoding, settled place search and type-ahead, with Photon's feature classes mapped onto `SearchQuality` and its address parts onto `Address`, settled place search and type-ahead, with the SDK's existing fixture vocabulary (feature types, extent, country-code filtering) mapped onto `SearchResult`/`SearchQuality`/`AutocompleteResult`.
+- [x] Contract tests from the SDK's committed fixtures (round 198, seven wiremock cases), plus error-path and malformed-payload cases, plus error-path and malformed-payload cases.
+- [x] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog (round 198).
 - [ ] `openstreetmap_us_vector_source()`: carry the identifying User-Agent and the full attribution and terms text the dedicated crate served, so a host can serve OSM US from the URL-template provider without losing the service's request policy.
 - [ ] Release the patch that carries both, and hand the Rustic Maps SDK the version to move to.
 

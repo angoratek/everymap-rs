@@ -50,6 +50,7 @@ jobs:
           -p everymap-providers-mapbox
           -p everymap-providers-radar
           -p everymap-providers-mapquest
+          -p everymap-providers-photon
           -p everymap-providers-osrm
           -p everymap-providers-valhalla
           -p everymap-providers-url-template-raster
@@ -64,6 +65,7 @@ jobs:
           -p everymap-providers-mapbox
           -p everymap-providers-radar
           -p everymap-providers-mapquest
+          -p everymap-providers-photon
           -p everymap-providers-osrm
           -p everymap-providers-valhalla
           -p everymap-providers-url-template-raster
