@@ -80,14 +80,13 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 
 | Metric | Value |
 |--------|-------|
-| Workspace crates | 8 |
-| Domain traits | 10 |
-| CLI commands | 11 |
-| Total tests | 654 run, 9 skipped (nextest) |
-| Real implementations | 35 across 5 providers |
+| Workspace crates | 13 (core, 11 provider crates, CLI, bench) |
+| Contracts | The 10 original domain traits plus navigation-grade `Router`, typed `RasterTileProvider`/`VectorTileProvider`, `PlaceSearchProvider`, `AutocompleteProvider`, `DistanceMatrixProvider`, `ElevationProvider` and `OfflineRoutingProvider` |
+| Browser-ready crates | `everymap-core`, the MapQuest, OSRM, Valhalla and both URL-template providers |
+| Total tests | 97 suites green on 0.3.1 |
 | Clippy warnings | 0 |
 | MSRV | 1.86 |
-| Version | 0.2.2 |
+| Version | 0.3.1 |
 
 ---
 
@@ -110,4 +109,33 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 - [x] Wire core `avoid`/`alternatives` fields to Radar routing API (currently only via `provider_extra`)
 - [x] Provider client macro to reduce boilerplate across crates
 - [ ] Compile-time feature-gated providers in CLI to reduce binary size
+
+---
+
+### M1 — Documentation and tooling parity · *status: open (owner-directed 2026-11-04)*
+
+> Verify: every page that names the provider set, the crate list, the contract list, the test count or the version matches the workspace; `scripts/generate-readmes.sh --check`, `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps` and the README link check are green; and `everymap-cli` and `everymap-bench` can select every provider the workspace ships.
+
+The 0.2.2-era prose still describes five providers, ten traits and eight crates. The workspace now carries thirteen crates, four more contracts and a browser target, so the documents are the largest remaining source of wrong answers — for people and for agents alike.
+
+- [ ] `README.md`: the headline, provider list, workspace tree, domain matrix, crate table, installation snippet, feature list and contribution guide name all thirteen crates and every contract; add the browser transport (and that the five original providers, the CLI and the bench are native-only), the `web-time` clock, the MapQuest/OSRM/Valhalla/URL-template crates, and the 0.3.1 fixes.
+- [ ] `PLAN.md`: refresh the Architectural Blueprint (crate count, contracts, the provider matrix), the Completed Highlights and the metrics from the workspace rather than from memory.
+- [ ] `CLAUDE.md`: the repository guide's architecture, commands, wasm closure and release procedure reflect the current workspace.
+- [ ] `TESTING.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`: provider lists, live-test instructions (including `EVERYMAP_MAPQUEST_API_KEY`), the browser matrix, and the credential/transport facts a contributor needs.
+- [ ] `docs/readme/*.md` and the generated `<crate>/README.md`: each crate body lists the contracts it implements and its platform support; regenerate with `scripts/generate-readmes.sh`.
+- [ ] `everymap-cli`: `--provider mapquest|osrm|valhalla` (MapQuest for every contract it serves; OSRM and Valhalla for routing, with the deployment URL as the credential), the URL-template raster and vector sources where a command fits, `~/.everymap/config.toml` sections and env names for each, and the unsupported-capability answer where a provider has no implementation; update `docs/readme/everymap-cli.md`, `scripts/smoke-test-cli.sh` and `scripts/validate-cli.sh`.
+- [ ] `everymap-bench`: benchmark MapQuest, OSRM and Valhalla beside the five original providers through the same typed scenario dispatch, and document how to run them.
+- [ ] `docs/rfc/0001-transport-seam-and-wasm.md`: record phases 3 and 4 as landed, and add 0.3.1.
+- [ ] CI: gate `scripts/generate-readmes.sh --check`, the rustdoc build and the CLI smoke so documentation cannot drift again.
+
+### M2 — `everymap-providers-photon` · *status: open (owner-directed 2026-11-04)*
+
+> Verify: a provider crate implements `Geocoder`, `PlaceSearchProvider` and `AutocompleteProvider` against the public Photon instance and a configurable base URL, its contract tests replay committed fixtures without a network call, it builds and lints for `wasm32`, and a release carrying it lets the Rustic Maps SDK delete its own Photon crate and its transport crate.
+
+- [ ] Crate and client: one keyless client over the Photon API (`/api`), a configurable base URL, the identifying User-Agent, pacing, retry and the shared pipeline.
+- [ ] Contracts: forward and reverse geocoding, settled place search and type-ahead, with the SDK's existing fixture vocabulary (feature types, extent, country-code filtering) mapped onto `SearchResult`/`SearchQuality`/`AutocompleteResult`.
+- [ ] Contract tests from the SDK's committed fixtures, plus error-path and malformed-payload cases.
+- [ ] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog.
+- [ ] `openstreetmap_us_vector_source()`: carry the identifying User-Agent and the full attribution and terms text the dedicated crate served, so a host can serve OSM US from the URL-template provider without losing the service's request policy.
+- [ ] Release the patch that carries both, and hand the Rustic Maps SDK the version to move to.
 - [x] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`

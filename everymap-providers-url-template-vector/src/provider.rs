@@ -17,6 +17,7 @@ use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::http::{HttpTransport, Method};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use std::time::Duration;
 
 /// Highest zoom level whose full XYZ index range still fits a `u32`
 /// (`2^zoom_level - 1 <= u32::MAX`); at deeper zooms every `u32` tile index
@@ -125,10 +126,13 @@ impl UrlTemplateVectorTileProvider {
             None => UrlTemplateVectorClient::keyless(),
         };
         if let Some(pacing) = source.pacing {
-            client.set_rate_limiter(Arc::new(TokenBucket::new(
-                pacing.capacity_tokens,
-                pacing.refill_tokens_per_second,
-            )));
+            let mut token_bucket =
+                TokenBucket::new(pacing.capacity_tokens, pacing.refill_tokens_per_second);
+            if let Some(maximum_wait_seconds) = pacing.maximum_wait_seconds {
+                token_bucket =
+                    token_bucket.with_maximum_wait(Duration::from_secs_f64(maximum_wait_seconds));
+            }
+            client.set_rate_limiter(Arc::new(token_bucket));
         }
         Ok(Self {
             url_template,
