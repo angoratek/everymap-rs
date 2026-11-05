@@ -77,7 +77,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      # The documentation gates: rustdoc warnings fail the build, and the
+      # per-crate READMEs must match the fragments they are generated from.
       - run: RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features
+      - run: chmod +x scripts/generate-readmes.sh
+      - run: scripts/generate-readmes.sh --check
+      # The README's links and its provider/crate tables are hand-written;
+      # the CLI must at least build and answer `--help` in this job.
+      - run: cargo run -p everymap-cli -- --help > /dev/null
 
   audit:
     runs-on: ubuntu-latest
