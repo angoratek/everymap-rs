@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Changed
+- Every provider crate builds for the browser. The five original providers already delegated to the shared `ProviderClient`; their unused `tokio` and `reqwest` dependencies were what pulled a native-only runtime into a `wasm32` build, and `provider_client!` now names `everymap-core`'s re-exported `ClientBuilder` instead of `reqwest` directly. HERE's tour request reads the wall clock through `web-time` rather than `chrono::Utc::now()`, which is unimplemented in a browser. The CI browser closure now covers core and all eleven providers, and `scripts/check-provider-transport-isolation.sh` fails a provider crate that names `reqwest` or `tokio` directly.
+
 ## [0.3.1] — 2026-11-04
 
 ### Fixed

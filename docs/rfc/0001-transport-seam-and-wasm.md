@@ -265,12 +265,14 @@ that carries this change.
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Design and RFC, plus the adoption note in the SDK repository | Complete |
-| 1 | Core plumbing: transport seam, browser-fetch wasm transport, feature-gated tokio, wasm CI, pacing, retry, timeouts, redacting observer | Complete (`feat/transport-and-wasm`, draft PR #22) |
-| 2 | Core domains: navigation-grade routing and typed raster/vector tiles | This change; traffic geometry, autocomplete, matrix, elevation and offline routing still open |
-| 3 | Providers: MapQuest, OSRM, Valhalla, URL-template raster and vector, OSM US/OpenFreeMap descriptors, with recorded fixtures and contract tests | Not started |
-| 4 | Release 0.3.0 with the wasm/native CI matrix and the changelog | Not started |
-| 5 | Switch the SDK: registry, catalog, cache wrappers, native registration and wasm dispatch | Not started |
-| 6 | Docs and gates: provider-genericity guide, crate layout, name guard, full platform gates | Not started |
+| 1 | Core plumbing: transport seam, browser-fetch wasm transport, feature-gated tokio, wasm CI, pacing, retry, timeouts, redacting observer | Complete (PR #22) |
+| 2 | Core domains: navigation-grade routing, typed raster/vector tiles, traffic geometry, autocomplete, matrix, elevation and offline routing | Complete (PRs #23 and #24) |
+| 3 | Providers: MapQuest, OSRM, Valhalla, URL-template raster and vector, OSM US/OpenFreeMap descriptors, with recorded fixtures and contract tests | Complete (PRs #25–#27) |
+| 4 | Release 0.3.0 with the wasm/native CI matrix and the changelog | Complete (`v0.3.0`) |
+| 2–4 | Follow-ups: the `web-time` browser clock and the optional tile-source `maximum_wait` | Complete (`v0.3.1`) |
+| 3 | Follow-up: every provider crate in the browser closure — the five original providers drop their unused `tokio`/`reqwest` dependencies and HERE reads the wall clock through `web-time` | Landed on `main`; the next release carries it |
+| 5 | Switch the SDK: registry, catalog, cache wrappers, native registration and wasm dispatch | In progress in the SDK repository (M66) |
+| 6 | Docs and gates: provider-genericity guide, crate layout, name guard, full platform gates | In progress (everymap-rs `PLAN.md` M1) |
 
 ## Consequences
 

@@ -16,14 +16,16 @@ authors.workspace = true
 everymap-core = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true }
 async-trait = { workspace = true }
-reqwest = { workspace = true }
 thiserror = { workspace = true }
 chrono = { workspace = true }
 log = { workspace = true }
+web-time = { workspace = true }
 
 [dev-dependencies]
+# The async test harness of the contract suites; the crate itself
+# reaches the network only through `everymap_core`'s shared client.
+tokio = { workspace = true }
 wiremock = { workspace = true }
 
 [lints]

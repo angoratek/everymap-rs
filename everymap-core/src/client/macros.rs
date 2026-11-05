@@ -47,7 +47,7 @@ macro_rules! provider_client {
             #[cfg(not(target_arch = "wasm32"))]
             #[doc = concat!("Creates a `", stringify!($struct_name), "` with a custom `reqwest::Client` configuration.")]
             pub fn with_client_builder(
-                builder: ::reqwest::ClientBuilder,
+                builder: $crate::client::ClientBuilder,
                 auth_provider: ::std::sync::Arc<dyn $crate::auth::AuthProvider>,
             ) -> $crate::error::EveryMapResult<Self> {
                 Ok(Self {

@@ -28,13 +28,18 @@ everymap-rs/
 ├── everymap-providers-tomtom/ # TomTom
 ├── everymap-providers-mapbox/ # MapBox
 ├── everymap-providers-radar/  # Radar
+├── everymap-providers-mapquest/            # MapQuest
+├── everymap-providers-osrm/                # OSRM
+├── everymap-providers-valhalla/            # Valhalla
+├── everymap-providers-url-template-raster/ # Any {z}/{x}/{y} raster source
+├── everymap-providers-url-template-vector/ # Any {z}/{x}/{y} vector source
 ├── everymap-cli/           # CLI tool (11 commands)
 └── everymap-bench/         # Benchmark framework
 ```
 
 ## Adding a New Provider
 
-1. Create `everymap-providers-{name}/` crate depending on `everymap-core`
+1. Create `everymap-providers-{name}/` crate depending on `everymap-core` — never `reqwest` or `tokio`, which would break the browser target
 2. Create `client.rs` — thin wrapper around `ProviderClient` (see `GoogleClient` as template)
 3. Define `const PROVIDER_NAME: &str = "name"` in the client module
 4. Create `domain/geo.rs` — shared lat/lng type

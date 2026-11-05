@@ -7,24 +7,29 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 
 ## Architectural Blueprint
 
-### 1. Crate Strategy: Modular Workspace (8 crates)
+### 1. Crate Strategy: Modular Workspace (13 crates)
 
 - **`everymap-core`**: The bedrock. Zero-dependency where possible.
     - Shared Types: `Coordinate`, `BoundingBox`, `Address`, `Polyline`, `FlexiblePolyline`.
-    - 10 Domain Traits: `Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`.
-    - Core Options Types: `GeocodeOptions`, `RouteOptions`, etc. with `provider_extra: Option<serde_json::Value>` escape hatch.
-    - Enriched Response Types: `SearchResult`, `RouteResult`, `TrafficFlow`, `TrafficIncident`, `IsolineResult`, `MatchedPoint`, `TourResponse`, etc.
-    - Auth Traits: `AuthProvider` (`ApiKeyProvider`, `HeaderAuthProvider`, future `OAuth2Provider`).
+    - Contracts: the ten original domain traits (`Geocoder`, `Router`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `TrafficProvider`, `TileProvider`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`) plus navigation-grade `Router`, typed `RasterTileProvider`/`VectorTileProvider`, `PlaceSearchProvider`, `AutocompleteProvider`, `DistanceMatrixProvider`, `ElevationProvider` and `OfflineRoutingProvider`.
+    - Core Options Types: `GeocodeOptions`, `RouteOptions`, `TileSourcePacing`, etc. with `provider_extra: Option<serde_json::Value>` escape hatch.
+    - Enriched Response Types: `SearchResult`, `RouteResult` (legs, maneuvers, lanes), `TrafficFlow`, `TrafficIncident`, `DistanceMatrixResponse`, `AutocompleteResponse`, typed tiles, etc.
+    - Auth Traits: `AuthProvider` (`ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider`, `NoAuthProvider`).
     - Error System: Structured `EveryMapError` with `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, etc.
-    - `ProviderClient`: Consolidated HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str).
-    - 7 Unsupported Domain Macros: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`.
+    - `ProviderClient`: Consolidated request logic — transport seam (`HttpTransport`: reqwest natively, `fetch` in the browser), pacing, bounded retries, timeouts, redacting observers, and a `web-time` clock so the same code runs on every target.
+    - Unsupported Domain Macros: `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`.
 - **`everymap-providers-here`**: HERE Technologies — 10 domains implemented (all common domains).
 - **`everymap-providers-google`**: Google Maps — 6 domains implemented (search, routing, matching, positioning, attributes, imaging).
 - **`everymap-providers-tomtom`**: TomTom — 8 domains implemented (search, routing, traffic, isoline, matching, tour, tiling, imaging).
 - **`everymap-providers-mapbox`**: MapBox — 7 domains implemented (search, routing, isoline, matching, tour, tiling, imaging).
 - **`everymap-providers-radar`**: Radar — 4 domains (search, routing, matching, tour).
+- **`everymap-providers-mapquest`**: MapQuest — geocoding, place search, autocomplete, navigation-grade routing, distance matrix, traffic, raster tiles.
+- **`everymap-providers-osrm`**, **`everymap-providers-valhalla`**: keyless routing engines over a deployment address.
+- **`everymap-providers-url-template-raster`**, **`-vector`**: any `{z}/{x}/{y}` tileset, with named OSM US and OpenFreeMap vector sources.
 - **`everymap-cli`**: CLI tool with 11 commands, unified `ProviderRegistry` dispatch.
-- **`everymap-bench`**: Cross-provider benchmark framework covering all 10 domains with typed `ScenarioParams` dispatch.
+- **`everymap-bench`**: Cross-provider benchmark framework with typed `ScenarioParams` dispatch.
+
+Every provider crate builds for `wasm32-unknown-unknown` and reaches the network only through the shared client; the CLI and the bench stay native.
 
 ### 2. Domain Abstraction
 
@@ -118,11 +123,11 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 
 The 0.2.2-era prose still describes five providers, ten traits and eight crates. The workspace now carries thirteen crates, four more contracts and a browser target, so the documents are the largest remaining source of wrong answers — for people and for agents alike.
 
-- [ ] `README.md`: the headline, provider list, workspace tree, domain matrix, crate table, installation snippet, feature list and contribution guide name all thirteen crates and every contract; add the browser transport (and that the five original providers, the CLI and the bench are native-only), the `web-time` clock, the MapQuest/OSRM/Valhalla/URL-template crates, and the 0.3.1 fixes.
-- [ ] `PLAN.md`: refresh the Architectural Blueprint (crate count, contracts, the provider matrix), the Completed Highlights and the metrics from the workspace rather than from memory.
-- [ ] `CLAUDE.md`: the repository guide's architecture, commands, wasm closure and release procedure reflect the current workspace.
-- [ ] `TESTING.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md`: provider lists, live-test instructions (including `EVERYMAP_MAPQUEST_API_KEY`), the browser matrix, and the credential/transport facts a contributor needs.
-- [ ] `docs/readme/*.md` and the generated `<crate>/README.md`: each crate body lists the contracts it implements and its platform support; regenerate with `scripts/generate-readmes.sh`.
+- [x] `README.md`: the headline, provider list, workspace tree, domain matrix, crate table, installation snippet, feature list and contribution guide name all thirteen crates and every contract; add the browser transport (and that the five original providers, the CLI and the bench are native-only), the `web-time` clock, the MapQuest/OSRM/Valhalla/URL-template crates, and the 0.3.1 fixes.
+- [x] `PLAN.md`: refresh the Architectural Blueprint (crate count, contracts, the provider matrix), the Completed Highlights and the metrics from the workspace rather than from memory.
+- [x] `CLAUDE.md`: the repository guide's architecture, commands, wasm closure and release procedure reflect the current workspace.
+- [x] `TESTING.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md` (round 194): provider lists, live-test instructions (including `EVERYMAP_MAPQUEST_API_KEY`), the browser matrix, and the credential/transport facts a contributor needs.
+- [x] `docs/readme/*.md` and the generated `<crate>/README.md`: each crate body lists the contracts it implements and its platform support; regenerate with `scripts/generate-readmes.sh`.
 - [ ] `everymap-cli`: `--provider mapquest|osrm|valhalla` (MapQuest for every contract it serves; OSRM and Valhalla for routing, with the deployment URL as the credential), the URL-template raster and vector sources where a command fits, `~/.everymap/config.toml` sections and env names for each, and the unsupported-capability answer where a provider has no implementation; update `docs/readme/everymap-cli.md`, `scripts/smoke-test-cli.sh` and `scripts/validate-cli.sh`.
 - [ ] `everymap-bench`: benchmark MapQuest, OSRM and Valhalla beside the five original providers through the same typed scenario dispatch, and document how to run them.
 - [ ] `docs/rfc/0001-transport-seam-and-wasm.md`: record phases 3 and 4 as landed, and add 0.3.1.
@@ -147,11 +152,11 @@ The point of the transport seam is that a provider is written once and reaches e
 
 **Research (2026-11-04).** All five original providers already delegate their HTTP work to `everymap_core::client::ProviderClient` through `provider_client!`; none of their sources names `reqwest` or `tokio`. Their `[dependencies]` still list `tokio = { workspace = true }` (workspace `features = ["full"]`) and `reqwest`, which is what pulls `mio` into a wasm build and fails it. Removing those two unused entries makes all five compile for `wasm32-unknown-unknown` — verified with `cargo check` on each. Two runtime facts remain to close: one wall-clock read, and the absence of any browser test.
 
-- [ ] Remove the unused `tokio`/`reqwest` dependencies from the five original provider crates; keep `tokio` only as a dev-dependency where a `#[tokio::test]` needs it.
-- [ ] Replace the one wall-clock read in a provider (`everymap-providers-here/src/domain/tour.rs`, `chrono::Utc::now()`) with the provider layer's clock, or enable chrono's `wasmbind` on wasm, so a HERE tour request cannot panic in the browser; audit the other providers for `SystemTime`, `std::thread`, `std::env` and file access and write the rule down in a provider-authoring note.
-- [ ] Add every provider crate to the browser closure in CI (`ci.yml` build and clippy jobs) and to the README's platform matrix.
+- [x] Remove the unused `tokio`/`reqwest` dependencies from the five original provider crates (round 194). `provider_client!` no longer names `::reqwest::ClientBuilder`; it takes `$crate::client::ClientBuilder`, which `everymap-core` re-exports natively, so a provider crate needs neither dependency.
+- [x] Replace the one wall-clock read in a provider (round 194): HERE's tour request formats the departure time from `web_time::SystemTime`, the same clock the rate limiter uses, and no longer reads `chrono::Utc::now()`.
+- [x] Add every provider crate to the browser closure in CI (round 194); all eleven now build and lint for `wasm32-unknown-unknown`.
 - [ ] Browser runtime proof, not just compilation: a headless-browser smoke (wasm-pack test or a small harness on the shared client) that drives at least one request per provider through the fetch transport against a local server, including one request that reads the clock.
-- [ ] A CI grep gate that fails when a provider crate's `src` names `reqwest` or `tokio`, so the seam cannot erode again.
+- [x] A CI grep gate that fails when a provider crate's `src` names `reqwest` or `tokio` (round 194, `scripts/check-provider-transport-isolation.sh`), so the seam cannot erode again.
 - [ ] Docs: the README browser matrix, the blueprint's platform notes, the CHANGELOG entry and each crate's support line say every provider is target-agnostic, while the CLI and the bench stay native applications.
 - [ ] Release the patch that carries it, and record in `docs/rfc/0001-transport-seam-and-wasm.md` that the provider set is complete on both targets.
 - [x] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`
