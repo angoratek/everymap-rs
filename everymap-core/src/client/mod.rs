@@ -15,7 +15,8 @@ use crate::auth::AuthProvider;
 use crate::error::{EveryMapError, EveryMapResult};
 use crate::http::{default_transport, HttpRequest, HttpResponse, Method};
 use std::sync::{Arc, Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use web_time::Instant;
 
 pub use observer::{
     is_sensitive_header, redact_url, RequestObservation, RequestObserver, ResponseObservation,

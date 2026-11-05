@@ -23,6 +23,13 @@ thiserror = { workspace = true }
 flexpolyline = { workspace = true }
 zeroize = { workspace = true }
 
+# The monotonic clock every provider request and every token bucket reads.
+# `std::time::Instant::now()` panics on `wasm32-unknown-unknown` ("time not
+# implemented on this platform"); `web_time` reads the browser's
+# `performance.now()` there and re-exports `std::time` elsewhere, so one
+# import serves both targets.
+web-time = { workspace = true }
+
 # Native transport: reqwest and the full async runtime.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true }

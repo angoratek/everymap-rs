@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- The browser target reads time through `web-time` instead of `std::time`. `Instant::now()` is unimplemented on `wasm32-unknown-unknown` and panicked, so every provider call — a paced tile source, a MapQuest request, an OSRM or Valhalla route — trapped the module even though the crate built for the target. `everymap-core`'s rate limiter, request pipeline and OAuth2 token clock now use the same monotonic clock the SDK's own transport uses; native builds are unchanged.
+
 ## [0.3.0] — 2026-11-04
 
 The provider layer this release exists for: a transport seam with a browser implementation, navigation-grade routing and typed tile contracts, bounding-box traffic, autocomplete/matrix/elevation/offline-routing traits, and the MapQuest, OSRM, Valhalla and URL-template provider crates the Rustic Maps SDK consumes.

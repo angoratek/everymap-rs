@@ -50,6 +50,7 @@ thiserror = "1.0"
 flexpolyline = "1.0"
 wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
+web-time = "1"
 chrono = "0.4"
 log = "0.4"
 url = "2"
