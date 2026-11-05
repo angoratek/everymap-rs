@@ -10,7 +10,7 @@ A modular, type-safe Rust wrapper for geospatial APIs across **HERE Technologies
 
 # everymap-cli
 
-Unified command-line interface for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — one binary, 11 geospatial commands, 5 providers (**HERE**, **Google**, **TomTom**, **MapBox**, **Radar**).
+Unified command-line interface for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — one binary and 11 geospatial commands. The CLI currently selects the five credential-based providers (**HERE**, **Google**, **TomTom**, **MapBox**, **Radar**); the MapQuest, OSRM, Valhalla and URL-template crates are available through the library.
 
 ## Installation
 

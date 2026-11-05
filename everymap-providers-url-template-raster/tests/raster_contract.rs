@@ -11,7 +11,7 @@ use everymap_core::domains::tiling::{
 };
 use everymap_core::error::EveryMapError;
 use everymap_providers_url_template_raster::{
-    UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource,
+    TileSourcePacing, UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource,
 };
 use wiremock::matchers::{header, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
@@ -145,6 +145,44 @@ async fn a_rate_limited_response_surfaces_the_provider_and_retry_after() {
             assert_eq!(retry_after_secs, Some(60));
         }
         other => panic!("expected a rate-limit error, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn a_declared_ceiling_refuses_a_fetch_that_would_wait_past_it() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(fixture_bytes()))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let mut source = source_with_subdomains(&server);
+    // One immediate request, refilling far slower than the declared ceiling:
+    // the first fetch takes the only token, the second would wait a thousand
+    // seconds and is refused instead.
+    source.pacing = Some(TileSourcePacing::new(1, 0.001).with_maximum_wait_seconds(0.05));
+    let provider =
+        UrlTemplateRasterTileProvider::new(source).expect("the declared source is valid");
+
+    provider
+        .fetch_raster_tile(&sample_request())
+        .await
+        .expect("the one-token burst admits the first fetch");
+    let error = provider
+        .fetch_raster_tile(&sample_request())
+        .await
+        .expect_err("the ceiling refuses the second fetch");
+    server.verify().await;
+    match error {
+        EveryMapError::RateLimited {
+            provider: provider_name,
+            retry_after_secs,
+        } => {
+            assert_eq!(provider_name, "url-template-raster");
+            assert_eq!(retry_after_secs, None);
+        }
+        other => panic!("expected a rate-limit refusal, got {other:?}"),
     }
 }
 

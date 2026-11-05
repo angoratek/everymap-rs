@@ -210,7 +210,21 @@ impl TourPlanner for HereTourPlanner {
                 .and_then(|e| e.get("departure_time"))
                 .and_then(|v| v.as_str())
                 .map(String::from)
-                .unwrap_or_else(|| chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string());
+                .unwrap_or_else(|| {
+                    // The provider layer's clock: the standard library's wall
+                    // clock is unimplemented in the browser, while `web-time`
+                    // reads the page's clock there and the system clock
+                    // everywhere else.
+                    let elapsed = web_time::SystemTime::now()
+                        .duration_since(web_time::UNIX_EPOCH)
+                        .unwrap_or_default();
+                    let now = chrono::DateTime::<chrono::Utc>::from_timestamp(
+                        i64::try_from(elapsed.as_secs()).unwrap_or_default(),
+                        elapsed.subsec_nanos(),
+                    )
+                    .unwrap_or_default();
+                    now.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+                });
             problem.fleet.types = vec![VehicleType {
                 id: "vehicle_1".to_string(),
                 profile: "car_profile".to_string(),

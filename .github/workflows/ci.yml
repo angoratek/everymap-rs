@@ -26,6 +26,8 @@ jobs:
           components: clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo clippy --all-targets --all-features -- -D warnings
+      - run: chmod +x scripts/check-provider-transport-isolation.sh
+      - run: ./scripts/check-provider-transport-isolation.sh
 
   wasm:
     runs-on: ubuntu-latest
@@ -36,14 +38,17 @@ jobs:
           targets: wasm32-unknown-unknown
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      # The browser closure: core plus the provider crates that build for the
-      # browser. The five original providers, the CLI and the bench are
-      # native-only because their clients take the full tokio runtime, so they
-      # stay out of it.
+      # The browser closure: core plus every provider crate. The CLI and the
+      # bench are native applications, so they stay out of it.
       - name: Build the browser closure
         run: >-
           cargo build --target wasm32-unknown-unknown
           -p everymap-core
+          -p everymap-providers-here
+          -p everymap-providers-google
+          -p everymap-providers-tomtom
+          -p everymap-providers-mapbox
+          -p everymap-providers-radar
           -p everymap-providers-mapquest
           -p everymap-providers-osrm
           -p everymap-providers-valhalla
@@ -53,6 +58,11 @@ jobs:
         run: >-
           cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings
           -p everymap-core
+          -p everymap-providers-here
+          -p everymap-providers-google
+          -p everymap-providers-tomtom
+          -p everymap-providers-mapbox
+          -p everymap-providers-radar
           -p everymap-providers-mapquest
           -p everymap-providers-osrm
           -p everymap-providers-valhalla

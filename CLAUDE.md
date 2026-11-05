@@ -83,11 +83,12 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
 ## Project Overview
-EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, and Radar APIs across 10 geospatial domains.
+EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, Radar, MapQuest, OSRM and Valhalla APIs, plus URL-template raster and vector tilesets, across the core contracts: the ten original domains and the newer navigation-grade routing, typed raster and vector tiles, place search, autocomplete, distance matrix, elevation and offline routing.
 
 ## Architecture
-- **Workspace** (8 crates): `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` + `everymap-providers-google` + `everymap-providers-tomtom` + `everymap-providers-mapbox` + `everymap-providers-radar` + `everymap-cli` (CLI tool, 11 commands) + `everymap-bench` (benchmark framework, all 10 domains)
-- **10 Domain Traits** in `everymap-core/src/domains/`: search, routing, traffic, positioning, isoline, matching, tour, tiling, attributes, imaging
+- **Workspace** (13 crates): `everymap-core` (traits, types, auth, error, client) + `everymap-providers-here` + `-google` + `-tomtom` + `-mapbox` + `-radar` + `-mapquest` + `-osrm` + `-valhalla` + `-url-template-raster` + `-url-template-vector` + `everymap-cli` (CLI tool, 11 commands) + `everymap-bench` (benchmark framework)
+- **Contracts** in `everymap-core/src/domains/`: the ten original traits (search, routing, traffic, positioning, isoline, matching, tour, tiling, attributes, imaging) plus the navigation-grade `Router`, typed `RasterTileProvider`/`VectorTileProvider`, `PlaceSearchProvider`, `AutocompleteProvider`, `DistanceMatrixProvider`, `ElevationProvider` and `OfflineRoutingProvider`
+- **Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown`; the CLI and the bench are native applications. A provider reaches the network only through `ProviderClient`'s transport seam and reads time only through `web-time`; `scripts/check-provider-transport-isolation.sh` fails a provider that names `reqwest` or `tokio`, and CI lints the whole provider closure for wasm.
 - **Pattern**: Each domain trait uses concrete `Options` and `Response` types (not associated types). Provider implementations define their own rich types and map to core via `From` conversions.
 - **Dynamic dispatch**: Traits use concrete types enabling `Box<dyn Geocoder>` for runtime provider selection.
 - **ProviderClient** in `everymap-core/src/client/` consolidates all HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str). Provider crates wrap it with thin structs.
@@ -125,7 +126,8 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 654 tests (unit + contract + CLI integration + error cases + bench; 9 more skipped)
+- `cargo test` — runs 939 tests across 97 suites (unit + contract + CLI integration + error cases + bench); the run prints the current count, so never copy this number forward
+- `cargo clippy -p everymap-core -p everymap-providers-here -p everymap-providers-google -p everymap-providers-tomtom -p everymap-providers-mapbox -p everymap-providers-radar -p everymap-providers-mapquest -p everymap-providers-osrm -p everymap-providers-valhalla -p everymap-providers-url-template-raster -p everymap-providers-url-template-vector --target wasm32-unknown-unknown --lib -- -D warnings` — the browser closure
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
@@ -145,10 +147,13 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
-**35 real implementations** across 5 providers.
+**35 real implementations** across 5 providers, plus the newer crates: MapQuest (geocoding, place search, autocomplete, routing, distance matrix, traffic, raster tiles), OSRM and Valhalla (routing), the URL-template raster provider and the URL-template vector provider with the named OSM US and OpenFreeMap sources.
+
+## Provider crates and the browser
+Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows a direct `reqwest`/`tokio` dependency or reads `std::time` breaks that silently at build time or at runtime in the browser: route the request through `ProviderClient` and read time through `web-time`, and keep the crate in the browser closure in `.github/workflows/ci.yml`.
 
 ## Adding a New Provider
-1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`
+1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core` only — never `reqwest` or `tokio`, whose native runtimes would break the browser target
 2. Create `client.rs` — use the `everymap_core::provider_client!` macro (see `GoogleClient` as template; provider-specific methods like Radar's `post_json` stay as inherent impls)
 3. Create `domain/geo.rs` — shared lat/lng type
 4. Implement supported domain traits (start with `Geocoder` + `Router`)
@@ -156,8 +161,9 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 6. Add stub implementations using `everymap_core::unsupported_*!` macros
 7. Add provider to `ProviderRegistry` in `everymap-cli/src/provider.rs`
 8. Add provider section in `config.rs` `Providers` struct
-9. Add workspace member in root `Cargo.toml`
+9. Add workspace member in root `Cargo.toml` and the crate to the browser closure in `.github/workflows/ci.yml`
 10. Add provider to `everymap-bench/src/benchmark.rs` `BenchProviders::new()`
+11. Add `everymap-providers-{name}/README.md` from `docs/readme/` and run `scripts/generate-readmes.sh`
 
 ## CLI Usage
 - Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand

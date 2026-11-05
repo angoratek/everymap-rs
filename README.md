@@ -9,33 +9,42 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
 
-EveryMap-RS provides a unified interface for geospatial services across multiple providers — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. The architecture uses **domain-driven design** with 10 geospatial capabilities, each defined as a trait in `everymap-core`, with provider-specific implementations in separate crates. Switch providers by changing one line of code.
+EveryMap-RS provides one trait-based interface over eleven provider crates — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **OSRM**, **Valhalla**, and URL-template sources for any `{z}/{x}/{y}` raster or vector tileset, including the OpenStreetMap US and OpenFreeMap tilesets. Business logic targets the trait, and a provider is a constructor change rather than a rewrite.
 
-**Capabilities covered**: geocoding, reverse geocoding, routing / directions, isolines / isochrones, map matching (snap-to-road), tour planning / waypoint optimization (TSP), traffic flow & incidents, map tiles, geodata attributes, and static map images.
+**Contracts**: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing (ordered waypoints, legs, maneuver types, instruction and speech text, lane guidance, geometry), distance matrices, isolines, map matching, tour planning, traffic flow and incidents, raster and vector tiles, elevation, geodata attributes, static map images, and offline routing.
+
+**Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown` as well as native targets. Each provider reaches the network only through the shared client's transport seam, which is `reqwest` natively and `window.fetch` in a browser; no provider crate names `reqwest` or `tokio` itself. The CLI and the benchmark harness are native applications.
 
 ## Architecture
 
 ```
 everymap-rs/
-├── everymap-core/              # Core traits, types, auth, error, client
+├── everymap-core/                          # Contracts, types, auth, error, shared client
 │   └── src/
-│       ├── domains/            # 10 domain traits + concrete Options/Response types
-│       ├── types/              # Coordinate, BoundingBox, Address, Polyline
-│       ├── auth/               # AuthProvider, ApiKeyProvider, HeaderAuthProvider
-│       ├── client/             # ProviderClient (auth, pacing, retries, timeouts, observers)
-│       ├── http/               # HttpRequest/HttpResponse/HttpTransport seam (reqwest, fetch)
-│       ├── unsupported.rs      # 7 stub macros for unsupported domains
-│       └── error/              # EveryMapError (structured errors)
-├── everymap-providers-here/    # HERE Technologies (10 domains implemented)
-├── everymap-providers-google/  # Google Maps (6 domains implemented)
-├── everymap-providers-tomtom/  # TomTom (8 domains implemented)
-├── everymap-providers-mapbox/  # MapBox (7 domains implemented)
-├── everymap-providers-radar/   # Radar (4 domains: search, routing, matching, tour)
-├── everymap-cli/               # CLI with 11 commands + unified ProviderRegistry
-└── everymap-bench/             # Cross-provider benchmark framework (all 10 domains)
+│       ├── domains/                        # Traits + concrete Options/Response types
+│       ├── types/                          # Coordinate, BoundingBox, Address, Polyline
+│       ├── auth/                           # AuthProvider, ApiKeyProvider, HeaderAuthProvider, OAuth2
+│       ├── client/                         # ProviderClient (pacing, retries, timeouts, observers, web-time clock)
+│       ├── http/                           # HttpRequest/HttpResponse/HttpTransport seam (reqwest, fetch)
+│       ├── unsupported.rs                  # Stub macros for unsupported domains
+│       └── error/                          # EveryMapError
+├── everymap-providers-here/                # HERE Technologies
+├── everymap-providers-google/              # Google Maps
+├── everymap-providers-tomtom/              # TomTom
+├── everymap-providers-mapbox/              # MapBox
+├── everymap-providers-radar/               # Radar
+├── everymap-providers-mapquest/            # MapQuest — geocoding, search, routing, matrix, traffic, tiles
+├── everymap-providers-osrm/                # OSRM routing
+├── everymap-providers-valhalla/            # Valhalla routing
+├── everymap-providers-url-template-raster/ # Any {z}/{x}/{y} raster source
+├── everymap-providers-url-template-vector/ # Any {z}/{x}/{y} vector source, with named OSM US and OpenFreeMap sources
+├── everymap-cli/                           # CLI with 11 commands + unified ProviderRegistry
+└── everymap-bench/                         # Cross-provider benchmark framework
 ```
 
 ## Provider Support
+
+The five full-service providers:
 
 | Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
 |--------|-----------|------|--------|--------|--------|-------|
@@ -50,15 +59,28 @@ everymap-rs/
 | Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — |
 | Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — |
 
-✅ = real implementation, — = unsupported (stub or N/A). **35 real implementations** across 5 providers.
+The crates built on the newest contracts:
 
-Unsupported domains return a clear `UnsupportedDomain` error: `"google does not support traffic"`.
+| Contract | Trait | MapQuest | OSRM | Valhalla | URL-template raster | URL-template vector |
+|----------|-------|----------|------|----------|---------------------|---------------------|
+| Geocoding | `Geocoder` | ✅ | — | — | — | — |
+| Place search | `PlaceSearchProvider` | ✅ | — | — | — | — |
+| Type-ahead | `AutocompleteProvider` | ✅ | — | — | — | — |
+| Routing | `Router` | ✅ | ✅ | ✅ | — | — |
+| Distance matrix | `DistanceMatrixProvider` | ✅ | — | — | — | — |
+| Traffic | `TrafficProvider` | ✅ | — | — | — | — |
+| Raster tiles | `RasterTileProvider` | ✅ | — | — | ✅ | — |
+| Vector tiles | `VectorTileProvider` | — | — | — | — | ✅ |
+
+✅ = real implementation, — = unsupported (stub or N/A).
+
+An unsupported domain returns a clear `UnsupportedDomain` error: `"google does not support traffic"`.
 
 ## Quick Start
 
 ### Installation
 
-EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.2.2**):
+EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.3.1**):
 
 ```bash
 # Add the core + provider crates to your project
@@ -70,12 +92,17 @@ cargo install everymap-cli
 
 | Crate | Description |
 |---|---|
-| [`everymap-core`](https://crates.io/crates/everymap-core) ([docs](https://docs.rs/everymap-core)) | Traits, types, auth, errors, shared HTTP client |
+| [`everymap-core`](https://crates.io/crates/everymap-core) ([docs](https://docs.rs/everymap-core)) | Contracts, types, auth, errors, shared client and transport seam |
 | [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) ([docs](https://docs.rs/everymap-providers-here)) | HERE Technologies — 10 domains |
 | [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) ([docs](https://docs.rs/everymap-providers-google)) | Google Maps — 6 domains |
 | [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) ([docs](https://docs.rs/everymap-providers-tomtom)) | TomTom — 8 domains |
 | [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) ([docs](https://docs.rs/everymap-providers-mapbox)) | MapBox — 7 domains |
 | [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) ([docs](https://docs.rs/everymap-providers-radar)) | Radar — 4 domains |
+| [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) ([docs](https://docs.rs/everymap-providers-mapquest)) | MapQuest — geocoding, place search, type-ahead, routing, matrix, traffic, raster tiles |
+| [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) ([docs](https://docs.rs/everymap-providers-osrm)) | OSRM — navigation-grade routing |
+| [`everymap-providers-valhalla`](https://crates.io/crates/everymap-providers-valhalla) ([docs](https://docs.rs/everymap-providers-valhalla)) | Valhalla — navigation-grade routing |
+| [`everymap-providers-url-template-raster`](https://crates.io/crates/everymap-providers-url-template-raster) ([docs](https://docs.rs/everymap-providers-url-template-raster)) | Any `{z}/{x}/{y}` raster source |
+| [`everymap-providers-url-template-vector`](https://crates.io/crates/everymap-providers-url-template-vector) ([docs](https://docs.rs/everymap-providers-url-template-vector)) | Any `{z}/{x}/{y}` vector source, plus named OSM US and OpenFreeMap sources |
 | [`everymap-cli`](https://crates.io/crates/everymap-cli) ([docs](https://docs.rs/everymap-cli)) | CLI with 11 commands |
 
 Prebuilt CLI binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows) are attached to each [GitHub Release](https://github.com/angoratek/everymap-rs/releases).
@@ -84,9 +111,7 @@ Prebuilt CLI binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silic
 
 ```rust
 use everymap_core::domains::search::{Geocoder, GeocodeOptions};
-use everymap_core::domains::routing::{Router, RouteOptions, TransportMode};
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
 use everymap_providers_here::domain::search::HereGeocoder;
 use std::sync::Arc;
@@ -119,10 +144,32 @@ let geocoder: Box<dyn Geocoder> = Box::new(GoogleGeocoder::new(client));
 // Same trait, same response types — drop-in replacement
 ```
 
+A keyless provider such as OSRM takes a deployment address instead of a key, and a URL-template source takes its template and descriptor:
+
+```rust
+use everymap_core::domains::routing::{Router, RouteOptions};
+use everymap_core::types::Coordinate;
+use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
+
+let router = OsrmRouter::new(OsrmProviderConfiguration {
+    base_url: "https://router.project-osrm.org".to_string(),
+    ..Default::default()
+});
+let route = router
+    .calculate_route(
+        &Coordinate::new(52.52, 13.405).unwrap(),
+        &Coordinate::new(52.54, 13.42).unwrap(),
+        &RouteOptions::default(),
+    )
+    .await?;
+```
+
 ### CLI Usage
 
 > **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
 > Binary commands (`tile`, `map-image`) save to a file instead of printing to stdout. Use `--output-file` to set the path.
+
+The CLI currently selects the credential-based providers. The MapQuest, OSRM, Valhalla and URL-template crates are library crates until the CLI and benchmark harness reach provider parity.
 
 ```bash
 # HERE provider (default)
@@ -189,6 +236,7 @@ pub struct SearchResult {
     pub address: Address,
     pub title: Option<String>,
     pub result_type: SearchResultType,
+    pub quality: Option<SearchQuality>,
     pub distance: Option<f64>,
     pub confidence: Option<f64>,
     pub categories: Vec<String>,
@@ -202,6 +250,7 @@ pub struct RouteResult {
     pub geometry: Polyline,
     pub transport_mode: Option<TransportMode>,
     pub steps: Vec<RouteStep>,
+    pub legs: Vec<RouteLeg>,
     pub bounding_box: Option<BoundingBox>,
     pub raw: Option<serde_json::Value>,
 }
@@ -214,17 +263,18 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **TDD**: 654 tests (unit + contract + CLI integration + error cases + bench), all passing with nextest.
-- **Full coverage**: All OpenAPI parameters and response fields are modeled.
-- **Portable**: Enriched core types with `raw` escape hatch for provider-specific data.
+- **One transport seam**: Every provider sends requests through `ProviderClient`, so one crate serves native and browser targets; a provider never names `reqwest` or `tokio`, and CI enforces it.
+- **One clock**: Pacing, retries and token lifetimes read `web-time`, which is the browser's clock on `wasm32` and the system clock elsewhere.
+- **TDD**: 939 tests (unit, contract, CLI integration, error cases, bench) across 97 suites.
+- **Portable**: Enriched core types with a `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
 - **Zero duplication**: Shared `ProviderClient`, `unsupported_*!` macros, unified `ProviderRegistry` dispatch.
 
 ## Build & Test
 
 ```bash
-cargo build                              # Build all 8 workspace crates
-cargo nextest run --all-features         # Run 654 tests (install: cargo install cargo-nextest)
+cargo build                              # Build all 13 workspace crates
+cargo nextest run --all-features         # Run the full suite (install: cargo install cargo-nextest)
 cargo test                               # Alternative: standard test runner
 cargo clippy -- -D warnings              # Lint (must pass clean)
 cargo run -p everymap-cli -- --help      # Run CLI
@@ -234,16 +284,13 @@ See [TESTING.md](TESTING.md) for comprehensive testing guide including live API 
 
 ## Adding a New Provider
 
-1. Create `everymap-providers-{name}/` with `Cargo.toml` depending on `everymap-core`
-2. Create `client.rs` — thin wrapper around `ProviderClient` from core (copy `GoogleClient` as template)
-3. Create `domain/geo.rs` — shared lat/lng type
-4. Implement supported domain traits (start with `Geocoder` + `Router`)
-5. Add `From<ProviderType> for CoreType` conversions
-6. Add stubs for unsupported domains using `everymap_core::unsupported_*!` macros
-7. Add provider to `ProviderRegistry` in `everymap-cli/src/provider.rs`
-8. Add provider section in `everymap-cli/src/config.rs`
-9. Add workspace member in root `Cargo.toml`
-10. Add provider to `everymap-bench/src/benchmark.rs` `BenchProviders::new()`
+1. Create `everymap-providers-{name}/` with a `Cargo.toml` depending on `everymap-core` only.
+2. Create `client.rs` — a `provider_client!` declaration over the shared `ProviderClient` (copy `GoogleClient` as the template). Do not add `reqwest` or `tokio`: the shared client already picks the target's transport.
+3. Implement the contracts the service serves, mapping its vocabulary onto the core types (`SearchQuality`, `CongestionLevel`, `ManeuverType`, typed tiles) and its failures onto `EveryMapError`.
+4. Add recorded fixtures and contract tests; no test may reach the network.
+5. Add the crate to the root `Cargo.toml` members and to the browser closure in `.github/workflows/ci.yml`.
+6. Add `everymap-providers-{name}/README.md` from `docs/readme/` and regenerate with `scripts/generate-readmes.sh`.
+7. To make it selectable from the tools, add a `ProviderRegistry` arm in `everymap-cli/src/provider.rs`, a section in `everymap-cli/src/config.rs`, and a `BenchProviders` arm in `everymap-bench`.
 
 ## License
 

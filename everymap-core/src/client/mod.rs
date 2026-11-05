@@ -23,6 +23,12 @@ pub use observer::{
     REDACTED_HEADER_NAMES, REDACTED_QUERY_PARAMETERS, REDACTED_VALUE,
 };
 pub use rate_limit::TokenBucket;
+/// The native client builder a provider exposes through
+/// `with_client_builder`, re-exported so a provider crate does not have to
+/// depend on `reqwest` itself. Absent in the browser, where the fetch
+/// transport has no builder to configure.
+#[cfg(not(target_arch = "wasm32"))]
+pub use reqwest::ClientBuilder;
 pub use retry::RetryPolicy;
 
 /// The process-wide request observer, installed once by a host binding.
