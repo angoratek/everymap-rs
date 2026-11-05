@@ -21,13 +21,22 @@ pub const DEFAULT_REFILL_TOKENS_PER_SECOND: f64 = 8.0;
 ///
 /// The bucket starts full with [`Self::capacity_tokens`] tokens and refills
 /// continuously at [`Self::refill_tokens_per_second`]. Each fetch consumes one
-/// token; a fetch that finds the bucket empty waits for the next refill.
+/// token; a fetch that finds the bucket empty waits for the next refill,
+/// unless [`Self::maximum_wait_seconds`] bounds that wait.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct TileSourcePacing {
     /// Immediate requests the bucket admits before pacing starts.
     pub capacity_tokens: u32,
     /// Sustained request rate in tokens per second.
     pub refill_tokens_per_second: f64,
+    /// Longest a fetch may wait for its token before the source refuses it
+    /// with [`EveryMapError::RateLimited`], or `None` to wait for as long as
+    /// the refill takes.
+    ///
+    /// A host that must answer within a bounded time declares its ceiling
+    /// here; the shared client reports the refusal instead of stalling.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub maximum_wait_seconds: Option<f64>,
 }
 
 impl TileSourcePacing {
@@ -43,7 +52,21 @@ impl TileSourcePacing {
         Self {
             capacity_tokens,
             refill_tokens_per_second,
+            maximum_wait_seconds: None,
         }
+    }
+
+    /// Bounds how long a fetch may wait for its token.
+    ///
+    /// # Parameters
+    /// - `maximum_wait_seconds` — the ceiling; a fetch that would wait past
+    ///   it is refused with [`EveryMapError::RateLimited`].
+    ///
+    /// # Returns
+    /// The same declaration carrying the ceiling.
+    pub const fn with_maximum_wait_seconds(mut self, maximum_wait_seconds: f64) -> Self {
+        self.maximum_wait_seconds = Some(maximum_wait_seconds);
+        self
     }
 
     /// Refuses a rate the shared token bucket cannot enforce.
@@ -71,6 +94,14 @@ impl TileSourcePacing {
                 self.refill_tokens_per_second
             )));
         }
+        if let Some(maximum_wait_seconds) = self.maximum_wait_seconds {
+            if !maximum_wait_seconds.is_finite() || maximum_wait_seconds <= 0.0 {
+                return Err(EveryMapError::ValidationError(format!(
+                    "the {source_name} tile source declares a maximum wait of \
+                     {maximum_wait_seconds} seconds, which must be finite and positive"
+                )));
+            }
+        }
         Ok(())
     }
 }
@@ -82,6 +113,7 @@ impl Default for TileSourcePacing {
         Self {
             capacity_tokens: DEFAULT_CAPACITY_TOKENS,
             refill_tokens_per_second: DEFAULT_REFILL_TOKENS_PER_SECOND,
+            maximum_wait_seconds: None,
         }
     }
 }
@@ -121,6 +153,23 @@ mod tests {
             assert!(TileSourcePacing::new(8, refill_tokens_per_second)
                 .validate("test/source")
                 .is_err());
+        }
+    }
+
+    #[test]
+    fn a_ceiling_is_opt_in_and_bounded() {
+        assert_eq!(TileSourcePacing::new(8, 8.0).maximum_wait_seconds, None);
+        let bounded = TileSourcePacing::new(8, 8.0).with_maximum_wait_seconds(10.0);
+        assert_eq!(bounded.maximum_wait_seconds, Some(10.0));
+        assert!(bounded.validate("test/source").is_ok());
+        for maximum_wait_seconds in [0.0, -1.0, f64::NAN, f64::INFINITY] {
+            assert!(
+                TileSourcePacing::new(8, 8.0)
+                    .with_maximum_wait_seconds(maximum_wait_seconds)
+                    .validate("test/source")
+                    .is_err(),
+                "a ceiling of {maximum_wait_seconds} seconds must be refused"
+            );
         }
     }
 }

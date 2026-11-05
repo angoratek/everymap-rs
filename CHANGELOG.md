@@ -2,8 +2,13 @@
 
 ## [Unreleased]
 
+## [0.3.1] — 2026-11-04
+
 ### Fixed
 - The browser target reads time through `web-time` instead of `std::time`. `Instant::now()` is unimplemented on `wasm32-unknown-unknown` and panicked, so every provider call — a paced tile source, a MapQuest request, an OSRM or Valhalla route — trapped the module even though the crate built for the target. `everymap-core`'s rate limiter, request pipeline and OAuth2 token clock now use the same monotonic clock the SDK's own transport uses; native builds are unchanged.
+
+### Added
+- `TileSourcePacing::maximum_wait_seconds`: a tile source can bound how long a fetch waits for its token. Past the ceiling the shared client reports `RateLimited` instead of stalling, which restores a host's ability to refuse an over-budget tile request in bounded time. The field is optional and `TileSourcePacing::new` leaves it unset, so a declaration that does not use it is unchanged.
 
 ## [0.3.0] — 2026-11-04
 
