@@ -6,8 +6,9 @@ use crate::http::{default_transport, HttpRequest, HttpTransport, Method};
 use async_trait::async_trait;
 use serde::Deserialize;
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::Mutex;
+use web_time::Instant;
 use zeroize::Zeroize;
 
 /// Seconds shaved off the token lifetime so tokens refresh before actual expiry.

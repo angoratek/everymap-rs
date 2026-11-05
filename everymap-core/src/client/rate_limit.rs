@@ -1,8 +1,9 @@
 //! Token-bucket rate limiting for outgoing provider requests.
 
 use crate::client::sleep;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::Mutex;
+use web_time::Instant;
 
 /// One token is the cost of a single request.
 const REQUEST_TOKEN_COST: f64 = 1.0;
