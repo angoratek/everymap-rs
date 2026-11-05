@@ -8,6 +8,18 @@
 use crate::provider::UrlTemplateVectorTileSource;
 use everymap_core::domains::tiling::{VectorTileEncoding, VectorTileSourceDescriptor};
 
+/// `User-Agent` the OpenStreetMap US tileservice asks clients to identify
+/// themselves with.
+///
+/// The service's usage policy requires an accurate identifying agent on every
+/// request and refuses clients that send none, so the named source carries it
+/// by default; a host may override the header in its own declaration.
+pub const OPENSTREETMAP_US_USER_AGENT: &str =
+    concat!("everymap-osmus-provider/", env!("CARGO_PKG_VERSION"));
+
+/// Header the identifying user agent travels in.
+const USER_AGENT_HEADER_NAME: &str = "User-Agent";
+
 /// OpenStreetMap US publishes the Sourdough tileset, a plain MVT pyramid
 /// capped at zoom 15.
 pub fn openstreetmap_us_vector_source() -> UrlTemplateVectorTileSource {
@@ -25,10 +37,13 @@ pub fn openstreetmap_us_vector_source() -> UrlTemplateVectorTileSource {
             style_hints: vec!["carto".to_string()],
         },
         terms_text:
-            "OpenStreetMap US tileservice terms apply: free for low-volume, non-commercial use with attribution."
+            "OpenStreetMap US tileservice terms apply: free for low-volume, non-commercial use; commercial or higher-volume use needs an approved partnership; requests must carry an accurate identifying User-Agent, must honor Cache-Control and must back off on HTTP 429; attribution to OSM US, OpenStreetMap and OpenMapTiles is required."
                 .to_string(),
         subdomains: Vec::new(),
-        headers: Vec::new(),
+        headers: vec![(
+            USER_AGENT_HEADER_NAME.to_string(),
+            OPENSTREETMAP_US_USER_AGENT.to_string(),
+        )],
         pacing: None,
     }
 }
@@ -72,6 +87,14 @@ mod tests {
         let openstreetmap_us = openstreetmap_us_vector_source();
         assert!(openstreetmap_us.url_template.contains("{z}/{x}/{y}"));
         assert_eq!(openstreetmap_us.source_descriptor.maximum_zoom_level, 15);
+        assert!(
+            openstreetmap_us
+                .headers
+                .iter()
+                .any(|(header_name, header_value)| header_name == "User-Agent"
+                    && !header_value.is_empty()),
+            "the tileservice's usage policy requires an identifying user agent"
+        );
         assert!(!openstreetmap_us
             .source_descriptor
             .attribution_text

@@ -141,7 +141,7 @@ The 0.2.2-era prose still describes five providers, ten traits and eight crates.
 - [x] Contracts (round 198): forward and reverse geocoding, settled place search and type-ahead, with Photon's feature classes mapped onto `SearchQuality` and its address parts onto `Address`, settled place search and type-ahead, with the SDK's existing fixture vocabulary (feature types, extent, country-code filtering) mapped onto `SearchResult`/`SearchQuality`/`AutocompleteResult`.
 - [x] Contract tests from the SDK's committed fixtures (round 198, seven wiremock cases), plus error-path and malformed-payload cases, plus error-path and malformed-payload cases.
 - [x] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog (round 198).
-- [ ] `openstreetmap_us_vector_source()`: carry the identifying User-Agent and the full attribution and terms text the dedicated crate served, so a host can serve OSM US from the URL-template provider without losing the service's request policy.
+- [x] `openstreetmap_us_vector_source()` (round 199): the named source carries an identifying User-Agent (`OPENSTREETMAP_US_USER_AGENT`) and the service's full policy in its terms text, so a host serves OSM US through the URL-template provider without losing the request policy.
 - [ ] Release the patch that carries both, and hand the Rustic Maps SDK the version to move to.
 
 ### M3 — Every provider runs in the browser · *status: open (owner-directed 2026-11-04)*
