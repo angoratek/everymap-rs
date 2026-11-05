@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [0.3.2] — 2026-11-05
+
+### Fixed
+- The URL-template raster provider applies `TileSourcePacing::maximum_wait_seconds`. 0.3.1 added the field and honoured it in the vector provider; the raster provider kept its own bucket construction and ignored it, so a paced raster source still waited for its refill instead of refusing at the declared ceiling.
+
+### Added
+- `everymap-providers-photon`: keyless geocoding, settled place search and type-ahead over any Photon deployment, with Photon's feature classes mapped onto `SearchQuality`.
+- `openstreetmap_us_vector_source()` carries an identifying `User-Agent` and the tileservice's full usage policy.
+- `everymap-cli` and `everymap-bench` select MapQuest, OSRM and Valhalla; `unsupported_geocoder!` and `unsupported_matcher!` join the stub macros.
+
+### Changed
+- Every provider crate builds for `wasm32`: the five original providers drop their unused `tokio`/`reqwest` dependencies, `provider_client!` names everymap-core's re-exported client builder, HERE's tour request reads the wall clock through `web-time`, and CI lints the whole provider closure plus `scripts/check-provider-transport-isolation.sh`.
+
 ### Added
 - `openstreetmap_us_vector_source()` now carries an identifying `User-Agent` (`OPENSTREETMAP_US_USER_AGENT`) and the tileservice's full usage policy in its terms text, so a host can serve the source through the URL-template provider without losing the request policy the dedicated crate carried.
 - `everymap-providers-photon`: a keyless Photon provider covering forward and reverse geocoding, settled place search and type-ahead over the public instance or a self-hosted deployment, with Photon's feature classes mapped onto the core's quality scale and its GeoJSON `FeatureCollection` projected onto the core records. It builds for the browser and joins the CI closure; seven wiremock contract cases replay the committed fixtures.
