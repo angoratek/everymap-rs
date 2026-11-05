@@ -138,4 +138,20 @@ The 0.2.2-era prose still describes five providers, ten traits and eight crates.
 - [ ] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog.
 - [ ] `openstreetmap_us_vector_source()`: carry the identifying User-Agent and the full attribution and terms text the dedicated crate served, so a host can serve OSM US from the URL-template provider without losing the service's request policy.
 - [ ] Release the patch that carries both, and hand the Rustic Maps SDK the version to move to.
+
+### M3 — Every provider runs in the browser · *status: open (owner-directed 2026-11-04)*
+
+> Verify: every provider crate builds, lints and passes a browser-transport smoke under `wasm32-unknown-unknown`; the CI browser closure lists all provider crates; no provider crate depends on `tokio` or `reqwest` directly; and the README's platform matrix says so.
+
+The point of the transport seam is that a provider is written once and reaches every target the host has. Today only `everymap-core` and the four provider crates written after the seam (MapQuest, OSRM, Valhalla, URL-template ×2) are in the browser closure; HERE, Google, TomTom, MapBox and Radar are native-only because of a dependency entry, not because of their code.
+
+**Research (2026-11-04).** All five original providers already delegate their HTTP work to `everymap_core::client::ProviderClient` through `provider_client!`; none of their sources names `reqwest` or `tokio`. Their `[dependencies]` still list `tokio = { workspace = true }` (workspace `features = ["full"]`) and `reqwest`, which is what pulls `mio` into a wasm build and fails it. Removing those two unused entries makes all five compile for `wasm32-unknown-unknown` — verified with `cargo check` on each. Two runtime facts remain to close: one wall-clock read, and the absence of any browser test.
+
+- [ ] Remove the unused `tokio`/`reqwest` dependencies from the five original provider crates; keep `tokio` only as a dev-dependency where a `#[tokio::test]` needs it.
+- [ ] Replace the one wall-clock read in a provider (`everymap-providers-here/src/domain/tour.rs`, `chrono::Utc::now()`) with the provider layer's clock, or enable chrono's `wasmbind` on wasm, so a HERE tour request cannot panic in the browser; audit the other providers for `SystemTime`, `std::thread`, `std::env` and file access and write the rule down in a provider-authoring note.
+- [ ] Add every provider crate to the browser closure in CI (`ci.yml` build and clippy jobs) and to the README's platform matrix.
+- [ ] Browser runtime proof, not just compilation: a headless-browser smoke (wasm-pack test or a small harness on the shared client) that drives at least one request per provider through the fetch transport against a local server, including one request that reads the clock.
+- [ ] A CI grep gate that fails when a provider crate's `src` names `reqwest` or `tokio`, so the seam cannot erode again.
+- [ ] Docs: the README browser matrix, the blueprint's platform notes, the CHANGELOG entry and each crate's support line say every provider is target-agnostic, while the CLI and the bench stay native applications.
+- [ ] Release the patch that carries it, and record in `docs/rfc/0001-transport-seam-and-wasm.md` that the provider set is complete on both targets.
 - [x] First crates.io release (v0.2.1): publish core + 5 providers + cli via `scripts/publish-crates.sh` / `release.yml`
