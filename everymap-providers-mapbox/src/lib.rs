@@ -38,7 +38,10 @@ pub use domain::tour::{
 };
 
 // Tiling (Vector/Raster Tiles API)
-pub use domain::tiling::MapBoxTileProvider;
+pub use domain::tiling::{
+    MapBoxTileProvider, DEFAULT_MAPBOX_TILESET_ID, MAPBOX_VECTOR_ATTRIBUTION,
+    MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL,
+};
 
 // Imaging (Static Images API)
 pub use domain::imaging::MapBoxMapImageProvider;

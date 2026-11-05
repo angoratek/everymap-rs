@@ -37,8 +37,7 @@ pub use domain::tour::RadarTourPlanner;
 
 // Unsupported domains (return UnsupportedDomain error)
 pub use domain::unsupported::{
-    RadarAttributeProvider, RadarIsoline, RadarMapImageProvider, RadarPositioner,
-    RadarTileProvider, RadarTraffic,
+    RadarAttributeProvider, RadarIsoline, RadarMapImageProvider, RadarPositioner, RadarTraffic,
 };
 
 // Extension traits

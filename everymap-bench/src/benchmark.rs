@@ -9,7 +9,10 @@ use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
 use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
 use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
-use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_core::domains::tiling::{
+    RasterImageFormat, RasterTileProvider, RasterTileRequest, RasterTileResolution,
+    VectorTileProvider,
+};
 use everymap_core::domains::tour::{TourOptions, TourPlanner};
 use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::error::{EveryMapError, EveryMapResult};
@@ -64,7 +67,8 @@ pub struct BenchProviders {
     pub route_matcher: Option<Box<dyn RouteMatcher>>,
     pub tour_planner: Option<Box<dyn TourPlanner>>,
     pub traffic: Option<Box<dyn TrafficProvider>>,
-    pub tile: Option<Box<dyn TileProvider>>,
+    pub raster_tile: Option<Box<dyn RasterTileProvider>>,
+    pub vector_tile: Option<Box<dyn VectorTileProvider>>,
     pub positioner: Option<Box<dyn NetworkPositioner>>,
     pub attributes: Option<Box<dyn AttributeProvider>>,
     pub image: Option<Box<dyn MapImageProvider>>,
@@ -106,12 +110,15 @@ impl BenchProviders {
                 client.clone(),
             ))),
             traffic: Some(Box::new(
-                everymap_providers_mapquest::MapQuestTrafficProvider::new(client),
+                everymap_providers_mapquest::MapQuestTrafficProvider::new(client.clone()),
             )),
+            raster_tile: Some(Box::new(
+                everymap_providers_mapquest::MapQuestRasterTileProvider::new(client),
+            )),
+            vector_tile: None,
             isoline: None,
             route_matcher: None,
             tour_planner: None,
-            tile: None,
             positioner: None,
             attributes: None,
             image: None,
@@ -150,7 +157,8 @@ impl BenchProviders {
             route_matcher: None,
             tour_planner: None,
             traffic: None,
-            tile: None,
+            raster_tile: None,
+            vector_tile: None,
             positioner: None,
             attributes: None,
             image: None,
@@ -183,7 +191,8 @@ impl BenchProviders {
                     traffic: Some(Box::new(
                         everymap_providers_here::domain::traffic::HereTraffic::new(client.clone()),
                     )),
-                    tile: Some(Box::new(
+                    raster_tile: None,
+                    vector_tile: Some(Box::new(
                         everymap_providers_here::domain::tiling::HereTileProvider::new(
                             client.clone(),
                         ),
@@ -219,7 +228,8 @@ impl BenchProviders {
                     )),
                     tour_planner: None,
                     traffic: None,
-                    tile: None,
+                    raster_tile: None,
+                    vector_tile: None,
                     positioner: Some(Box::new(everymap_providers_google::GooglePositioner::new(
                         client.clone(),
                     ))),
@@ -253,9 +263,10 @@ impl BenchProviders {
                     traffic: Some(Box::new(everymap_providers_tomtom::TomTomTraffic::new(
                         client.clone(),
                     ))),
-                    tile: Some(Box::new(
+                    raster_tile: Some(Box::new(
                         everymap_providers_tomtom::TomTomTileProvider::new(client.clone()),
                     )),
+                    vector_tile: None,
                     positioner: None,
                     attributes: None,
                     image: Some(Box::new(
@@ -283,7 +294,8 @@ impl BenchProviders {
                         everymap_providers_mapbox::MapBoxTourPlanner::new(client.clone()),
                     )),
                     traffic: None,
-                    tile: Some(Box::new(
+                    raster_tile: None,
+                    vector_tile: Some(Box::new(
                         everymap_providers_mapbox::MapBoxTileProvider::new(client.clone()),
                     )),
                     positioner: None,
@@ -311,7 +323,8 @@ impl BenchProviders {
                         client.clone(),
                     ))),
                     traffic: None,
-                    tile: None,
+                    raster_tile: None,
+                    vector_tile: None,
                     positioner: None,
                     attributes: None,
                     image: None,
@@ -651,42 +664,54 @@ pub async fn bench_traffic(providers: &BenchProviders, location: &Coordinate) ->
     }
 }
 
+/// Measures one tile fetch: the raster contract when the provider serves it,
+/// the vector contract otherwise. A provider that serves neither reports the
+/// documented unsupported answer.
 pub async fn bench_tile(providers: &BenchProviders, z: u32, x: u32, y: u32) -> BenchmarkResult {
-    let tile = match providers.tile.as_ref() {
-        Some(t) => t,
-        None => {
-            return unsupported_result(
-                &providers.provider_name,
-                "tiling",
-                &format!("Tile: z={} x={} y={}", z, x, y),
-            )
-        }
-    };
-    let options = TileOptions::default();
-    let start_time = Instant::now();
-    let result = tile.get_tile(z, x, y, &options).await;
-    let elapsed = start_time.elapsed().as_millis() as u64;
-    match result {
-        Ok(response) => BenchmarkResult {
+    let scenario = format!("Tile: z={z} x={x} y={y}");
+    let Ok(zoom_level) = u8::try_from(z) else {
+        return BenchmarkResult {
             provider: providers.provider_name.clone(),
             domain: "tiling".to_string(),
-            scenario: format!("Tile: z={} x={} y={}", z, x, y),
-            duration_ms: elapsed,
-            success: true,
-            error: None,
-            result_count: 1,
-            raw_response_size: Some(response.data.len()),
-        },
-        Err(e) => BenchmarkResult {
-            provider: providers.provider_name.clone(),
-            domain: "tiling".to_string(),
-            scenario: format!("Tile: z={} x={} y={}", z, x, y),
-            duration_ms: elapsed,
+            scenario,
+            duration_ms: 0,
             success: false,
-            error: Some(e.to_string()),
+            error: Some("tile zoom must fit in a byte".to_string()),
             result_count: 0,
             raw_response_size: None,
-        },
+        };
+    };
+    let start_time = Instant::now();
+    let (payload_bytes, error) = if let Some(raster_tile) = providers.raster_tile.as_ref() {
+        let request = RasterTileRequest::new(
+            x,
+            y,
+            zoom_level,
+            RasterImageFormat::Png,
+            RasterTileResolution::Standard,
+        );
+        match raster_tile.fetch_raster_tile(&request).await {
+            Ok(tile) => (Some(tile.image_bytes.len()), None),
+            Err(e) => (None, Some(e.to_string())),
+        }
+    } else if let Some(vector_tile) = providers.vector_tile.as_ref() {
+        match vector_tile.fetch_vector_tile(x, y, zoom_level).await {
+            Ok(tile) => (Some(tile.tile_bytes.len()), None),
+            Err(e) => (None, Some(e.to_string())),
+        }
+    } else {
+        return unsupported_result(&providers.provider_name, "tiling", &scenario);
+    };
+    let elapsed = start_time.elapsed().as_millis() as u64;
+    BenchmarkResult {
+        provider: providers.provider_name.clone(),
+        domain: "tiling".to_string(),
+        scenario,
+        duration_ms: elapsed,
+        success: error.is_none(),
+        error,
+        result_count: usize::from(payload_bytes.is_some()),
+        raw_response_size: payload_bytes,
     }
 }
 
@@ -927,7 +952,8 @@ mod tests {
         assert!(providers.route_matcher.is_some());
         assert!(providers.tour_planner.is_some());
         assert!(providers.traffic.is_some());
-        assert!(providers.tile.is_some());
+        assert!(providers.raster_tile.is_none());
+        assert!(providers.vector_tile.is_some());
         assert!(providers.positioner.is_some());
         assert!(providers.attributes.is_some());
         assert!(providers.image.is_some());
@@ -943,7 +969,8 @@ mod tests {
         assert!(providers.route_matcher.is_some());
         assert!(providers.tour_planner.is_none());
         assert!(providers.traffic.is_none());
-        assert!(providers.tile.is_none());
+        assert!(providers.raster_tile.is_none());
+        assert!(providers.vector_tile.is_none());
         assert!(providers.positioner.is_some());
         assert!(providers.attributes.is_some());
         assert!(providers.image.is_some());
@@ -959,7 +986,8 @@ mod tests {
         assert!(providers.route_matcher.is_some());
         assert!(providers.tour_planner.is_some());
         assert!(providers.traffic.is_some());
-        assert!(providers.tile.is_some());
+        assert!(providers.raster_tile.is_some());
+        assert!(providers.vector_tile.is_none());
         assert!(providers.positioner.is_none());
         assert!(providers.attributes.is_none());
         assert!(providers.image.is_some());

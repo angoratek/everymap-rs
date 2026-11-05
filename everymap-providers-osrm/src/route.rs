@@ -24,7 +24,8 @@
 //!
 //! These are documented rather than silently approximated:
 //!
-//! - [`RouteStrategy`] has no route-service parameter. The deployed profile's
+//! - [`RouteStrategy`](everymap_core::domains::routing::RouteStrategy) has no
+//!   route-service parameter. The deployed profile's
 //!   cost model fixes the ranking, so `Fastest` and `Shortest` produce the
 //!   same request; [`Router::route_capabilities`] reports that the shortest
 //!   strategy is unsupported.
@@ -266,7 +267,7 @@ impl Router for OsrmRouter {
     ///
     /// # Errors
     /// Returns [`EveryMapError::ValidationError`] for fewer than two
-    /// waypoints; see [`Self::request_route`] for the request failures.
+    /// waypoints; the private `request_route` carries the request failures.
     async fn calculate_route_with_waypoints(
         &self,
         waypoints: &[Coordinate],

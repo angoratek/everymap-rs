@@ -2,7 +2,7 @@
 name = "everymap-cli"
 version.workspace = true
 edition.workspace = true
-description = "Unified CLI for geospatial APIs — geocode, route, match, and more across 5 providers"
+description = "Unified CLI for geospatial APIs — geocoding, search, routing, matrix, traffic, tiles and more across every EveryMap provider"
 rust-version.workspace = true
 license.workspace = true
 repository.workspace = true

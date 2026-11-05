@@ -2,22 +2,18 @@
 
 [Radar](https://radar.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, route matching, and route optimization.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | — |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | — |
-| Tiling | `TileProvider` | — |
-| Positioning | `NetworkPositioner` | — |
-| Attributes | `AttributeProvider` | — |
-| Imaging | `MapImageProvider` | — |
+| Geocoding | `Geocoder` | `RadarGeocoder` |
+| Routing | `Router` | `RadarRouter` ¹ |
+| Matching | `RouteMatcher` | `RadarRouteMatcher` |
+| Tour | `TourPlanner` | `RadarTourPlanner` |
 
-Unsupported domains (`RadarIsoline`, `RadarTraffic`, `RadarTileProvider`, `RadarPositioner`, `RadarAttributeProvider`, `RadarMapImageProvider`) return a clear `UnsupportedDomain` error.
+Not served: place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 

@@ -147,7 +147,7 @@ Test each provider's supported domains via the CLI:
 > **Note:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
 
 ```bash
-# --- HERE (10 domains) ---
+# --- HERE (every contract it serves) ---
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary geocode "Berlin"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary reverse-geocode --lat 52.52 --lng 13.40
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary route --origin "52.52,13.40" --destination "48.85,2.35"

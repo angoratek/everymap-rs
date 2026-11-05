@@ -1,10 +1,12 @@
 # EveryMap-RS
 
-A modular, type-safe Rust wrapper for geospatial APIs across **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. EveryMap-RS uses domain-driven design: 10 geospatial capabilities (search, routing, isolines, map matching, tour planning, traffic, tiling, positioning, attributes, and imaging) are defined as traits in `everymap-core` and implemented by per-provider crates — switch providers by changing one line of code.
+One trait surface over eleven geospatial providers for Rust: **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **Photon**, **OSRM**, **Valhalla**, and URL-template sources for any `{z}/{x}/{y}` raster or vector tileset. Business logic targets the contract, and a provider is a constructor change rather than a rewrite. Every provider crate builds for native and browser targets.
+
+Contracts: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing, distance matrices, traffic flow and incidents, raster tiles, vector tiles, isolines, map matching, tour planning, network positioning, geodata attributes, static map images, elevation and offline routing.
 
 - Repository: <https://github.com/angoratek/everymap-rs>
 - Core API docs: <https://docs.rs/everymap-core>
-- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
+- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) · [`everymap-providers-photon`](https://crates.io/crates/everymap-providers-photon) · [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) · [`everymap-providers-valhalla`](https://crates.io/crates/everymap-providers-valhalla) · [`everymap-providers-url-template-raster`](https://crates.io/crates/everymap-providers-url-template-raster) · [`everymap-providers-url-template-vector`](https://crates.io/crates/everymap-providers-url-template-vector) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
 
 ---
 
@@ -12,22 +14,18 @@ A modular, type-safe Rust wrapper for geospatial APIs across **HERE Technologies
 
 [Radar](https://radar.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, route matching, and route optimization.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | — |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | — |
-| Tiling | `TileProvider` | — |
-| Positioning | `NetworkPositioner` | — |
-| Attributes | `AttributeProvider` | — |
-| Imaging | `MapImageProvider` | — |
+| Geocoding | `Geocoder` | `RadarGeocoder` |
+| Routing | `Router` | `RadarRouter` ¹ |
+| Matching | `RouteMatcher` | `RadarRouteMatcher` |
+| Tour | `TourPlanner` | `RadarTourPlanner` |
 
-Unsupported domains (`RadarIsoline`, `RadarTraffic`, `RadarTileProvider`, `RadarPositioner`, `RadarAttributeProvider`, `RadarMapImageProvider`) return a clear `UnsupportedDomain` error.
+Not served: place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 

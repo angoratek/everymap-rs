@@ -1,23 +1,22 @@
 # everymap-providers-mapbox
 
-[MapBox](https://www.mapbox.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, isochrones, map matching, tour optimization, tiles, and static maps.
+[MapBox](https://www.mapbox.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, isochrones, map matching, tour optimization, vector tiles, and static maps.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | ✅ |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | — |
-| Tiling | `TileProvider` | ✅ |
-| Positioning | `NetworkPositioner` | — |
-| Attributes | `AttributeProvider` | — |
-| Imaging | `MapImageProvider` | ✅ |
+| Geocoding | `Geocoder` | `MapBoxGeocoder` |
+| Routing | `Router` | `MapBoxRouter` ¹ |
+| Vector tiles | `VectorTileProvider` | `MapBoxTileProvider` |
+| Isoline | `IsolineProvider` | `MapBoxIsoline` |
+| Matching | `RouteMatcher` | `MapBoxRouteMatcher` |
+| Tour | `TourPlanner` | `MapBoxTourPlanner` |
+| Imaging | `MapImageProvider` | `MapBoxMapImageProvider` |
 
-Unsupported domains (`MapBoxTraffic`, `MapBoxPositioner`, `MapBoxAttributeProvider`) return a clear `UnsupportedDomain` error.
+Not served: place search, type-ahead, distance matrix, traffic, raster tiles, elevation, positioning, attributes and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 
@@ -54,4 +53,4 @@ async fn main() {
 
 Extension traits: `MapBoxGeocoderExt` (Search Box v6 with `properties`-based results: `full_address`, `name`, `coordinates`, `bbox`, `context`) and `MapBoxRouterExt`.
 
-The tour planner selects the Optimization API profile (`driving`/`walking`/`cycling`) from `TourOptions::transport_mode`. Static images use the default `streets-v12` style with no file extension in the URL, and vector tiles use MapBox's own tile scheme.
+The tour planner selects the Optimization API profile (`driving`/`walking`/`cycling`) from `TourOptions::transport_mode`. Static images use the default `streets-v12` style with no file extension in the URL, and vector tiles use the Vector Tiles API's MVT form.

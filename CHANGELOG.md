@@ -2,24 +2,32 @@
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-05
+
+### Changed (breaking)
+- One contract surface. The untyped `TileProvider`, its `TileOptions`/`TileResponse` records and `unsupported_tile!` are removed; `RasterTileProvider` and `VectorTileProvider` are the only tile contracts. HERE and MapBox serve `VectorTileProvider`: HERE requests the Vector Tile API's only output segment, `omv`, whose bytes are MVT protobuf over zoom 0–17, and MapBox requests Streets v8 MVT. TomTom serves `RasterTileProvider`, PNG at standard resolution; a JPEG or Retina request is refused. The CLI's `tile` command takes `--variant raster|vector`, defaulting to the first contract the provider serves, with the typed request's format and resolution, and the benchmark measures the same two contracts.
+- The provider matrix, the crate READMEs and the CLI's descriptions use one vocabulary — Geocoding, Place search, Type-ahead, Routing, Distance matrix, Traffic, Raster tiles, Vector tiles, Elevation, Isoline, Matching, Tour, Positioning, Attributes, Imaging, Offline routing — with no distinction between providers written before or after the typed contracts. `everymap-core`'s crates.io description names the provider family.
+- Every crate README opens with the same paragraph naming the eleven providers and the sixteen contracts, then carries the same three-column contract table and a sentence naming the contracts it does not serve. The five original providers state that routing takes an origin and a destination and refuses a longer request rather than dropping stops.
+
+### Added
+- `AutocompleteResult::quality`: a candidate carries the match granularity its provider classifies, on the same `SearchQuality` scale a settled search reports. Photon fills it from the feature class; MapQuest leaves it unset, and a host falls back to its own default. The field is additive and serde-defaulted, so an existing candidate literal keeps compiling with one added line.
+- `docs/design/UnifiedContracts.md`: the audit behind the matrix and the rule that a new capability is a new contract for every provider.
+- `scripts/check-open-source-hygiene.sh`, run in CI: the tracked tree (planning documents included) may carry no credential, personal filesystem path or private marker.
+
+### Fixed
+- The browser-closure clippy gate actually lints the closure. Every `cargo` flag in the CI step followed `--`, which hands the rest of the line to rustc: `-p` was ignored, cargo fell back to its default target set for the whole workspace, and the native test harness's full-featured `tokio` pulled `mio` into a `wasm32` build, where it refuses to compile. The step now passes its `-p` selections to cargo and only `-D warnings` after the separator.
+- The dependency audit is clean again. Cargo.lock carries patched `rustls` 0.23.46, `rustls-webpki` 0.103.16, `webpki-root-certs` 1.0.11 and `tokio` 1.54.1, which close every advisory `cargo deny` reported: TLS session secrets in `Debug` output, trust in distrusted certificate intermediates and roots, and the `AsyncFd` I/O-safety issue.
+
 ## [0.3.2] — 2026-11-05
 
 ### Fixed
 - The URL-template raster provider applies `TileSourcePacing::maximum_wait_seconds`. 0.3.1 added the field and honoured it in the vector provider; the raster provider kept its own bucket construction and ignored it, so a paced raster source still waited for its refill instead of refusing at the declared ceiling.
 
 ### Added
-- `everymap-providers-photon`: keyless geocoding, settled place search and type-ahead over any Photon deployment, with Photon's feature classes mapped onto `SearchQuality`.
-- `openstreetmap_us_vector_source()` carries an identifying `User-Agent` and the tileservice's full usage policy.
-- `everymap-cli` and `everymap-bench` select MapQuest, OSRM and Valhalla; `unsupported_geocoder!` and `unsupported_matcher!` join the stub macros.
-
-### Changed
-- Every provider crate builds for `wasm32`: the five original providers drop their unused `tokio`/`reqwest` dependencies, `provider_client!` names everymap-core's re-exported client builder, HERE's tour request reads the wall clock through `web-time`, and CI lints the whole provider closure plus `scripts/check-provider-transport-isolation.sh`.
-
-### Added
 - `openstreetmap_us_vector_source()` now carries an identifying `User-Agent` (`OPENSTREETMAP_US_USER_AGENT`) and the tileservice's full usage policy in its terms text, so a host can serve the source through the URL-template provider without losing the request policy the dedicated crate carried.
 - `everymap-providers-photon`: a keyless Photon provider covering forward and reverse geocoding, settled place search and type-ahead over the public instance or a self-hosted deployment, with Photon's feature classes mapped onto the core's quality scale and its GeoJSON `FeatureCollection` projected onto the core records. It builds for the browser and joins the CI closure; seven wiremock contract cases replay the committed fixtures.
 - `everymap-cli` and `everymap-bench` select MapQuest, OSRM and Valhalla beside the five original providers. MapQuest serves geocoding, routing and traffic; OSRM and Valhalla serve routing and take their deployment base URL in the credential slot (an empty value reaches the documented local default). A domain a provider does not serve answers with the documented unsupported-domain error. The CLI's provider validation moved ahead of credential resolution so the keyless engines need no key, and the error keeps its documented "API key required" prefix.
-- `unsupported_geocoder!` and `unsupported_matcher!` join the unsupported-domain macros, so a routing-only provider can declare the two domains it lacks.
+- `unsupported_geocoder!` and `unsupported_matcher!` join the unsupported-domain macros, so a routing-only provider can declare the two contracts it lacks.
 
 ### Changed
 - Every provider crate builds for the browser. The five original providers already delegated to the shared `ProviderClient`; their unused `tokio` and `reqwest` dependencies were what pulled a native-only runtime into a `wasm32` build, and `provider_client!` now names `everymap-core`'s re-exported `ClientBuilder` instead of `reqwest` directly. HERE's tour request reads the wall clock through `web-time` rather than `chrono::Utc::now()`, which is unimplemented in a browser. The CI browser closure now covers core and all eleven providers, and `scripts/check-provider-transport-isolation.sh` fails a provider crate that names `reqwest` or `tokio` directly.

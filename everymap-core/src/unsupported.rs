@@ -73,30 +73,6 @@ macro_rules! unsupported_tour {
     };
 }
 
-/// Generates an unsupported `TileProvider` stub implementation.
-#[macro_export]
-macro_rules! unsupported_tile {
-    ($struct_name:ident, $provider:expr) => {
-        pub struct $struct_name;
-
-        #[async_trait::async_trait]
-        impl everymap_core::domains::tiling::TileProvider for $struct_name {
-            async fn get_tile(
-                &self,
-                _z: u32,
-                _x: u32,
-                _y: u32,
-                _options: &everymap_core::domains::tiling::TileOptions,
-            ) -> everymap_core::error::EveryMapResult<everymap_core::domains::tiling::TileResponse>
-            {
-                Err(everymap_core::error::EveryMapError::unsupported_domain(
-                    $provider, "tiling",
-                ))
-            }
-        }
-    };
-}
-
 /// Generates an unsupported `NetworkPositioner` stub implementation.
 #[macro_export]
 macro_rules! unsupported_positioner {

@@ -28,6 +28,8 @@ jobs:
       - run: cargo clippy --all-targets --all-features -- -D warnings
       - run: chmod +x scripts/check-provider-transport-isolation.sh
       - run: ./scripts/check-provider-transport-isolation.sh
+      - run: chmod +x scripts/check-open-source-hygiene.sh
+      - run: ./scripts/check-open-source-hygiene.sh
 
   wasm:
     runs-on: ubuntu-latest
@@ -55,9 +57,13 @@ jobs:
           -p everymap-providers-valhalla
           -p everymap-providers-url-template-raster
           -p everymap-providers-url-template-vector
+      # Every cargo argument goes before the `--`: anything after it is handed
+      # to rustc, so a `-p` there would be ignored and cargo would lint the
+      # whole workspace instead of this closure, dragging the native test
+      # harness's tokio (and mio, which refuses wasm32) into the build.
       - name: Clippy the browser closure
         run: >-
-          cargo clippy --target wasm32-unknown-unknown --lib -- -D warnings
+          cargo clippy --target wasm32-unknown-unknown --lib
           -p everymap-core
           -p everymap-providers-here
           -p everymap-providers-google
@@ -70,6 +76,7 @@ jobs:
           -p everymap-providers-valhalla
           -p everymap-providers-url-template-raster
           -p everymap-providers-url-template-vector
+          -- -D warnings
 
   docs:
     runs-on: ubuntu-latest

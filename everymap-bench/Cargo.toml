@@ -4,7 +4,7 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish = false
-description = "Cross-provider benchmark framework for EveryMap"
+description = "Cross-provider benchmark harness for EveryMap — measures the same contract scenarios on every provider crate"
 license.workspace = true
 repository.workspace = true
 

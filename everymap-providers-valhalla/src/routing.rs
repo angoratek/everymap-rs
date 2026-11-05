@@ -274,7 +274,7 @@ impl Router for ValhallaRouter {
     ///
     /// # Errors
     /// Returns [`EveryMapError::ValidationError`] for fewer than two
-    /// waypoints; see [`Self::request_route`] for the request failures.
+    /// waypoints; the private `request_route` carries the request failures.
     async fn calculate_route_with_waypoints(
         &self,
         waypoints: &[Coordinate],

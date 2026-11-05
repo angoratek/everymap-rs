@@ -41,9 +41,7 @@ pub use domain::attributes::{
 };
 
 // Unsupported domains (return UnsupportedDomain error)
-pub use domain::unsupported::{
-    GoogleIsoline, GoogleTileProvider, GoogleTourPlanner, GoogleTraffic,
-};
+pub use domain::unsupported::{GoogleIsoline, GoogleTourPlanner, GoogleTraffic};
 
 // Extension traits
 pub use ext::{GoogleAttributeExt, GooglePositionerExt};

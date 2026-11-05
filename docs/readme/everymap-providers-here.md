@@ -1,21 +1,25 @@
 # everymap-providers-here
 
-[HERE Technologies](https://www.here.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — the most complete implementation, covering all 10 geospatial domains.
+[HERE Technologies](https://www.here.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — the most complete implementation, serving ten of the sixteen contracts.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | ✅ |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | ✅ |
-| Tiling | `TileProvider` | ✅ |
-| Positioning | `NetworkPositioner` | ✅ |
-| Attributes | `AttributeProvider` | ✅ |
-| Imaging | `MapImageProvider` | ✅ |
+| Geocoding | `Geocoder` | `HereGeocoder` |
+| Routing | `Router` | `HereRouter` ¹ |
+| Traffic | `TrafficProvider` | `HereTraffic` |
+| Vector tiles | `VectorTileProvider` | `HereTileProvider` |
+| Isoline | `IsolineProvider` | `HereIsoline` |
+| Matching | `RouteMatcher` | `HereRouteMatcher` |
+| Tour | `TourPlanner` | `HereTourPlanner` |
+| Positioning | `NetworkPositioner` | `HerePositioner` |
+| Attributes | `AttributeProvider` | `HereAttributeProvider` |
+| Imaging | `MapImageProvider` | `HereMapImageProvider` |
+
+Not served: place search, type-ahead, distance matrix, raster tiles, elevation and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 
@@ -50,8 +54,8 @@ async fn main() {
 
 ## Provider-specific features
 
-Every domain trait is implemented, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes).
+Every contract HERE serves has an implementation, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes).
 
 Extension traits expose HERE-only capabilities beyond the core traits: `HereGeocoderExt` (rich Search API discovery, e.g. `discover()`), `HereTrafficExt`, `HerePositionerExt`, `HereTourPlannerExt`, and `HereAttributeExt`.
 
-HERE uses its own tiling scheme for the `TileProvider` — see the [root README](https://github.com/angoratek/everymap-rs#cli-usage) for the Berlin z14 example coordinates.
+HERE serves MVT vector tiles through `VectorTileProvider`, requesting the Vector Tile API's `omv` output between zoom 0 and 17; another layer is one call away through `fetch_vector_tile_in_layer`. See the [root README](https://github.com/angoratek/everymap-rs#cli-usage) for the Berlin z14 example coordinates.

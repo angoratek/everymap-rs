@@ -1,31 +1,37 @@
 # EveryMap-RS
 
-A modular, type-safe Rust wrapper for geospatial APIs across **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. EveryMap-RS uses domain-driven design: 10 geospatial capabilities (search, routing, isolines, map matching, tour planning, traffic, tiling, positioning, attributes, and imaging) are defined as traits in `everymap-core` and implemented by per-provider crates — switch providers by changing one line of code.
+One trait surface over eleven geospatial providers for Rust: **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **Photon**, **OSRM**, **Valhalla**, and URL-template sources for any `{z}/{x}/{y}` raster or vector tileset. Business logic targets the contract, and a provider is a constructor change rather than a rewrite. Every provider crate builds for native and browser targets.
+
+Contracts: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing, distance matrices, traffic flow and incidents, raster tiles, vector tiles, isolines, map matching, tour planning, network positioning, geodata attributes, static map images, elevation and offline routing.
 
 - Repository: <https://github.com/angoratek/everymap-rs>
 - Core API docs: <https://docs.rs/everymap-core>
-- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
+- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) · [`everymap-providers-photon`](https://crates.io/crates/everymap-providers-photon) · [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) · [`everymap-providers-valhalla`](https://crates.io/crates/everymap-providers-valhalla) · [`everymap-providers-url-template-raster`](https://crates.io/crates/everymap-providers-url-template-raster) · [`everymap-providers-url-template-vector`](https://crates.io/crates/everymap-providers-url-template-vector) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
 
 ---
 
 # everymap-providers-here
 
-[HERE Technologies](https://www.here.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — the most complete implementation, covering all 10 geospatial domains.
+[HERE Technologies](https://www.here.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — the most complete implementation, serving ten of the sixteen contracts.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | ✅ |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | ✅ |
-| Tiling | `TileProvider` | ✅ |
-| Positioning | `NetworkPositioner` | ✅ |
-| Attributes | `AttributeProvider` | ✅ |
-| Imaging | `MapImageProvider` | ✅ |
+| Geocoding | `Geocoder` | `HereGeocoder` |
+| Routing | `Router` | `HereRouter` ¹ |
+| Traffic | `TrafficProvider` | `HereTraffic` |
+| Vector tiles | `VectorTileProvider` | `HereTileProvider` |
+| Isoline | `IsolineProvider` | `HereIsoline` |
+| Matching | `RouteMatcher` | `HereRouteMatcher` |
+| Tour | `TourPlanner` | `HereTourPlanner` |
+| Positioning | `NetworkPositioner` | `HerePositioner` |
+| Attributes | `AttributeProvider` | `HereAttributeProvider` |
+| Imaging | `MapImageProvider` | `HereMapImageProvider` |
+
+Not served: place search, type-ahead, distance matrix, raster tiles, elevation and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 
@@ -60,8 +66,8 @@ async fn main() {
 
 ## Provider-specific features
 
-Every domain trait is implemented, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes).
+Every contract HERE serves has an implementation, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes).
 
 Extension traits expose HERE-only capabilities beyond the core traits: `HereGeocoderExt` (rich Search API discovery, e.g. `discover()`), `HereTrafficExt`, `HerePositionerExt`, `HereTourPlannerExt`, and `HereAttributeExt`.
 
-HERE uses its own tiling scheme for the `TileProvider` — see the [root README](https://github.com/angoratek/everymap-rs#cli-usage) for the Berlin z14 example coordinates.
+HERE serves MVT vector tiles through `VectorTileProvider`, requesting the Vector Tile API's `omv` output between zoom 0 and 17; another layer is one call away through `fetch_vector_tile_in_layer`. See the [root README](https://github.com/angoratek/everymap-rs#cli-usage) for the Berlin z14 example coordinates.

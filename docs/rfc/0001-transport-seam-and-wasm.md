@@ -270,7 +270,8 @@ that carries this change.
 | 3 | Providers: MapQuest, OSRM, Valhalla, URL-template raster and vector, OSM US/OpenFreeMap descriptors, with recorded fixtures and contract tests | Complete (PRs #25–#27) |
 | 4 | Release 0.3.0 with the wasm/native CI matrix and the changelog | Complete (`v0.3.0`) |
 | 2–4 | Follow-ups: the `web-time` browser clock and the optional tile-source `maximum_wait` | Complete (`v0.3.1`) |
-| 3 | Follow-up: every provider crate in the browser closure — the five original providers drop their unused `tokio`/`reqwest` dependencies and HERE reads the wall clock through `web-time` | Landed on `main`; the next release carries it |
+| 3 | Follow-up: every provider crate in the browser closure — the five original providers drop their unused `tokio`/`reqwest` dependencies and HERE reads the wall clock through `web-time` | Complete (`v0.3.2`) |
+| 2–3 | Follow-up: one contract surface — the untyped `TileProvider` is deleted, HERE and MapBox implement `VectorTileProvider`, TomTom implements `RasterTileProvider`, and the README carries one matrix | Complete (`v0.4.0`) |
 | 5 | Switch the SDK: registry, catalog, cache wrappers, native registration and wasm dispatch | In progress in the SDK repository (M66) |
 | 6 | Docs and gates: provider-genericity guide, crate layout, name guard, full platform gates | In progress (everymap-rs `PLAN.md` M1) |
 
@@ -284,9 +285,10 @@ that carries this change.
   `HttpResponse` instead of `reqwest::Response`.
 - `EveryMapError::ClientError` stays native-only; WebAssembly transport
   failures map to the new `EveryMapError::TransportError`.
-- The original `TileProvider` and two-endpoint `Router` surfaces remain
-  available. Phase 3 providers implement the typed tile traits and override
-  `calculate_route_with_waypoints`; no consumer is forced to switch at once.
+- The untyped `TileProvider` was removed in 0.4.0; the typed raster and vector
+  contracts are the only tile surfaces. `Router` keeps its two-endpoint method
+  as a trait default, and phase 3 providers override
+  `calculate_route_with_waypoints` to accept ordered waypoints.
 - The navigation and tile records are plain owned values, so they build for
   every target that builds the core, WebAssembly included.
 

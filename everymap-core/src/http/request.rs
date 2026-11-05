@@ -275,6 +275,25 @@ mod tests {
         assert!(!Method::POST.is_idempotent());
     }
 
+    /// A query string never ends with the separator: Photon and OSRM refuse a
+    /// trailing `&` as a malformed query, and MapQuest silently tolerates it.
+    #[test]
+    fn the_query_string_never_ends_with_a_separator() {
+        let request = HttpRequest::get("https://router.project-osrm.org/route/v1/driving/1,2;3,4")
+            .query(&[("overview", "full"), ("steps", "true")]);
+        let url = request.url_with_query();
+        assert!(url.contains("?overview=full&steps=true"));
+        assert!(!url.ends_with('&'), "{url}");
+
+        let with_existing_query =
+            HttpRequest::get("https://example.test/api?key=test").query(&[("q", "paris")]);
+        let existing_url = with_existing_query.url_with_query();
+        assert_eq!(existing_url, "https://example.test/api?key=test&q=paris");
+
+        let without_query = HttpRequest::get("https://example.test/api");
+        assert_eq!(without_query.url_with_query(), "https://example.test/api");
+    }
+
     #[test]
     fn query_encodes_values() {
         let request = HttpRequest::get("https://example.com/search")

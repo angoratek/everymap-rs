@@ -30,3 +30,8 @@ release-artifacts/
 
 smoke-test-results
 validate-results
+
+# The CLI's default output files, written by the integration tests
+tile.mvt
+tile.png
+map.png

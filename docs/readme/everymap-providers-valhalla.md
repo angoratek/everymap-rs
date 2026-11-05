@@ -2,11 +2,13 @@
 
 [Valhalla](https://valhalla.github.io/valhalla/) routing provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs). Valhalla is keyless and self-hosted, so the provider needs only a deployment address.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Routing | `Router` | ✅ |
+| Routing | `Router` | `ValhallaRouter`, ordered waypoints |
+
+Not served: geocoding, place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 ## Installation
 

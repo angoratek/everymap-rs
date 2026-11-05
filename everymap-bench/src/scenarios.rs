@@ -71,7 +71,7 @@ pub struct BenchmarkScenario {
     pub params: ScenarioParams,
 }
 
-/// Predefined benchmark scenarios for all 10 domains.
+/// The predefined benchmark scenarios, grouped by scenario domain.
 pub fn get_scenarios(domain: Option<&str>) -> Vec<BenchmarkScenario> {
     let all = vec![
         // Geocoder

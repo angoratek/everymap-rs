@@ -1,10 +1,12 @@
 # EveryMap-RS
 
-A modular, type-safe Rust wrapper for geospatial APIs across **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, and **Radar**. EveryMap-RS uses domain-driven design: 10 geospatial capabilities (search, routing, isolines, map matching, tour planning, traffic, tiling, positioning, attributes, and imaging) are defined as traits in `everymap-core` and implemented by per-provider crates — switch providers by changing one line of code.
+One trait surface over eleven geospatial providers for Rust: **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **Photon**, **OSRM**, **Valhalla**, and URL-template sources for any `{z}/{x}/{y}` raster or vector tileset. Business logic targets the contract, and a provider is a constructor change rather than a rewrite. Every provider crate builds for native and browser targets.
+
+Contracts: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing, distance matrices, traffic flow and incidents, raster tiles, vector tiles, isolines, map matching, tour planning, network positioning, geodata attributes, static map images, elevation and offline routing.
 
 - Repository: <https://github.com/angoratek/everymap-rs>
 - Core API docs: <https://docs.rs/everymap-core>
-- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
+- Other crates: [`everymap-core`](https://crates.io/crates/everymap-core) · [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) · [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) · [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) · [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) · [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) · [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) · [`everymap-providers-photon`](https://crates.io/crates/everymap-providers-photon) · [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) · [`everymap-providers-valhalla`](https://crates.io/crates/everymap-providers-valhalla) · [`everymap-providers-url-template-raster`](https://crates.io/crates/everymap-providers-url-template-raster) · [`everymap-providers-url-template-vector`](https://crates.io/crates/everymap-providers-url-template-vector) · [`everymap-cli`](https://crates.io/crates/everymap-cli)
 
 ---
 
@@ -34,11 +36,13 @@ let response = geocoder.geocode("Brandenburg Gate, Berlin", &GeocodeOptions::def
 
 ## Contracts
 
-| Contract | Implementation |
-|---|---|
-| `Geocoder` | `PhotonGeocoder` — forward and reverse queries over `/api` and `/reverse` |
-| `PlaceSearchProvider` | `PhotonPlaceSearchProvider` — settled search with a ten-result cap |
-| `AutocompleteProvider` | `PhotonAutocompleteProvider` — type-ahead with a five-result cap |
+| Contract | Trait | Implementation |
+|---|---|---|
+| Geocoding | `Geocoder` | `PhotonGeocoder`, forward and reverse queries over `/api` and `/reverse` |
+| Place search | `PlaceSearchProvider` | `PhotonPlaceSearchProvider`, settled search with a ten-result cap |
+| Type-ahead | `AutocompleteProvider` | `PhotonAutocompleteProvider`, type-ahead with a five-result cap |
+
+Not served: routing, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 Feature classes map onto the core's `SearchQuality` scale (`house` →
 street address, `street`, `locality`/`city`, `county`, `state`, `country`,

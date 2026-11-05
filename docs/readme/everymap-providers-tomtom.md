@@ -1,23 +1,23 @@
 # everymap-providers-tomtom
 
-[TomTom](https://www.tomtom.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, traffic, isolines, map matching, tour optimization, tiles, and static maps.
+[TomTom](https://www.tomtom.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, traffic, isolines, map matching, tour optimization, raster tiles, and static maps.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | ✅ |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | ✅ |
-| Traffic | `TrafficProvider` | ✅ |
-| Tiling | `TileProvider` | ✅ |
-| Positioning | `NetworkPositioner` | — |
-| Attributes | `AttributeProvider` | — |
-| Imaging | `MapImageProvider` | ✅ |
+| Geocoding | `Geocoder` | `TomTomGeocoder` |
+| Routing | `Router` | `TomTomRouter` ¹ |
+| Traffic | `TrafficProvider` | `TomTomTraffic` |
+| Raster tiles | `RasterTileProvider` | `TomTomTileProvider` |
+| Isoline | `IsolineProvider` | `TomTomIsoline` |
+| Matching | `RouteMatcher` | `TomTomRouteMatcher` |
+| Tour | `TourPlanner` | `TomTomTourPlanner` |
+| Imaging | `MapImageProvider` | `TomTomMapImageProvider` |
 
-Unsupported domains (`TomTomPositioner`, `TomTomAttributeProvider`) return a clear `UnsupportedDomain` error.
+Not served: place search, type-ahead, distance matrix, vector tiles, elevation, positioning, attributes and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 

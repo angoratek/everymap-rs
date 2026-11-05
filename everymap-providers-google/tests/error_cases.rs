@@ -1,12 +1,9 @@
 use everymap_core::domains::isoline::{IsolineOptions, IsolineProvider};
-use everymap_core::domains::tiling::{TileOptions, TileProvider};
 use everymap_core::domains::tour::{TourOptions, TourPlanner};
 use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
-use everymap_providers_google::{
-    GoogleIsoline, GoogleTileProvider, GoogleTourPlanner, GoogleTraffic,
-};
+use everymap_providers_google::{GoogleIsoline, GoogleTourPlanner, GoogleTraffic};
 
 #[tokio::test]
 async fn test_unsupported_isoline() {
@@ -55,22 +52,6 @@ async fn test_unsupported_tour() {
         EveryMapError::UnsupportedDomain { provider, domain } => {
             assert_eq!(provider, "google");
             assert_eq!(domain, "tour");
-        }
-        other => panic!("Expected UnsupportedDomain, got {:?}", other),
-    }
-}
-
-#[tokio::test]
-async fn test_unsupported_tiling() {
-    let tiling = GoogleTileProvider;
-    let result = tiling
-        .get_tile(14, 8802, 5373, &TileOptions::default())
-        .await;
-    assert!(result.is_err());
-    match result.unwrap_err() {
-        EveryMapError::UnsupportedDomain { provider, domain } => {
-            assert_eq!(provider, "google");
-            assert_eq!(domain, "tiling");
         }
         other => panic!("Expected UnsupportedDomain, got {:?}", other),
     }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generates per-crate READMEs for the 7 published EveryMap crates by
+# Generates per-crate READMEs for the 13 published EveryMap crates by
 # concatenating docs/readme/intro.md with the per-crate body fragment.
 #
 # Usage:

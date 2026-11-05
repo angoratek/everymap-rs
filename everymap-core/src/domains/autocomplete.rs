@@ -37,6 +37,11 @@ pub struct AutocompleteResult {
     pub coordinate: Option<Coordinate>,
     /// Bounding box for the suggestion, when reported.
     pub bounding_box: Option<BoundingBox>,
+    /// The match granularity the provider classifies for the suggestion, when
+    /// it reports one. A host that shows a quality for a settled result can
+    /// show the same scale while the visitor is still typing.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub quality: Option<crate::domains::search::SearchQuality>,
     /// POI categories or feature classes (e.g., `restaurant`, `city`).
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub categories: Vec<String>,
@@ -109,6 +114,7 @@ mod tests {
                 subtitle: Some("California, United States".to_string()),
                 coordinate: Some(Coordinate::new(38.5816, -121.4944).unwrap()),
                 bounding_box: None,
+                quality: Some(crate::domains::search::SearchQuality::City),
                 categories: vec!["city".to_string()],
                 raw: None,
             }],
@@ -128,6 +134,7 @@ mod tests {
             subtitle: None,
             coordinate: None,
             bounding_box: None,
+            quality: None,
             categories: Vec::new(),
             raw: None,
         };

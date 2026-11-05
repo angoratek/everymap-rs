@@ -11,7 +11,23 @@ use everymap_core::types::Coordinate;
 use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
 use serde_json::Value;
 use wiremock::matchers::{header, method, path, query_param};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::{Match, Mock, MockServer, Request, ResponseTemplate};
+
+/// Matches a request whose raw query string does not end with the separator.
+///
+/// The public OSRM servers refuse a trailing `&` as a malformed query, so a
+/// client that joins parameters by appending the separator fails here before
+/// it can fail on the live service.
+struct QueryWithoutTrailingSeparator;
+
+impl Match for QueryWithoutTrailingSeparator {
+    fn matches(&self, request: &Request) -> bool {
+        match request.url.query() {
+            Some(raw_query) => !raw_query.ends_with('&'),
+            None => true,
+        }
+    }
+}
 
 /// User agent the tests configure; also matched on the wire.
 const TEST_USER_AGENT: &str = "everymap-osrm-provider-tests";
@@ -66,6 +82,7 @@ async fn successful_route_decodes_legs_steps_instructions_shapes_and_capabilitie
         .and(query_param("overview", "full"))
         .and(query_param("geometries", "geojson"))
         .and(query_param("steps", "true"))
+        .and(QueryWithoutTrailingSeparator)
         .and(header("user-agent", TEST_USER_AGENT))
         .respond_with(fixture_response("sacramento_route.json"))
         .expect(1)

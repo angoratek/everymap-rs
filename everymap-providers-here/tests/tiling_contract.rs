@@ -1,117 +1,123 @@
+//! Contract tests of the HERE vector-tile provider against a wiremock server.
+//!
+//! HERE's only output segment is `omv`, whose bytes are Mapbox Vector Tile
+//! protobuf; the contract requests it for the base layer and echoes the tile.
+//! Every request targets the in-process server; no test reaches an external
+//! service.
+
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_core::domains::tiling::{
+    VectorTileEncoding, VectorTileProvider, VectorTileSourceDescriptor,
+};
+use everymap_core::error::EveryMapError;
 use everymap_providers_here::client::HereClient;
-use everymap_providers_here::domain::tiling::HereTileProvider;
+use everymap_providers_here::domain::tiling::{
+    HereTileProvider, HERE_VECTOR_ATTRIBUTION, HERE_VECTOR_MAXIMUM_ZOOM_LEVEL,
+};
 use std::sync::Arc;
 use wiremock::matchers::{method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
-#[tokio::test]
-async fn test_tiling_contract() {
-    let server = MockServer::start().await;
+/// A minimal MVT payload: the protobuf bytes stand in for a decoded tile.
+const SAMPLE_TILE_BYTES: &[u8] = b"mock_mvt_tile_bytes";
 
-    // Vector tiles are binary protobuf data
-    let tile_data = b"mock_protobuf_tile_data";
-
-    Mock::given(method("GET"))
-        .and(path("/vectortiles/mapbox/mc/10/511/340/omv"))
-        .respond_with(
-            ResponseTemplate::new(200)
-                .insert_header("content-type", "application/x-protobuf")
-                .set_body_bytes(tile_data.to_vec()),
-        )
-        .mount(&server)
-        .await;
-
+/// A provider pointed at the in-process server.
+fn provider_for(server: &MockServer) -> HereTileProvider {
     let auth = Arc::new(ApiKeyProvider::new(
         "test-key".to_string(),
         "apiKey".to_string(),
     ));
-    let client = Arc::new(HereClient::new(auth));
-    let provider = HereTileProvider::with_base_url(client, server.uri());
-
-    let options = TileOptions {
-        provider_extra: Some(serde_json::json!({
-            "layer": "mapbox"
-        })),
-        ..Default::default()
-    };
-
-    let response = provider.get_tile(10, 511, 340, &options).await.unwrap();
-
-    assert_eq!(response.data, tile_data.to_vec());
-    assert_eq!(
-        response.content_type.as_deref(),
-        Some("application/x-protobuf")
-    );
+    HereTileProvider::with_base_url(Arc::new(HereClient::new(auth)), server.uri())
 }
 
 #[tokio::test]
-async fn test_tiling_with_different_layer() {
+async fn the_typed_contract_requests_the_omv_output_of_the_base_layer() {
     let server = MockServer::start().await;
-
-    let tile_data = b"mock_base_tile_data";
-
     Mock::given(method("GET"))
         .and(path("/vectortiles/base/mc/12/2047/1361/omv"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("content-type", "application/x-protobuf")
-                .set_body_bytes(tile_data.to_vec()),
+                .set_body_bytes(SAMPLE_TILE_BYTES.to_vec()),
         )
+        .expect(1)
         .mount(&server)
         .await;
 
-    let auth = Arc::new(ApiKeyProvider::new(
-        "test-key".to_string(),
-        "apiKey".to_string(),
-    ));
-    let client = Arc::new(HereClient::new(auth));
-    let provider = HereTileProvider::with_base_url(client, server.uri());
-
-    let options = TileOptions {
-        provider_extra: Some(serde_json::json!({
-            "layer": "base"
-        })),
-        ..Default::default()
-    };
-
-    let response = provider.get_tile(12, 2047, 1361, &options).await.unwrap();
-
-    assert_eq!(response.data, tile_data.to_vec());
+    let tile = provider_for(&server)
+        .fetch_vector_tile(2047, 1361, 12)
+        .await
+        .expect("the service answers");
+    server.verify().await;
+    assert_eq!(tile.tile_bytes, SAMPLE_TILE_BYTES.to_vec());
+    assert_eq!(tile.tile_encoding, VectorTileEncoding::MapboxVectorTile);
+    assert_eq!(
+        (tile.tile_x, tile.tile_y, tile.zoom_level),
+        (2047, 1361, 12)
+    );
 }
 
 #[tokio::test]
-async fn test_tiling_with_optional_params() {
+async fn a_named_layer_is_reachable_through_the_extension() {
     let server = MockServer::start().await;
-
-    let tile_data = b"mock_tile_with_params";
-
     Mock::given(method("GET"))
         .and(path("/vectortiles/mapbox/mc/10/511/340/omv"))
         .respond_with(
             ResponseTemplate::new(200)
                 .insert_header("content-type", "application/x-protobuf")
-                .set_body_bytes(tile_data.to_vec()),
+                .set_body_bytes(SAMPLE_TILE_BYTES.to_vec()),
         )
+        .expect(1)
         .mount(&server)
         .await;
 
+    let tile = provider_for(&server)
+        .fetch_vector_tile_in_layer("mapbox", 511, 340, 10)
+        .await
+        .expect("the layer answers");
+    server.verify().await;
+    assert_eq!(tile.tile_bytes, SAMPLE_TILE_BYTES.to_vec());
+}
+
+#[test]
+fn the_source_descriptor_names_the_here_tileset() {
     let auth = Arc::new(ApiKeyProvider::new(
         "test-key".to_string(),
         "apiKey".to_string(),
     ));
-    let client = Arc::new(HereClient::new(auth));
-    let provider = HereTileProvider::with_base_url(client, server.uri());
+    let provider = HereTileProvider::new(Arc::new(HereClient::new(auth)));
+    assert_eq!(
+        provider.source_descriptor(),
+        VectorTileSourceDescriptor {
+            source_name: "here/vector".to_string(),
+            attribution_text: HERE_VECTOR_ATTRIBUTION.to_string(),
+            minimum_zoom_level: 0,
+            maximum_zoom_level: HERE_VECTOR_MAXIMUM_ZOOM_LEVEL,
+            tile_encoding: VectorTileEncoding::MapboxVectorTile,
+            style_hints: vec!["omv".to_string(), "base".to_string()],
+        }
+    );
+    assert_eq!(HERE_VECTOR_MAXIMUM_ZOOM_LEVEL, 17);
+}
 
-    let options = TileOptions {
-        provider_extra: Some(serde_json::json!({
-            "layer": "mapbox",
-            "political_view": "CHN"
-        })),
-        ..Default::default()
-    };
+#[tokio::test]
+async fn a_zoom_or_index_past_the_served_range_is_refused_before_any_request() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(0)
+        .mount(&server)
+        .await;
+    let provider = provider_for(&server);
 
-    let response = provider.get_tile(10, 511, 340, &options).await.unwrap();
-    assert_eq!(response.data, tile_data.to_vec());
+    assert!(matches!(
+        provider
+            .fetch_vector_tile(0, 0, HERE_VECTOR_MAXIMUM_ZOOM_LEVEL + 1)
+            .await,
+        Err(EveryMapError::ValidationError(_))
+    ));
+    assert!(matches!(
+        provider.fetch_vector_tile(2, 0, 1).await,
+        Err(EveryMapError::ValidationError(_))
+    ));
 }

@@ -28,7 +28,8 @@
 //!
 //! # Tiles
 //!
-//! Tiles are returned in their wire encoding. [`VectorTileData::from_wire_bytes`]
+//! Tiles are returned in their wire encoding.
+//! [`VectorTileData::from_wire_bytes`](everymap_core::domains::tiling::VectorTileData::from_wire_bytes)
 //! classifies the payload from its gzip magic bytes and refuses an empty body,
 //! so callers never decode a tile under the wrong encoding assumption.
 //!

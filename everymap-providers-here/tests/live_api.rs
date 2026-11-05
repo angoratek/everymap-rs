@@ -13,7 +13,7 @@ use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
 use everymap_core::domains::positioning::{NetworkPositioner, PositioningOptions};
 use everymap_core::domains::routing::{RouteOptions, Router, TransportMode};
 use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
-use everymap_core::domains::tiling::{TileOptions, TileProvider};
+use everymap_core::domains::tiling::VectorTileProvider;
 use everymap_core::domains::tour::{TourOptions, TourPlanner};
 use everymap_core::domains::traffic::{TrafficOptions, TrafficProvider};
 use everymap_core::types::Coordinate;
@@ -493,7 +493,7 @@ async fn live_tour_3_stops_berlin() {
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
-async fn live_tiling_zoom14_berlin() {
+async fn live_vector_tiling_zoom14_berlin() {
     let api_key = get_api_key();
     if api_key.is_empty() {
         return;
@@ -502,33 +502,23 @@ async fn live_tiling_zoom14_berlin() {
     let client = make_client(&api_key);
     let provider = HereTileProvider::new(client);
 
-    // Zoom 14, tile coords around Berlin
-    // At zoom 14, Berlin center (52.52, 13.405) maps to roughly x=4494, y=2832
-    let options = TileOptions {
-        provider_extra: Some(serde_json::json!({
-            "layer": "base"
-        })),
-        ..Default::default()
-    };
-
-    let response = provider.get_tile(14, 4494, 2832, &options).await;
-
-    match response {
-        Ok(response) => {
+    // Zoom 14, tile coordinates around Berlin; the centre maps to roughly
+    // x=4494, y=2832 at this zoom.
+    match provider.fetch_vector_tile(4494, 2832, 14).await {
+        Ok(tile) => {
             println!(
-                "[tiling] data bytes: {}, content_type: {:?}",
-                response.data.len(),
-                response.content_type
+                "[tiling] bytes: {}, encoding: {:?}",
+                tile.tile_bytes.len(),
+                tile.tile_encoding
             );
-            assert!(!response.data.is_empty(), "Tile data should not be empty");
             assert!(
-                response.content_type.is_some(),
-                "Tile should have a content-type"
+                !tile.tile_bytes.is_empty(),
+                "the vector tile payload must not be empty"
             );
         }
         Err(e) => {
             eprintln!("[tiling] ERROR: {:?}", e);
-            panic!("Tiling request failed: {:?}", e);
+            panic!("the vector tile request failed: {:?}", e);
         }
     }
 }

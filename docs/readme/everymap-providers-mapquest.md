@@ -2,17 +2,19 @@
 
 [MapQuest](https://developer.mapquest.com/) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs).
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Settled place search | `PlaceSearchProvider` | ✅ |
-| Autocomplete | `AutocompleteProvider` | ✅ |
-| Routing | `Router` | ✅ |
-| Distance matrix | `DistanceMatrixProvider` | ✅ |
-| Traffic | `TrafficProvider` | ✅ |
-| Raster tiles | `RasterTileProvider` | ✅ |
+| Geocoding | `Geocoder` | `MapQuestGeocoder` |
+| Place search | `PlaceSearchProvider` | `MapQuestPlaceSearchProvider` |
+| Type-ahead | `AutocompleteProvider` | `MapQuestAutocompleteProvider` |
+| Routing | `Router` | `MapQuestRouter`, ordered waypoints |
+| Distance matrix | `DistanceMatrixProvider` | `MapQuestDistanceMatrix` |
+| Traffic | `TrafficProvider` | `MapQuestTrafficProvider` |
+| Raster tiles | `RasterTileProvider` | `MapQuestRasterTileProvider` |
+
+Not served: vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 ## Installation
 

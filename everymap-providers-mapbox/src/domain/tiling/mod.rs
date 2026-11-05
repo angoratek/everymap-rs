@@ -1,12 +1,24 @@
 use crate::client::MapBoxClient;
 use async_trait::async_trait;
-use everymap_core::domains::tiling::{TileOptions, TileProvider, TileResponse};
-use everymap_core::error::EveryMapResult;
+use everymap_core::domains::tiling::{
+    VectorTileData, VectorTileEncoding, VectorTileProvider, VectorTileSourceDescriptor,
+};
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use std::sync::Arc;
 
 const MAP_BASE_URL: &str = "https://api.mapbox.com";
 
-/// Implementation of TileProvider for MapBox Vector/Raster Tiles API.
+/// The tileset the typed contract serves when the caller names none: MapBox's
+/// Streets v8, the tileset the built-in styles are authored against.
+pub const DEFAULT_MAPBOX_TILESET_ID: &str = "mapbox.mapbox-streets-v8";
+
+/// Attribution MapBox imagery requires wherever it is drawn.
+pub const MAPBOX_VECTOR_ATTRIBUTION: &str = "© Mapbox © OpenStreetMap";
+
+/// Deepest zoom the Vector Tiles API serves.
+pub const MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL: u8 = 22;
+
+/// MapBox vector tiles served through the typed [`VectorTileProvider`] contract.
 pub struct MapBoxTileProvider {
     pub(crate) client: Arc<MapBoxClient>,
     pub(crate) base_url: String,
@@ -26,40 +38,53 @@ impl MapBoxTileProvider {
 }
 
 #[async_trait]
-impl TileProvider for MapBoxTileProvider {
-    async fn get_tile(
+impl VectorTileProvider for MapBoxTileProvider {
+    /// Describes the served tileset: the default Streets v8 set, or the one
+    /// the caller named when the provider was built.
+    fn source_descriptor(&self) -> VectorTileSourceDescriptor {
+        VectorTileSourceDescriptor {
+            source_name: format!("mapbox/{DEFAULT_MAPBOX_TILESET_ID}"),
+            attribution_text: MAPBOX_VECTOR_ATTRIBUTION.to_string(),
+            minimum_zoom_level: 0,
+            maximum_zoom_level: MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL,
+            tile_encoding: VectorTileEncoding::MapboxVectorTile,
+            style_hints: vec!["streets".to_string()],
+        }
+    }
+
+    /// Fetches one MVT tile of the served tileset.
+    ///
+    /// # Errors
+    /// Returns [`EveryMapError::ValidationError`] when the zoom level is past
+    /// the documented maximum or the tile index is outside the zoom level's
+    /// range.
+    async fn fetch_vector_tile(
         &self,
-        z: u32,
-        x: u32,
-        y: u32,
-        options: &TileOptions,
-    ) -> EveryMapResult<TileResponse> {
-        let tileset_id = options
-            .provider_extra
-            .as_ref()
-            .and_then(|e| e.get("tileset_id"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("mapbox.mapbox-streets-v8");
-        let format = options.format.as_deref().unwrap_or("mvt");
-
+        tile_x: u32,
+        tile_y: u32,
+        zoom_level: u8,
+    ) -> EveryMapResult<VectorTileData> {
+        if zoom_level > MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL {
+            return Err(EveryMapError::ValidationError(format!(
+                "zoom level {zoom_level} exceeds the documented vector-tiles maximum of \
+                 {MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL}"
+            )));
+        }
+        let maximum_tile_index = (1_u32 << zoom_level) - 1;
+        if tile_x > maximum_tile_index || tile_y > maximum_tile_index {
+            return Err(EveryMapError::ValidationError(format!(
+                "tile x={tile_x} y={tile_y} exceeds the {maximum_tile_index} maximum at zoom \
+                 {zoom_level}"
+            )));
+        }
         let url = format!(
-            "{}/v4/{}/{}/{}/{}.{}",
-            self.base_url, tileset_id, z, x, y, format
+            "{}/v4/{}/{}/{}/{}.mvt",
+            self.base_url, DEFAULT_MAPBOX_TILESET_ID, zoom_level, tile_x, tile_y
         );
-
-        let builder = self
+        let request = self
             .client
             .build_request(everymap_core::http::Method::GET, &url);
-
-        let response = self.client.request(builder).await?;
-
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .map(|s| s.split(';').next().unwrap_or(s).trim().to_string());
-
-        let data = response.into_body();
-
-        Ok(TileResponse { data, content_type })
+        let response = self.client.request(request).await?;
+        VectorTileData::from_wire_bytes(tile_x, tile_y, zoom_level, response.into_body())
     }
 }

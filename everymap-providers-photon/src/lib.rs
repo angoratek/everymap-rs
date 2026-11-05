@@ -6,10 +6,10 @@
 //! address components in `properties`.
 //!
 //! The crate implements the vendor-neutral EveryMap contracts
-//! [`Geocoder`](everymap_core::domains::search::Geocoder),
-//! [`PlaceSearchProvider`](everymap_core::domains::search::PlaceSearchProvider)
+//! [`Geocoder`],
+//! [`PlaceSearchProvider`]
 //! and
-//! [`AutocompleteProvider`](everymap_core::domains::autocomplete::AutocompleteProvider)
+//! [`AutocompleteProvider`]
 //! over one deployment. It is keyless: the public instance needs no
 //! credential, and a self-hosted deployment is addressed by its base URL.
 //!
@@ -477,6 +477,7 @@ fn autocomplete_result(result: SearchResult) -> AutocompleteResult {
         subtitle: result.address.city.or(result.address.country),
         coordinate: Some(result.coordinate),
         bounding_box: result.bounding_box,
+        quality: result.quality,
         categories: result.categories,
         raw: result.raw,
     }

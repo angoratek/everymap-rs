@@ -169,18 +169,22 @@ pub fn parse_prediction_payload(payload: &Value) -> EveryMapResult<AutocompleteR
             .get("displayString")
             .and_then(Value::as_str)
             .ok_or_else(|| invalid_response("prediction result lacks displayString"))?;
-        let longitude = result
+        // The service returns collection entries without a place, for example
+        // a franchise that names a brand rather than a position. A candidate
+        // with no position cannot be drawn, so it is left to the settled
+        // search instead of failing the whole response.
+        let Some(longitude) = result
             .pointer("/place/geometry/coordinates/0")
             .and_then(Value::as_f64)
-            .ok_or_else(|| {
-                invalid_response("prediction result lacks place geometry coordinates")
-            })?;
-        let latitude = result
+        else {
+            continue;
+        };
+        let Some(latitude) = result
             .pointer("/place/geometry/coordinates/1")
             .and_then(Value::as_f64)
-            .ok_or_else(|| {
-                invalid_response("prediction result lacks place geometry coordinates")
-            })?;
+        else {
+            continue;
+        };
         let coordinate = Coordinate::new(latitude, longitude)
             .map_err(|error| invalid_response(error.to_string()))?;
         let mut categories = result
@@ -205,6 +209,7 @@ pub fn parse_prediction_payload(payload: &Value) -> EveryMapResult<AutocompleteR
             subtitle: None,
             coordinate: Some(coordinate),
             bounding_box: None,
+            quality: None,
             categories,
             raw: Some(result.clone()),
         });
@@ -223,6 +228,45 @@ mod tests {
             &std::fs::read_to_string(fixture_path).expect("the fixture must be readable"),
         )
         .expect("the fixture must be valid JSON")
+    }
+
+    #[test]
+    fn a_candidate_without_a_place_is_skipped_not_refused() {
+        // The service answers a franchise entry that names a brand and carries
+        // no place; it must not fail the candidates beside it.
+        let payload: Value = serde_json::from_str(
+            r#"{
+                "results": [
+                    {
+                        "collection": ["adminArea"],
+                        "displayString": "Paris, Ile-de-France, France",
+                        "id": "mqId:282366836",
+                        "name": "Paris",
+                        "place": {
+                            "geometry": { "coordinates": [2.3414, 48.85717], "type": "Point" },
+                            "properties": { "city": "Paris" },
+                            "type": "Feature"
+                        },
+                        "recordType": "city"
+                    },
+                    {
+                        "collection": ["franchise"],
+                        "displayString": "Paris",
+                        "id": "category:2ed9a84fb4eb19a766d2a4df4f7357dc",
+                        "name": "Paris",
+                        "recordType": "franchise"
+                    }
+                ]
+            }"#,
+        )
+        .expect("the payload must be valid JSON");
+        let response = parse_prediction_payload(&payload).expect("the payload must project");
+        assert_eq!(
+            response.items.len(),
+            1,
+            "the franchise entry has no position and is skipped"
+        );
+        assert_eq!(response.items[0].title, "Paris, Ile-de-France, France");
     }
 
     #[test]

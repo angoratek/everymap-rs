@@ -22,7 +22,7 @@ Prebuilt binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silicon, 
 | `isoline` | Reachable range / isochrones |
 | `match-route` | Map matching (snap to road) |
 | `tour` | Waypoint optimization (TSP) |
-| `tile` | Download a map tile to a file |
+| `tile` | Download a raster or vector map tile to a file (`--variant raster\|vector`) |
 | `attributes` | Geodata attributes (e.g. HERE roads, buildings, landmarks) |
 | `map-image` | Save a static map image to a file |
 
@@ -47,8 +47,11 @@ everymap --output summary --api-key $KEY geocode "Paris"
 # Verbose mode shows the redacted request URL, raw body, and timing on stderr
 everymap --verbose --api-key $KEY geocode "Paris"
 
-# Binary commands save to a file (--output-file; defaults: tile.omv, map.png)
+# Binary commands save to a file (--output-file; defaults: tile.png, tile.mvt, map.png)
 everymap --api-key $KEY tile --z 14 --x 4494 --y 2832
+everymap --provider tomtom --api-key $TOMTOM_KEY tile --variant raster --z 14 --x 4494 --y 2832 --format png
+# Vector tiles: a provider that serves MVT, e.g. HERE or MapBox
+everymap --provider mapbox --api-key $MAPBOX_KEY tile --variant vector --z 14 --x 4494 --y 2832
 everymap --api-key $KEY map-image --lat 52.52 --lng 13.40 --zoom 14
 
 # Negative longitudes: use --lng=VALUE (with =) to avoid CLI arg parsing issues

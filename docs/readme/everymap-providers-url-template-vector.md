@@ -2,11 +2,13 @@
 
 A provider-neutral vector-tile provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs), serving any web-mercator XYZ tileset that publishes a `{z}/{x}/{y}` URL template.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Vector tiles | `VectorTileProvider` | ✅ |
+| Vector tiles | `VectorTileProvider` | `UrlTemplateVectorTileProvider` |
+
+Not served: geocoding, place search, type-ahead, routing, distance matrix, traffic, raster tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 ## Installation
 

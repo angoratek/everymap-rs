@@ -7,7 +7,7 @@ use everymap_core::domains::matching::RouteMatcher;
 use everymap_core::domains::positioning::NetworkPositioner as NetworkPositionerTrait;
 use everymap_core::domains::routing::Router;
 use everymap_core::domains::search::Geocoder;
-use everymap_core::domains::tiling::TileProvider;
+use everymap_core::domains::tiling::{RasterTileProvider, VectorTileProvider};
 use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::traffic::TrafficProvider;
 use everymap_providers_mapquest::{
@@ -32,7 +32,8 @@ pub struct ProviderRegistry {
     isoline: Box<dyn IsolineProvider>,
     route_matcher: Box<dyn RouteMatcher>,
     tour_planner: Box<dyn TourPlanner>,
-    tile_provider: Box<dyn TileProvider>,
+    raster_tile_provider: Option<Box<dyn RasterTileProvider>>,
+    vector_tile_provider: Option<Box<dyn VectorTileProvider>>,
     attribute_provider: Box<dyn AttributeProvider>,
     image_provider: Box<dyn MapImageProvider>,
 }
@@ -54,7 +55,6 @@ everymap_core::unsupported_traffic!(MapQuestUnsupportedTraffic, "mapquest");
 everymap_core::unsupported_isoline!(MapQuestUnsupportedIsoline, "mapquest");
 everymap_core::unsupported_matcher!(MapQuestUnsupportedRouteMatcher, "mapquest");
 everymap_core::unsupported_tour!(MapQuestUnsupportedTourPlanner, "mapquest");
-everymap_core::unsupported_tile!(MapQuestUnsupportedTileProvider, "mapquest");
 everymap_core::unsupported_positioner!(MapQuestUnsupportedPositioner, "mapquest");
 everymap_core::unsupported_attributes!(MapQuestUnsupportedAttributeProvider, "mapquest");
 everymap_core::unsupported_image!(MapQuestUnsupportedMapImageProvider, "mapquest");
@@ -64,7 +64,6 @@ everymap_core::unsupported_traffic!(OsrmUnsupportedTraffic, "osrm");
 everymap_core::unsupported_isoline!(OsrmUnsupportedIsoline, "osrm");
 everymap_core::unsupported_matcher!(OsrmUnsupportedRouteMatcher, "osrm");
 everymap_core::unsupported_tour!(OsrmUnsupportedTour, "osrm");
-everymap_core::unsupported_tile!(OsrmUnsupportedTile, "osrm");
 everymap_core::unsupported_positioner!(OsrmUnsupportedPositioner, "osrm");
 everymap_core::unsupported_attributes!(OsrmUnsupportedAttributes, "osrm");
 everymap_core::unsupported_image!(OsrmUnsupportedImage, "osrm");
@@ -74,7 +73,6 @@ everymap_core::unsupported_traffic!(ValhallaUnsupportedTraffic, "valhalla");
 everymap_core::unsupported_isoline!(ValhallaUnsupportedIsoline, "valhalla");
 everymap_core::unsupported_matcher!(ValhallaUnsupportedRouteMatcher, "valhalla");
 everymap_core::unsupported_tour!(ValhallaUnsupportedTour, "valhalla");
-everymap_core::unsupported_tile!(ValhallaUnsupportedTile, "valhalla");
 everymap_core::unsupported_positioner!(ValhallaUnsupportedPositioner, "valhalla");
 everymap_core::unsupported_attributes!(ValhallaUnsupportedAttributes, "valhalla");
 everymap_core::unsupported_image!(ValhallaUnsupportedImage, "valhalla");
@@ -122,9 +120,10 @@ impl ProviderRegistry {
             tour_planner: Box::new(everymap_providers_here::domain::tour::HereTourPlanner::new(
                 client.clone(),
             )),
-            tile_provider: Box::new(
+            raster_tile_provider: None,
+            vector_tile_provider: Some(Box::new(
                 everymap_providers_here::domain::tiling::HereTileProvider::new(client.clone()),
-            ),
+            )),
             attribute_provider: Box::new(
                 everymap_providers_here::domain::attributes::HereAttributeProvider::new(
                     client.clone(),
@@ -156,7 +155,8 @@ impl ProviderRegistry {
                 client.clone(),
             )),
             tour_planner: Box::new(everymap_providers_google::GoogleTourPlanner),
-            tile_provider: Box::new(everymap_providers_google::GoogleTileProvider),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
             attribute_provider: Box::new(everymap_providers_google::GoogleAttributeProvider::new(
                 client.clone(),
             )),
@@ -190,9 +190,10 @@ impl ProviderRegistry {
             tour_planner: Box::new(everymap_providers_tomtom::TomTomTourPlanner::new(
                 client.clone(),
             )),
-            tile_provider: Box::new(everymap_providers_tomtom::TomTomTileProvider::new(
-                client.clone(),
+            raster_tile_provider: Some(Box::new(
+                everymap_providers_tomtom::TomTomTileProvider::new(client.clone()),
             )),
+            vector_tile_provider: None,
             attribute_provider: Box::new(everymap_providers_tomtom::TomTomAttributeProvider),
             image_provider: Box::new(everymap_providers_tomtom::TomTomMapImageProvider::new(
                 client,
@@ -222,8 +223,9 @@ impl ProviderRegistry {
             tour_planner: Box::new(everymap_providers_mapbox::MapBoxTourPlanner::new(
                 client.clone(),
             )),
-            tile_provider: Box::new(everymap_providers_mapbox::MapBoxTileProvider::new(
-                client.clone(),
+            raster_tile_provider: None,
+            vector_tile_provider: Some(Box::new(
+                everymap_providers_mapbox::MapBoxTileProvider::new(client.clone()),
             )),
             attribute_provider: Box::new(everymap_providers_mapbox::MapBoxAttributeProvider),
             image_provider: Box::new(everymap_providers_mapbox::MapBoxMapImageProvider::new(
@@ -250,7 +252,8 @@ impl ProviderRegistry {
             tour_planner: Box::new(everymap_providers_radar::RadarTourPlanner::new(
                 client.clone(),
             )),
-            tile_provider: Box::new(everymap_providers_radar::RadarTileProvider),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
             attribute_provider: Box::new(everymap_providers_radar::RadarAttributeProvider),
             image_provider: Box::new(everymap_providers_radar::RadarMapImageProvider),
         }
@@ -274,7 +277,8 @@ impl ProviderRegistry {
             isoline: Box::new(MapQuestUnsupportedIsoline),
             route_matcher: Box::new(MapQuestUnsupportedRouteMatcher),
             tour_planner: Box::new(MapQuestUnsupportedTourPlanner),
-            tile_provider: Box::new(MapQuestUnsupportedTileProvider),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
             attribute_provider: Box::new(MapQuestUnsupportedAttributeProvider),
             image_provider: Box::new(MapQuestUnsupportedMapImageProvider),
         }
@@ -298,7 +302,8 @@ impl ProviderRegistry {
             isoline: Box::new(OsrmUnsupportedIsoline),
             route_matcher: Box::new(OsrmUnsupportedRouteMatcher),
             tour_planner: Box::new(OsrmUnsupportedTour),
-            tile_provider: Box::new(OsrmUnsupportedTile),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
             attribute_provider: Box::new(OsrmUnsupportedAttributes),
             image_provider: Box::new(OsrmUnsupportedImage),
         }
@@ -321,7 +326,8 @@ impl ProviderRegistry {
             isoline: Box::new(ValhallaUnsupportedIsoline),
             route_matcher: Box::new(ValhallaUnsupportedRouteMatcher),
             tour_planner: Box::new(ValhallaUnsupportedTour),
-            tile_provider: Box::new(ValhallaUnsupportedTile),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
             attribute_provider: Box::new(ValhallaUnsupportedAttributes),
             image_provider: Box::new(ValhallaUnsupportedImage),
         }
@@ -355,8 +361,12 @@ impl ProviderRegistry {
         self.tour_planner.as_ref()
     }
 
-    pub fn tile_provider(&self) -> &dyn TileProvider {
-        self.tile_provider.as_ref()
+    pub fn raster_tile_provider(&self) -> Option<&dyn RasterTileProvider> {
+        self.raster_tile_provider.as_deref()
+    }
+
+    pub fn vector_tile_provider(&self) -> Option<&dyn VectorTileProvider> {
+        self.vector_tile_provider.as_deref()
     }
 
     pub fn attribute_provider(&self) -> &dyn AttributeProvider {

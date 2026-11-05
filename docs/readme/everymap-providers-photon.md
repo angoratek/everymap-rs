@@ -24,11 +24,13 @@ let response = geocoder.geocode("Brandenburg Gate, Berlin", &GeocodeOptions::def
 
 ## Contracts
 
-| Contract | Implementation |
-|---|---|
-| `Geocoder` | `PhotonGeocoder` — forward and reverse queries over `/api` and `/reverse` |
-| `PlaceSearchProvider` | `PhotonPlaceSearchProvider` — settled search with a ten-result cap |
-| `AutocompleteProvider` | `PhotonAutocompleteProvider` — type-ahead with a five-result cap |
+| Contract | Trait | Implementation |
+|---|---|---|
+| Geocoding | `Geocoder` | `PhotonGeocoder`, forward and reverse queries over `/api` and `/reverse` |
+| Place search | `PlaceSearchProvider` | `PhotonPlaceSearchProvider`, settled search with a ten-result cap |
+| Type-ahead | `AutocompleteProvider` | `PhotonAutocompleteProvider`, type-ahead with a five-result cap |
+
+Not served: routing, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 Feature classes map onto the core's `SearchQuality` scale (`house` →
 street address, `street`, `locality`/`city`, `county`, `state`, `country`,

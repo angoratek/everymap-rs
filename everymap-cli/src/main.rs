@@ -12,7 +12,7 @@ use everymap_core::domains::routing::AvoidType as CoreAvoidType;
 use everymap_core::domains::routing::DepartureTime;
 use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::domains::tiling::TileOptions;
+use everymap_core::domains::tiling::{RasterImageFormat, RasterTileRequest, RasterTileResolution};
 use everymap_core::domains::tour::TourOptions;
 use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
@@ -203,15 +203,19 @@ enum Commands {
         /// Y coordinate
         #[arg(long)]
         y: u32,
-        /// Tile layer (provider-specific: HERE uses base/core/hybrid, TomTom uses basic/hybrid/labels)
+        /// Tile contract to use: raster (encoded imagery) or vector (MVT);
+        /// omitted, the first contract the provider serves is used
         #[arg(long)]
-        layer: Option<String>,
-        /// Tile format (mvt, png, json)
+        variant: Option<String>,
+        /// Raster image format (png, jpeg); vector tiles are always MVT
         #[arg(long)]
         format: Option<String>,
-        /// Output file path (default: tile.omv)
-        #[arg(long, default_value = "tile.omv")]
-        output_file: String,
+        /// Raster resolution (standard, retina)
+        #[arg(long)]
+        resolution: Option<String>,
+        /// Output file path (default: tile.png for raster, tile.mvt for vector)
+        #[arg(long)]
+        output_file: Option<String>,
     },
     /// Query road attributes
     Attributes {
@@ -682,30 +686,83 @@ async fn run_commands(
             z,
             x,
             y,
-            layer,
+            variant,
             format,
+            resolution,
             output_file,
         } => {
-            let tile_provider = registry.tile_provider();
-            let mut provider_extra = serde_json::json!({});
-            if let Some(ref layer_val) = layer {
-                provider_extra["layer"] = serde_json::json!(layer_val);
-            }
-            let options = TileOptions {
-                format: format.clone(),
-                provider_extra: Some(provider_extra),
+            let zoom_level = u8::try_from(*z)
+                .unwrap_or_else(|_| exit_with_error("Tile zoom must fit in a byte"));
+            let variant = match variant.as_deref() {
+                Some(chosen_variant) => chosen_variant.to_string(),
+                None if registry.raster_tile_provider().is_some() => "raster".to_string(),
+                None if registry.vector_tile_provider().is_some() => "vector".to_string(),
+                None => exit_with_error(&format!("{} does not support tiling", cli.provider)),
             };
-            match tile_provider.get_tile(*z, *x, *y, &options).await {
-                Ok(result) => match std::fs::write(output_file, &result.data) {
-                    Ok(()) => println!(
-                        "Saved tile to {} ({} bytes, {})",
-                        output_file,
-                        result.data.len(),
-                        result.content_type.as_deref().unwrap_or("unknown")
-                    ),
-                    Err(e) => eprintln!("Error writing file {}: {}", output_file, e),
-                },
-                Err(e) => eprintln!("Error: {}", e),
+            match variant.as_str() {
+                "raster" => {
+                    let Some(raster_provider) = registry.raster_tile_provider() else {
+                        exit_with_error(&format!("{} does not support raster tiles", cli.provider));
+                    };
+                    let image_format = match format.as_deref() {
+                        None | Some("png") => RasterImageFormat::Png,
+                        Some("jpeg") | Some("jpg") => RasterImageFormat::Jpeg,
+                        Some(other) => exit_with_error(&format!(
+                            "Unknown raster format '{other}'; use png or jpeg"
+                        )),
+                    };
+                    let tile_resolution = match resolution.as_deref() {
+                        None | Some("standard") => RasterTileResolution::Standard,
+                        Some("retina") => RasterTileResolution::Retina,
+                        Some(other) => exit_with_error(&format!(
+                            "Unknown raster resolution '{other}'; use standard or retina"
+                        )),
+                    };
+                    let request =
+                        RasterTileRequest::new(*x, *y, zoom_level, image_format, tile_resolution);
+                    match raster_provider.fetch_raster_tile(&request).await {
+                        Ok(tile) => {
+                            let path = output_file
+                                .clone()
+                                .unwrap_or_else(|| "tile.png".to_string());
+                            match std::fs::write(&path, &tile.image_bytes) {
+                                Ok(()) => println!(
+                                    "Saved tile to {} ({}, {} bytes)",
+                                    path,
+                                    image_format.file_extension(),
+                                    tile.image_bytes.len()
+                                ),
+                                Err(e) => eprintln!("Error writing file {}: {}", path, e),
+                            }
+                        }
+                        Err(e) => eprintln!("Error: {}", e),
+                    }
+                }
+                "vector" => {
+                    let Some(vector_provider) = registry.vector_tile_provider() else {
+                        exit_with_error(&format!("{} does not support vector tiles", cli.provider));
+                    };
+                    match vector_provider.fetch_vector_tile(*x, *y, zoom_level).await {
+                        Ok(tile) => {
+                            let path = output_file
+                                .clone()
+                                .unwrap_or_else(|| "tile.mvt".to_string());
+                            match std::fs::write(&path, &tile.tile_bytes) {
+                                Ok(()) => println!(
+                                    "Saved tile to {} (vector, {} bytes, {:?})",
+                                    path,
+                                    tile.tile_bytes.len(),
+                                    tile.tile_encoding
+                                ),
+                                Err(e) => eprintln!("Error writing file {}: {}", path, e),
+                            }
+                        }
+                        Err(e) => eprintln!("Error: {}", e),
+                    }
+                }
+                other => exit_with_error(&format!(
+                    "Unknown tile variant '{other}'; use raster or vector"
+                )),
             }
         }
         Commands::Attributes {

@@ -2,8 +2,10 @@ pub mod types;
 
 use crate::client::HereClient;
 use async_trait::async_trait;
-use everymap_core::domains::tiling::{TileOptions, TileProvider, TileResponse};
-use everymap_core::error::EveryMapResult;
+use everymap_core::domains::tiling::{
+    VectorTileData, VectorTileEncoding, VectorTileProvider, VectorTileSourceDescriptor,
+};
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use std::sync::Arc;
 
 pub use types::*;
@@ -21,7 +23,20 @@ pub struct HereTileOptions {
     pub political_view: Option<String>,
 }
 
-/// Implementation of TileProvider for HERE Technologies.
+/// Deepest zoom the HERE Vector Tile API v2 serves.
+///
+/// The service answers any deeper request with a validation error naming the
+/// accepted range.
+pub const HERE_VECTOR_MAXIMUM_ZOOM_LEVEL: u8 = 17;
+
+/// Attribution HERE map imagery requires wherever it is drawn.
+pub const HERE_VECTOR_ATTRIBUTION: &str = "© HERE — map data © OpenStreetMap contributors (ODbL)";
+
+/// HERE vector tiles served through the typed [`VectorTileProvider`] contract.
+///
+/// The service's only output segment is `omv`; its bytes are Mapbox Vector
+/// Tile protobuf, verified by decoding a fetched tile, so the typed contract
+/// carries them unchanged.
 pub struct HereTileProvider {
     pub(crate) client: Arc<HereClient>,
     pub(crate) base_url: String,
@@ -40,86 +55,77 @@ impl HereTileProvider {
     }
 }
 
-/// Convert core `TileOptions` to HERE-specific `HereTileOptions`,
-/// extracting common fields and parsing `provider_extra` for HERE-specific ones.
-fn tile_options_from_core(options: &TileOptions) -> HereTileOptions {
-    let mut here_options = HereTileOptions::default();
-
-    // Common fields
-    if let Some(format) = &options.format {
-        here_options.format = match format.as_str() {
-            "omv" | "protobuf" => TileFormat::OmnichannelVector,
-            "pbf" => TileFormat::Protobuf,
-            _ => TileFormat::OmnichannelVector,
-        };
-    }
-
-    // Extract HERE-specific options from provider_extra
-    if let Some(extra) = &options.provider_extra {
-        if let Some(obj) = extra.as_object() {
-            if let Some(v) = obj.get("layer").and_then(|v| v.as_str()) {
-                here_options.layer = match v {
-                    "base" => TileLayer::Base,
-                    "core" => TileLayer::Core,
-                    "hybrid" => TileLayer::Hybrid,
-                    "mapbox" => TileLayer::Mapbox,
-                    _ => TileLayer::Base,
-                };
-            }
-            if let Some(v) = obj.get("political_view").and_then(|v| v.as_str()) {
-                here_options.political_view = Some(v.to_string());
-            }
+#[async_trait]
+impl VectorTileProvider for HereTileProvider {
+    /// Describes the HERE base tileset: its cache namespace, attribution and
+    /// zoom span.
+    fn source_descriptor(&self) -> VectorTileSourceDescriptor {
+        VectorTileSourceDescriptor {
+            source_name: "here/vector".to_string(),
+            attribution_text: HERE_VECTOR_ATTRIBUTION.to_string(),
+            minimum_zoom_level: 0,
+            maximum_zoom_level: HERE_VECTOR_MAXIMUM_ZOOM_LEVEL,
+            tile_encoding: VectorTileEncoding::MapboxVectorTile,
+            style_hints: vec!["omv".to_string(), "base".to_string()],
         }
     }
 
-    here_options
+    /// Fetches one tile of the base layer.
+    ///
+    /// # Errors
+    /// Returns [`EveryMapError::ValidationError`] when the zoom level is past
+    /// the documented maximum or the tile index is outside the zoom level's
+    /// range.
+    async fn fetch_vector_tile(
+        &self,
+        tile_x: u32,
+        tile_y: u32,
+        zoom_level: u8,
+    ) -> EveryMapResult<VectorTileData> {
+        self.fetch_vector_tile_in_layer("base", tile_x, tile_y, zoom_level)
+            .await
+    }
 }
 
-#[async_trait]
-impl TileProvider for HereTileProvider {
-    async fn get_tile(
+impl HereTileProvider {
+    /// Fetches one tile of a named HERE layer.
+    ///
+    /// # Parameters
+    /// - `layer` — the style layer (`base`, `core`, `hybrid`, `mapbox`).
+    /// - `tile_x`, `tile_y` — the tile's column and row at `zoom_level`.
+    /// - `zoom_level` — the web-mercator zoom level.
+    ///
+    /// # Errors
+    /// Returns [`EveryMapError::ValidationError`] when the zoom level or the
+    /// tile index is outside the served range.
+    pub async fn fetch_vector_tile_in_layer(
         &self,
-        z: u32,
-        x: u32,
-        y: u32,
-        options: &TileOptions,
-    ) -> EveryMapResult<TileResponse> {
-        let here_options = tile_options_from_core(options);
-
-        let layer = match &here_options.layer {
-            TileLayer::Mapbox => "mapbox",
-            TileLayer::Base => "base",
-            TileLayer::Core => "core",
-            TileLayer::Hybrid => "hybrid",
-        };
-
-        let format_ext = match &here_options.format {
-            TileFormat::OmnichannelVector => "omv",
-            TileFormat::Protobuf => "pbf",
-        };
-
+        layer: &str,
+        tile_x: u32,
+        tile_y: u32,
+        zoom_level: u8,
+    ) -> EveryMapResult<VectorTileData> {
+        if zoom_level > HERE_VECTOR_MAXIMUM_ZOOM_LEVEL {
+            return Err(EveryMapError::ValidationError(format!(
+                "zoom level {zoom_level} exceeds the documented vector-tiles maximum of \
+                 {HERE_VECTOR_MAXIMUM_ZOOM_LEVEL}"
+            )));
+        }
+        let maximum_tile_index = (1_u32 << zoom_level) - 1;
+        if tile_x > maximum_tile_index || tile_y > maximum_tile_index {
+            return Err(EveryMapError::ValidationError(format!(
+                "tile x={tile_x} y={tile_y} exceeds the {maximum_tile_index} maximum at zoom \
+                 {zoom_level}"
+            )));
+        }
         let url = format!(
-            "{}/vectortiles/{}/mc/{}/{}/{}/{}",
-            self.base_url, layer, z, x, y, format_ext
+            "{}/vectortiles/{}/mc/{}/{}/{}/omv",
+            self.base_url, layer, zoom_level, tile_x, tile_y
         );
-
-        let mut builder = self
+        let request = self
             .client
             .build_request(everymap_core::http::Method::GET, &url);
-
-        if let Some(political_view) = &here_options.political_view {
-            builder = builder.query(&[("politicalView", political_view)]);
-        }
-
-        let response = self.client.request(builder).await?;
-
-        let content_type = response.headers().get("content-type").map(|s| {
-            // Strip any charset suffix
-            s.split(';').next().unwrap_or(s).trim().to_string()
-        });
-
-        let data = response.into_body();
-
-        Ok(TileResponse { data, content_type })
+        let response = self.client.request(request).await?;
+        VectorTileData::from_wire_bytes(tile_x, tile_y, zoom_level, response.into_body())
     }
 }

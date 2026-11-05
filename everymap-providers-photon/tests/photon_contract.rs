@@ -19,7 +19,23 @@ use everymap_providers_photon::{
 };
 use std::sync::Arc;
 use wiremock::matchers::{header, method, path, query_param};
-use wiremock::{Mock, MockServer, ResponseTemplate};
+use wiremock::{Match, Mock, MockServer, Request, ResponseTemplate};
+
+/// Matches a request whose raw query string does not end with the separator.
+///
+/// Photon refuses a trailing `&` as a malformed query, so a client that joins
+/// parameters by appending the separator fails here before it can fail on the
+/// live service.
+struct QueryWithoutTrailingSeparator;
+
+impl Match for QueryWithoutTrailingSeparator {
+    fn matches(&self, request: &Request) -> bool {
+        match request.url.query() {
+            Some(raw_query) => !raw_query.ends_with('&'),
+            None => true,
+        }
+    }
+}
 
 /// The fixture's first feature's position (Capitol Mall, Sacramento).
 const SACRAMENTO_LATITUDE: f64 = 38.579;
@@ -46,6 +62,7 @@ async fn a_forward_query_maps_features_onto_search_results() {
         .and(path("/api"))
         .and(query_param("q", "Sacramento"))
         .and(query_param("limit", "10"))
+        .and(QueryWithoutTrailingSeparator)
         .and(header("user-agent", DEFAULT_PHOTON_USER_AGENT))
         .respond_with(
             ResponseTemplate::new(200).set_body_string(fixture_text("search_sacramento.json")),

@@ -2,7 +2,6 @@ use everymap_core::domains::attributes::AttributeProvider;
 use everymap_core::domains::imaging::MapImageProvider;
 use everymap_core::domains::isoline::IsolineProvider;
 use everymap_core::domains::positioning::NetworkPositioner;
-use everymap_core::domains::tiling::TileProvider;
 use everymap_core::domains::traffic::TrafficProvider;
 use everymap_core::error::EveryMapError;
 use everymap_providers_radar::*;
@@ -44,19 +43,6 @@ async fn test_unsupported_traffic() {
         }
         _ => panic!("Expected UnsupportedDomain error, got {:?}", err),
     }
-}
-
-#[tokio::test]
-async fn test_unsupported_tiling() {
-    let result = RadarTileProvider
-        .get_tile(
-            10,
-            5,
-            3,
-            &everymap_core::domains::tiling::TileOptions::default(),
-        )
-        .await;
-    assert!(result.is_err());
 }
 
 #[tokio::test]

@@ -43,53 +43,44 @@ everymap-rs/
 └── everymap-bench/                         # Cross-provider benchmark framework
 ```
 
-## Provider Support
+## Provider support
 
-The five full-service providers:
+One contract surface, every crate. A provider implements the newest contract
+for each capability its service offers, and a gap is a `—`, never a second
+trait.
 
-| Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
-|--------|-----------|------|--------|--------|--------|-------|
-| Search | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Routing | `Router` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Isoline | `IsolineProvider` | ✅ | — | ✅ | ✅ | — |
-| Matching | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ |
-| Traffic | `TrafficProvider` | ✅ | — | ✅ | — | — |
-| Tiling | `TileProvider` | ✅ | — | ✅ | ✅ | — |
-| Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — |
-| Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — |
-| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — |
+| Contract | Trait | HERE | Google | TomTom | MapBox | Radar | MapQuest | Photon | OSRM | Valhalla | URL raster | URL vector |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Geocoding | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| Place search | `PlaceSearchProvider` | — | — | — | — | — | ✅ | ✅ | — | — | — | — |
+| Type-ahead | `AutocompleteProvider` | — | — | — | — | — | ✅ | ✅ | — | — | — | — |
+| Routing | `Router` | ✅¹ | ✅¹ | ✅¹ | ✅¹ | ✅¹ | ✅ | — | ✅ | ✅ | — | — |
+| Distance matrix | `DistanceMatrixProvider` | — | — | — | — | — | ✅ | — | — | — | — | — |
+| Traffic | `TrafficProvider` | ✅ | — | ✅ | — | — | ✅ | — | — | — | — | — |
+| Raster tiles | `RasterTileProvider` | — | — | ✅ | — | — | ✅ | — | — | — | ✅ | — |
+| Vector tiles | `VectorTileProvider` | ✅ | — | — | ✅ | — | — | — | — | — | — | ✅ |
+| Elevation | `ElevationProvider` | — | — | — | — | — | — | — | — | — | — | — |
+| Isoline | `IsolineProvider` | ✅ | — | ✅ | ✅ | — | — | — | — | — | — | — |
+| Matching | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — |
+| Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ | — | — | — | — | — | — |
+| Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
+| Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
+| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| Offline routing | `OfflineRoutingProvider` | — | — | — | — | — | — | — | — | — | — | — |
 
-The crates built on the newest contracts:
+¹ Routes two endpoints. MapQuest, OSRM and Valhalla also accept ordered
+waypoints and return one leg per pair; a two-endpoint provider reports
+`UnsupportedDomain` for a longer request rather than dropping the stops.
 
-| Contract | Trait | MapQuest | OSRM | Valhalla | URL-template raster | URL-template vector |
-|----------|-------|----------|------|----------|---------------------|---------------------|
-| Geocoding | `Geocoder` | ✅ | — | — | — | — |
-| Place search | `PlaceSearchProvider` | ✅ | — | — | — | — |
-| Type-ahead | `AutocompleteProvider` | ✅ | — | — | — | — |
-| Routing | `Router` | ✅ | ✅ | ✅ | — | — |
-| Distance matrix | `DistanceMatrixProvider` | ✅ | — | — | — | — |
-| Traffic | `TrafficProvider` | ✅ | — | — | — | — |
-| Raster tiles | `RasterTileProvider` | ✅ | — | — | ✅ | — |
-| Vector tiles | `VectorTileProvider` | — | — | — | — | ✅ |
-
-Photon serves the same search family without a credential:
-
-| Contract | Trait | Photon |
-|----------|-------|--------|
-| Geocoding | `Geocoder` | ✅ |
-| Place search | `PlaceSearchProvider` | ✅ |
-| Type-ahead | `AutocompleteProvider` | ✅ |
-
-✅ = real implementation, — = unsupported (stub or N/A).
-
-An unsupported domain returns a clear `UnsupportedDomain` error: `"google does not support traffic"`.
+`ElevationProvider` and `OfflineRoutingProvider` are contracts a host can
+implement; no provider crate serves them yet. An unsupported capability returns
+`EveryMapError::UnsupportedDomain` — `"google does not support traffic"`.
 
 ## Quick Start
 
 ### Installation
 
-EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.3.1**):
+EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.4.0**):
 
 ```bash
 # Add the core + provider crates to your project
@@ -102,11 +93,11 @@ cargo install everymap-cli
 | Crate | Description |
 |---|---|
 | [`everymap-core`](https://crates.io/crates/everymap-core) ([docs](https://docs.rs/everymap-core)) | Contracts, types, auth, errors, shared client and transport seam |
-| [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) ([docs](https://docs.rs/everymap-providers-here)) | HERE Technologies — 10 domains |
-| [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) ([docs](https://docs.rs/everymap-providers-google)) | Google Maps — 6 domains |
-| [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) ([docs](https://docs.rs/everymap-providers-tomtom)) | TomTom — 8 domains |
-| [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) ([docs](https://docs.rs/everymap-providers-mapbox)) | MapBox — 7 domains |
-| [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) ([docs](https://docs.rs/everymap-providers-radar)) | Radar — 4 domains |
+| [`everymap-providers-here`](https://crates.io/crates/everymap-providers-here) ([docs](https://docs.rs/everymap-providers-here)) | HERE Technologies — geocoding, routing, traffic, vector tiles, isolines, matching, tour, positioning, attributes, static images |
+| [`everymap-providers-google`](https://crates.io/crates/everymap-providers-google) ([docs](https://docs.rs/everymap-providers-google)) | Google Maps — geocoding, routing, matching, positioning, attributes, static images |
+| [`everymap-providers-tomtom`](https://crates.io/crates/everymap-providers-tomtom) ([docs](https://docs.rs/everymap-providers-tomtom)) | TomTom — geocoding, routing, traffic, raster tiles, isolines, matching, tour, static images |
+| [`everymap-providers-mapbox`](https://crates.io/crates/everymap-providers-mapbox) ([docs](https://docs.rs/everymap-providers-mapbox)) | MapBox — geocoding, routing, vector tiles, isolines, matching, tour, static images |
+| [`everymap-providers-radar`](https://crates.io/crates/everymap-providers-radar) ([docs](https://docs.rs/everymap-providers-radar)) | Radar — geocoding, routing, matching, tour |
 | [`everymap-providers-mapquest`](https://crates.io/crates/everymap-providers-mapquest) ([docs](https://docs.rs/everymap-providers-mapquest)) | MapQuest — geocoding, place search, type-ahead, routing, matrix, traffic, raster tiles |
 | [`everymap-providers-photon`](https://crates.io/crates/everymap-providers-photon) ([docs](https://docs.rs/everymap-providers-photon)) | Photon — keyless geocoding, place search and type-ahead |
 | [`everymap-providers-osrm`](https://crates.io/crates/everymap-providers-osrm) ([docs](https://docs.rs/everymap-providers-osrm)) | OSRM — navigation-grade routing |
@@ -301,6 +292,10 @@ cargo run -p everymap-cli -- --help      # Run CLI
 See [TESTING.md](TESTING.md) for comprehensive testing guide including live API smoke tests, contract test patterns, and provider-specific API compatibility notes.
 
 ## Adding a New Provider
+
+**Contract first.** A new capability is a new contract for every provider, never
+a second trait for one of them. The matrix above names the only traits a
+provider may implement.
 
 1. Create `everymap-providers-{name}/` with a `Cargo.toml` depending on `everymap-core` only.
 2. Create `client.rs` — a `provider_client!` declaration over the shared `ProviderClient` (copy `GoogleClient` as the template). Do not add `reqwest` or `tokio`: the shared client already picks the target's transport.

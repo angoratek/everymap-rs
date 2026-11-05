@@ -2,22 +2,20 @@
 
 [Google Maps](https://mapsplatform.google.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, map matching, positioning, attributes, and static maps.
 
-## Domain coverage
+## Contracts
 
-| Domain | Core trait | Supported |
+| Contract | Trait | Implementation |
 |---|---|---|
-| Search | `Geocoder` | ✅ |
-| Routing | `Router` | ✅ |
-| Isoline | `IsolineProvider` | — |
-| Matching | `RouteMatcher` | ✅ |
-| Tour | `TourPlanner` | — |
-| Traffic | `TrafficProvider` | — |
-| Tiling | `TileProvider` | — |
-| Positioning | `NetworkPositioner` | ✅ |
-| Attributes | `AttributeProvider` | ✅ |
-| Imaging | `MapImageProvider` | ✅ |
+| Geocoding | `Geocoder` | `GoogleGeocoder` |
+| Routing | `Router` | `GoogleRouter` ¹ |
+| Matching | `RouteMatcher` | `GoogleRouteMatcher` |
+| Positioning | `NetworkPositioner` | `GooglePositioner` |
+| Attributes | `AttributeProvider` | `GoogleAttributeProvider` |
+| Imaging | `MapImageProvider` | `GoogleMapImageProvider` |
 
-Unsupported domains (`GoogleIsoline`, `GoogleTraffic`, `GoogleTourPlanner`, `GoogleTileProvider`) return a clear `UnsupportedDomain` error.
+Not served: place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, tour and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
 ## Installation
 
