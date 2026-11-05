@@ -194,6 +194,16 @@ cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary re
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary route --origin "40.71,-74.01" --destination "42.36,-71.06" --transport car
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary match-route --trace "40.71,-74.01;40.72,-74.00;40.73,-73.99" --transport car
 cargo run -p everymap-cli -- --provider radar --api-key $KEY --output summary tour --stops "40.71,-74.01" "40.75,-73.99" "40.78,-73.96"
+
+# --- MapQuest (geocoding, routing, traffic) ---
+cargo run -p everymap-cli -- --provider mapquest --api-key $MAPQUEST_KEY --output summary geocode "Denver, CO"
+cargo run -p everymap-cli -- --provider mapquest --api-key $MAPQUEST_KEY --output summary reverse-geocode --lat 39.74 --lng=-104.99
+cargo run -p everymap-cli -- --provider mapquest --api-key $MAPQUEST_KEY --output summary route --origin "39.74,-104.99" --destination "40.01,-105.27"
+cargo run -p everymap-cli -- --provider mapquest --api-key $MAPQUEST_KEY --output summary traffic --lat 39.74 --lng=-104.99
+
+# --- OSRM and Valhalla (routing only; the credential slot is the base URL) ---
+cargo run -p everymap-cli -- --provider osrm --api-key https://router.project-osrm.org --output summary route --origin "52.52,13.40" --destination "52.54,13.42"
+cargo run -p everymap-cli -- --provider valhalla --output summary route --origin "52.52,13.40" --destination "52.54,13.42"
 ```
 
 **Note**: Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI argument parsing issues.

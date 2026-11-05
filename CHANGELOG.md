@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+- `everymap-cli` and `everymap-bench` select MapQuest, OSRM and Valhalla beside the five original providers. MapQuest serves geocoding, routing and traffic; OSRM and Valhalla serve routing and take their deployment base URL in the credential slot (an empty value reaches the documented local default). A domain a provider does not serve answers with the documented unsupported-domain error. The CLI's provider validation moved ahead of credential resolution so the keyless engines need no key, and the error keeps its documented "API key required" prefix.
+- `unsupported_geocoder!` and `unsupported_matcher!` join the unsupported-domain macros, so a routing-only provider can declare the two domains it lacks.
+
 ### Changed
 - Every provider crate builds for the browser. The five original providers already delegated to the shared `ProviderClient`; their unused `tokio` and `reqwest` dependencies were what pulled a native-only runtime into a `wasm32` build, and `provider_client!` now names `everymap-core`'s re-exported `ClientBuilder` instead of `reqwest` directly. HERE's tour request reads the wall clock through `web-time` rather than `chrono::Utc::now()`, which is unimplemented in a browser. The CI browser closure now covers core and all eleven providers, and `scripts/check-provider-transport-isolation.sh` fails a provider crate that names `reqwest` or `tokio` directly.
 

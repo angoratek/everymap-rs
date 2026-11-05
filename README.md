@@ -169,7 +169,7 @@ let route = router
 > **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
 > Binary commands (`tile`, `map-image`) save to a file instead of printing to stdout. Use `--output-file` to set the path.
 
-The CLI currently selects the credential-based providers. The MapQuest, OSRM, Valhalla and URL-template crates are library crates until the CLI and benchmark harness reach provider parity.
+The CLI selects every provider the workspace ships except the URL-template crates, which are library sources: a `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
 
 ```bash
 # HERE provider (default)
@@ -183,6 +183,14 @@ everymap --provider google --api-key $GOOGLE_KEY geocode "Brandenburg Gate, Berl
 everymap --provider tomtom --api-key $TOMTOM_KEY geocode "Berlin"
 everymap --provider mapbox --api-key $MAPBOX_KEY route --origin "52.52,13.405" --destination "52.54,13.42"
 everymap --provider radar --api-key $RADAR_KEY geocode "Berlin"
+
+# MapQuest
+everymap --provider mapquest --api-key $MAPQUEST_KEY geocode "Denver, CO"
+
+# OSRM and Valhalla are keyless: the credential slot carries the deployment
+# base URL, and an empty one reaches the documented local default.
+everymap --provider osrm --api-key https://router.project-osrm.org route --origin "52.52,13.405" --destination "52.54,13.42"
+everymap --provider valhalla route --origin "52.52,13.405" --destination "52.54,13.42"
 
 # Config file (~/.everymap/config.toml)
 # [providers.here]

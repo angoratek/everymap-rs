@@ -23,6 +23,11 @@ everymap-providers-google = { workspace = true }
 everymap-providers-tomtom = { workspace = true }
 everymap-providers-mapbox = { workspace = true }
 everymap-providers-radar = { workspace = true }
+everymap-providers-mapquest = { workspace = true }
+everymap-providers-osrm = { workspace = true }
+everymap-providers-valhalla = { workspace = true }
+# The unsupported-domain macros expand to an `async_trait` attribute.
+async-trait = { workspace = true }
 clap = { version = "4", features = ["derive", "env"] }
 tokio = { workspace = true }
 serde = { workspace = true }

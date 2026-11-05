@@ -10,6 +10,12 @@ use everymap_core::domains::search::Geocoder;
 use everymap_core::domains::tiling::TileProvider;
 use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::traffic::TrafficProvider;
+use everymap_providers_mapquest::{
+    MapQuestClient, MapQuestGeocoder, MapQuestProviderConfiguration, MapQuestRouter,
+    MapQuestTrafficProvider,
+};
+use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
+use everymap_providers_valhalla::{ValhallaProviderConfiguration, ValhallaRouter};
 use std::sync::Arc;
 
 /// Registry that creates trait-object providers for the selected provider.
@@ -31,6 +37,48 @@ pub struct ProviderRegistry {
     image_provider: Box<dyn MapImageProvider>,
 }
 
+/// The deployment base URL a keyless provider reads as its credential.
+fn deployment_base_url_or_default(credential: String, default_base_url: &str) -> String {
+    let trimmed_credential = credential.trim();
+    if trimmed_credential.is_empty() {
+        default_base_url.to_string()
+    } else {
+        trimmed_credential.to_string()
+    }
+}
+
+// The domains MapQuest's service does not serve, and every domain OSRM and
+// Valhalla do not serve: each answers with the documented unsupported error
+// instead of pretending to work.
+everymap_core::unsupported_traffic!(MapQuestUnsupportedTraffic, "mapquest");
+everymap_core::unsupported_isoline!(MapQuestUnsupportedIsoline, "mapquest");
+everymap_core::unsupported_matcher!(MapQuestUnsupportedRouteMatcher, "mapquest");
+everymap_core::unsupported_tour!(MapQuestUnsupportedTourPlanner, "mapquest");
+everymap_core::unsupported_tile!(MapQuestUnsupportedTileProvider, "mapquest");
+everymap_core::unsupported_positioner!(MapQuestUnsupportedPositioner, "mapquest");
+everymap_core::unsupported_attributes!(MapQuestUnsupportedAttributeProvider, "mapquest");
+everymap_core::unsupported_image!(MapQuestUnsupportedMapImageProvider, "mapquest");
+
+everymap_core::unsupported_geocoder!(OsrmUnsupportedGeocoder, "osrm");
+everymap_core::unsupported_traffic!(OsrmUnsupportedTraffic, "osrm");
+everymap_core::unsupported_isoline!(OsrmUnsupportedIsoline, "osrm");
+everymap_core::unsupported_matcher!(OsrmUnsupportedRouteMatcher, "osrm");
+everymap_core::unsupported_tour!(OsrmUnsupportedTour, "osrm");
+everymap_core::unsupported_tile!(OsrmUnsupportedTile, "osrm");
+everymap_core::unsupported_positioner!(OsrmUnsupportedPositioner, "osrm");
+everymap_core::unsupported_attributes!(OsrmUnsupportedAttributes, "osrm");
+everymap_core::unsupported_image!(OsrmUnsupportedImage, "osrm");
+
+everymap_core::unsupported_geocoder!(ValhallaUnsupportedGeocoder, "valhalla");
+everymap_core::unsupported_traffic!(ValhallaUnsupportedTraffic, "valhalla");
+everymap_core::unsupported_isoline!(ValhallaUnsupportedIsoline, "valhalla");
+everymap_core::unsupported_matcher!(ValhallaUnsupportedRouteMatcher, "valhalla");
+everymap_core::unsupported_tour!(ValhallaUnsupportedTour, "valhalla");
+everymap_core::unsupported_tile!(ValhallaUnsupportedTile, "valhalla");
+everymap_core::unsupported_positioner!(ValhallaUnsupportedPositioner, "valhalla");
+everymap_core::unsupported_attributes!(ValhallaUnsupportedAttributes, "valhalla");
+everymap_core::unsupported_image!(ValhallaUnsupportedImage, "valhalla");
+
 impl ProviderRegistry {
     pub fn new(provider: &str, api_key: String, key_param: String, verbose: bool) -> Self {
         match provider {
@@ -39,6 +87,9 @@ impl ProviderRegistry {
             "tomtom" => Self::new_tomtom(api_key, key_param, verbose),
             "mapbox" => Self::new_mapbox(api_key, key_param, verbose),
             "radar" => Self::new_radar(api_key, verbose),
+            "mapquest" => Self::new_mapquest(api_key, verbose),
+            "osrm" => Self::new_osrm(api_key),
+            "valhalla" => Self::new_valhalla(api_key),
             _ => unreachable!("Provider validation already done in main"),
         }
     }
@@ -202,6 +253,77 @@ impl ProviderRegistry {
             tile_provider: Box::new(everymap_providers_radar::RadarTileProvider),
             attribute_provider: Box::new(everymap_providers_radar::RadarAttributeProvider),
             image_provider: Box::new(everymap_providers_radar::RadarMapImageProvider),
+        }
+    }
+
+    /// MapQuest: geocoding, routing and traffic; the remaining domains have
+    /// no implementation on this service and answer with the unsupported
+    /// error.
+    fn new_mapquest(api_key: String, verbose: bool) -> Self {
+        let mut client = MapQuestClient::new(MapQuestProviderConfiguration {
+            api_key,
+            ..MapQuestProviderConfiguration::default()
+        });
+        client.set_verbose(verbose);
+        let client = Arc::new(client);
+        Self {
+            geocoder: Box::new(MapQuestGeocoder::new(client.clone())),
+            router: Box::new(MapQuestRouter::new(client.clone())),
+            traffic: Box::new(MapQuestTrafficProvider::new(client.clone())),
+            positioner: Box::new(MapQuestUnsupportedPositioner),
+            isoline: Box::new(MapQuestUnsupportedIsoline),
+            route_matcher: Box::new(MapQuestUnsupportedRouteMatcher),
+            tour_planner: Box::new(MapQuestUnsupportedTourPlanner),
+            tile_provider: Box::new(MapQuestUnsupportedTileProvider),
+            attribute_provider: Box::new(MapQuestUnsupportedAttributeProvider),
+            image_provider: Box::new(MapQuestUnsupportedMapImageProvider),
+        }
+    }
+
+    /// OSRM: routing only. The credential, when given, is the deployment's
+    /// base URL; an empty one targets the crate's documented local default.
+    fn new_osrm(base_url: String) -> Self {
+        let router = OsrmRouter::new(OsrmProviderConfiguration {
+            base_url: deployment_base_url_or_default(
+                base_url,
+                everymap_providers_osrm::DEFAULT_OSRM_BASE_URL,
+            ),
+            ..Default::default()
+        });
+        Self {
+            geocoder: Box::new(OsrmUnsupportedGeocoder),
+            router: Box::new(router),
+            traffic: Box::new(OsrmUnsupportedTraffic),
+            positioner: Box::new(OsrmUnsupportedPositioner),
+            isoline: Box::new(OsrmUnsupportedIsoline),
+            route_matcher: Box::new(OsrmUnsupportedRouteMatcher),
+            tour_planner: Box::new(OsrmUnsupportedTour),
+            tile_provider: Box::new(OsrmUnsupportedTile),
+            attribute_provider: Box::new(OsrmUnsupportedAttributes),
+            image_provider: Box::new(OsrmUnsupportedImage),
+        }
+    }
+
+    /// Valhalla: routing only, addressed like OSRM.
+    fn new_valhalla(base_url: String) -> Self {
+        let router = ValhallaRouter::new(ValhallaProviderConfiguration {
+            base_url: deployment_base_url_or_default(
+                base_url,
+                everymap_providers_valhalla::DEFAULT_VALHALLA_BASE_URL,
+            ),
+            ..Default::default()
+        });
+        Self {
+            geocoder: Box::new(ValhallaUnsupportedGeocoder),
+            router: Box::new(router),
+            traffic: Box::new(ValhallaUnsupportedTraffic),
+            positioner: Box::new(ValhallaUnsupportedPositioner),
+            isoline: Box::new(ValhallaUnsupportedIsoline),
+            route_matcher: Box::new(ValhallaUnsupportedRouteMatcher),
+            tour_planner: Box::new(ValhallaUnsupportedTour),
+            tile_provider: Box::new(ValhallaUnsupportedTile),
+            attribute_provider: Box::new(ValhallaUnsupportedAttributes),
+            image_provider: Box::new(ValhallaUnsupportedImage),
         }
     }
 

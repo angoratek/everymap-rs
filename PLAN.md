@@ -128,8 +128,8 @@ The 0.2.2-era prose still describes five providers, ten traits and eight crates.
 - [x] `CLAUDE.md`: the repository guide's architecture, commands, wasm closure and release procedure reflect the current workspace.
 - [x] `TESTING.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md` (round 194): provider lists, live-test instructions (including `EVERYMAP_MAPQUEST_API_KEY`), the browser matrix, and the credential/transport facts a contributor needs.
 - [x] `docs/readme/*.md` and the generated `<crate>/README.md`: each crate body lists the contracts it implements and its platform support; regenerate with `scripts/generate-readmes.sh`.
-- [ ] `everymap-cli`: `--provider mapquest|osrm|valhalla` (MapQuest for every contract it serves; OSRM and Valhalla for routing, with the deployment URL as the credential), the URL-template raster and vector sources where a command fits, `~/.everymap/config.toml` sections and env names for each, and the unsupported-capability answer where a provider has no implementation; update `docs/readme/everymap-cli.md`, `scripts/smoke-test-cli.sh` and `scripts/validate-cli.sh`.
-- [ ] `everymap-bench`: benchmark MapQuest, OSRM and Valhalla beside the five original providers through the same typed scenario dispatch, and document how to run them.
+- [x] `everymap-cli` (round 196): `--provider mapquest|osrm|valhalla` (MapQuest for every contract it serves; OSRM and Valhalla for routing, with the deployment URL as the credential), the URL-template raster and vector sources where a command fits, `~/.everymap/config.toml` sections and env names for each, and the unsupported-capability answer where a provider has no implementation; update `docs/readme/everymap-cli.md`, `scripts/smoke-test-cli.sh` and `scripts/validate-cli.sh`.
+- [x] `everymap-bench` (round 196): benchmark MapQuest, OSRM and Valhalla beside the five original providers through the same typed scenario dispatch, and document how to run them.
 - [ ] `docs/rfc/0001-transport-seam-and-wasm.md`: record phases 3 and 4 as landed, and add 0.3.1.
 - [ ] CI: gate `scripts/generate-readmes.sh --check`, the rustdoc build and the CLI smoke so documentation cannot drift again.
 

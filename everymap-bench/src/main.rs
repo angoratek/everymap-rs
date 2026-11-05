@@ -23,7 +23,7 @@ struct Cli {
     #[arg(long)]
     list: bool,
 
-    /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar)
+    /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar,mapquest,osrm,valhalla)
     #[arg(long, default_value = "here,google,tomtom,mapbox,radar")]
     providers: String,
 
@@ -59,6 +59,18 @@ struct Cli {
     #[arg(long, env = "EVERYMAP_RADAR_API_KEY")]
     radar_key: Option<String>,
 
+    /// MapQuest consumer key
+    #[arg(long, env = "EVERYMAP_MAPQUEST_API_KEY")]
+    mapquest_key: Option<String>,
+
+    /// OSRM deployment base URL (keyless; the public demo when unset)
+    #[arg(long, env = "EVERYMAP_OSRM_BASE_URL")]
+    osrm_base_url: Option<String>,
+
+    /// Valhalla deployment base URL (keyless; the public demo when unset)
+    #[arg(long, env = "EVERYMAP_VALHALLA_BASE_URL")]
+    valhalla_base_url: Option<String>,
+
     /// Fallback API key for any provider
     #[arg(long, env = "EVERYMAP_API_KEY")]
     api_key: Option<String>,
@@ -71,6 +83,9 @@ fn get_provider_key(provider: &str, cli: &Cli) -> Option<String> {
         "tomtom" => cli.tomtom_key.clone().or(cli.api_key.clone()),
         "mapbox" => cli.mapbox_key.clone().or(cli.api_key.clone()),
         "radar" => cli.radar_key.clone().or(cli.api_key.clone()),
+        "mapquest" => cli.mapquest_key.clone().or(cli.api_key.clone()),
+        "osrm" => cli.osrm_base_url.clone(),
+        "valhalla" => cli.valhalla_base_url.clone(),
         _ => None,
     }
 }
@@ -147,6 +162,15 @@ async fn main() {
     // Create BenchProviders for each configured provider
     let mut provider_instances: Vec<benchmark::BenchProviders> = Vec::new();
     for provider in &provider_names {
+        if *provider == "osrm" || *provider == "valhalla" {
+            let base_url = get_provider_key(provider, &cli).unwrap_or_default();
+            match benchmark::BenchProviders::new_keyless_router(provider, base_url) {
+                Ok(bp) => provider_instances.push(bp),
+                Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+            }
+            continue;
+        }
+
         let key = match get_provider_key(provider, &cli) {
             Some(k) => k,
             None => {
@@ -158,6 +182,14 @@ async fn main() {
                 continue;
             }
         };
+
+        if *provider == "mapquest" {
+            match benchmark::BenchProviders::new_mapquest(key) {
+                Ok(bp) => provider_instances.push(bp),
+                Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+            }
+            continue;
+        }
 
         let auth: Arc<dyn AuthProvider> = if *provider == "radar" {
             Arc::new(HeaderAuthProvider::new(key))

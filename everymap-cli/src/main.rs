@@ -18,6 +18,11 @@ use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
 use provider::ProviderRegistry;
 
+/// The providers this binary can construct.
+const SUPPORTED_PROVIDERS: [&str; 8] = [
+    "here", "google", "tomtom", "mapbox", "radar", "mapquest", "osrm", "valhalla",
+];
+
 #[derive(Parser)]
 #[command(
     name = "everymap",
@@ -25,7 +30,7 @@ use provider::ProviderRegistry;
     about = "Geospatial API CLI - unified interface for map providers"
 )]
 struct Cli {
-    /// Provider to use (here, google, tomtom, mapbox, radar)
+    /// Provider to use (here, google, tomtom, mapbox, radar, mapquest, osrm, valhalla)
     #[arg(long, default_value = "here")]
     provider: String,
 
@@ -334,22 +339,30 @@ fn exit_with_error(message: &str) -> ! {
 async fn main() {
     let cli = Cli::parse();
 
-    let api_key = match &cli.api_key {
-        Some(key) => key.clone(),
-        None => {
-            let config = config::Config::load();
-            match config.resolve_api_key(&None, &cli.provider, "EVERYMAP_API_KEY") {
-                Some(key) => key,
-                None => {
-                    eprintln!("Error: API key required. Use --api-key, set EVERYMAP_API_KEY env var, or configure ~/.everymap/config.toml");
-                    std::process::exit(1);
-                }
-            }
-        }
-    };
+    if !SUPPORTED_PROVIDERS.contains(&cli.provider.as_str()) {
+        eprintln!(
+            "Error: Unsupported provider '{}'. Supported providers: {}",
+            cli.provider,
+            SUPPORTED_PROVIDERS.join(", ")
+        );
+        std::process::exit(1);
+    }
 
-    if !["here", "google", "tomtom", "mapbox", "radar"].contains(&cli.provider.as_str()) {
-        eprintln!("Error: Unsupported provider '{}'. Supported providers: here, google, tomtom, mapbox, radar", cli.provider);
+    // OSRM and Valhalla are keyless engines: the credential slot carries their
+    // deployment base URL, and leaving it empty reaches the crate's documented
+    // local default.
+    let provider_requires_credential = !matches!(cli.provider.as_str(), "osrm" | "valhalla");
+    let config = config::Config::load();
+    let api_key = cli
+        .api_key
+        .clone()
+        .or_else(|| config.resolve_api_key(&None, &cli.provider, "EVERYMAP_API_KEY"))
+        .unwrap_or_default();
+    if provider_requires_credential && api_key.trim().is_empty() {
+        eprintln!(
+            "Error: API key required for {}. Use --api-key, set EVERYMAP_API_KEY env var, or configure ~/.everymap/config.toml",
+            cli.provider
+        );
         std::process::exit(1);
     }
 

@@ -89,6 +89,74 @@ fn raw_size(raw: &Option<serde_json::Value>) -> Option<usize> {
 }
 
 impl BenchProviders {
+    /// Builds the MapQuest benchmark set from a consumer key.
+    pub fn new_mapquest(api_key: String) -> EveryMapResult<Self> {
+        let client = Arc::new(everymap_providers_mapquest::MapQuestClient::new(
+            everymap_providers_mapquest::MapQuestProviderConfiguration {
+                api_key,
+                ..Default::default()
+            },
+        ));
+        Ok(Self {
+            provider_name: "mapquest".to_string(),
+            geocoder: Some(Box::new(
+                everymap_providers_mapquest::MapQuestGeocoder::new(client.clone()),
+            )),
+            router: Some(Box::new(everymap_providers_mapquest::MapQuestRouter::new(
+                client.clone(),
+            ))),
+            traffic: Some(Box::new(
+                everymap_providers_mapquest::MapQuestTrafficProvider::new(client),
+            )),
+            isoline: None,
+            route_matcher: None,
+            tour_planner: None,
+            tile: None,
+            positioner: None,
+            attributes: None,
+            image: None,
+        })
+    }
+
+    /// Builds a keyless routing engine's benchmark set from its deployment
+    /// base URL.
+    pub fn new_keyless_router(provider: &str, base_url: String) -> EveryMapResult<Self> {
+        let router: Box<dyn Router> = match provider {
+            "osrm" => Box::new(everymap_providers_osrm::OsrmRouter::new(
+                everymap_providers_osrm::OsrmProviderConfiguration {
+                    base_url,
+                    ..Default::default()
+                },
+            )),
+            "valhalla" => Box::new(everymap_providers_valhalla::ValhallaRouter::new(
+                everymap_providers_valhalla::ValhallaProviderConfiguration {
+                    base_url,
+                    ..Default::default()
+                },
+            )),
+            _ => {
+                return Err(EveryMapError::provider(
+                    provider,
+                    "UNKNOWN_PROVIDER",
+                    "the benchmark harness has no such keyless router",
+                ));
+            }
+        };
+        Ok(Self {
+            provider_name: provider.to_string(),
+            geocoder: None,
+            router: Some(router),
+            isoline: None,
+            route_matcher: None,
+            tour_planner: None,
+            traffic: None,
+            tile: None,
+            positioner: None,
+            attributes: None,
+            image: None,
+        })
+    }
+
     pub fn new(provider: &str, auth: Arc<dyn AuthProvider>) -> EveryMapResult<Self> {
         match provider {
             "here" => {

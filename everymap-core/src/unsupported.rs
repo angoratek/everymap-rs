@@ -163,3 +163,61 @@ macro_rules! unsupported_image {
         }
     };
 }
+
+/// Generates an unsupported `Geocoder` stub implementation.
+#[macro_export]
+macro_rules! unsupported_geocoder {
+    ($struct_name:ident, $provider:expr) => {
+        pub struct $struct_name;
+
+        #[async_trait::async_trait]
+        impl everymap_core::domains::search::Geocoder for $struct_name {
+            async fn geocode(
+                &self,
+                _query: &str,
+                _options: &everymap_core::domains::search::GeocodeOptions,
+            ) -> everymap_core::error::EveryMapResult<
+                everymap_core::domains::search::SearchResponse,
+            > {
+                Err(everymap_core::error::EveryMapError::unsupported_domain(
+                    $provider, "geocoding",
+                ))
+            }
+
+            async fn reverse_geocode(
+                &self,
+                _coordinate: &everymap_core::types::Coordinate,
+                _options: &everymap_core::domains::search::ReverseGeocodeOptions,
+            ) -> everymap_core::error::EveryMapResult<
+                everymap_core::domains::search::SearchResponse,
+            > {
+                Err(everymap_core::error::EveryMapError::unsupported_domain(
+                    $provider, "reverse geocoding",
+                ))
+            }
+        }
+    };
+}
+
+/// Generates an unsupported `RouteMatcher` stub implementation.
+#[macro_export]
+macro_rules! unsupported_matcher {
+    ($struct_name:ident, $provider:expr) => {
+        pub struct $struct_name;
+
+        #[async_trait::async_trait]
+        impl everymap_core::domains::matching::RouteMatcher for $struct_name {
+            async fn match_route(
+                &self,
+                _points: &[everymap_core::types::Coordinate],
+                _options: &everymap_core::domains::matching::MatchingOptions,
+            ) -> everymap_core::error::EveryMapResult<
+                everymap_core::domains::matching::TraceResponse,
+            > {
+                Err(everymap_core::error::EveryMapError::unsupported_domain(
+                    $provider, "map matching",
+                ))
+            }
+        }
+    };
+}

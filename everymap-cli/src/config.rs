@@ -22,6 +22,12 @@ pub struct Providers {
     pub mapbox: ProviderConfig,
     #[serde(default)]
     pub radar: ProviderConfig,
+    #[serde(default)]
+    pub mapquest: ProviderConfig,
+    #[serde(default)]
+    pub osrm: ProviderConfig,
+    #[serde(default)]
+    pub valhalla: ProviderConfig,
 }
 
 /// Configuration for a single provider.
@@ -92,6 +98,11 @@ impl Config {
             "tomtom" => self.providers.tomtom.api_key.clone(),
             "mapbox" => self.providers.mapbox.api_key.clone(),
             "radar" => self.providers.radar.api_key.clone(),
+            "mapquest" => self.providers.mapquest.api_key.clone(),
+            // A keyless engine stores its deployment base URL in the same
+            // `api_key` slot.
+            "osrm" => self.providers.osrm.api_key.clone(),
+            "valhalla" => self.providers.valhalla.api_key.clone(),
             _ => None,
         };
         if config_key.is_some() {
