@@ -10,6 +10,28 @@ use crate::http::{HttpRequest, HttpResponse};
 use async_trait::async_trait;
 use std::sync::Arc;
 
+/// Header names the Fetch standard controls. A page cannot set them, and a
+/// browser that treats one as a custom header preflights the request — which
+/// a tiles endpoint without an `OPTIONS` route answers with 404. The browser
+/// transport drops them before building the request.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+const BROWSER_FORBIDDEN_HEADER_NAMES: [&str; 6] = [
+    "user-agent",
+    "cookie",
+    "host",
+    "origin",
+    "referer",
+    "connection",
+];
+
+/// Whether the Fetch standard forbids a page from setting `header_name`.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+fn is_browser_forbidden_header(header_name: &str) -> bool {
+    BROWSER_FORBIDDEN_HEADER_NAMES
+        .iter()
+        .any(|forbidden_name| header_name.eq_ignore_ascii_case(forbidden_name))
+}
+
 /// Sends an [`HttpRequest`] and returns an [`HttpResponse`].
 ///
 /// Implementations must return non-2xx responses as `Ok(HttpResponse)`; the
@@ -127,19 +149,6 @@ mod platform {
     use wasm_bindgen_futures::{spawn_local, JsFuture};
     use web_sys::{Headers, Request, RequestInit, RequestMode, Response};
 
-    /// Header names the Fetch standard controls. A page cannot set them, and a
-    /// browser that treats one as a custom header preflights the request —
-    /// which a tiles endpoint without an `OPTIONS` route answers with 404. They
-    /// are dropped before the browser request is built.
-    const BROWSER_FORBIDDEN_HEADER_NAMES: [&str; 6] = [
-        "user-agent",
-        "cookie",
-        "host",
-        "origin",
-        "referer",
-        "connection",
-    ];
-
     /// `window.fetch`-backed transport for WebAssembly targets.
     pub struct FetchTransport;
 
@@ -205,10 +214,7 @@ mod platform {
 
         let headers = Headers::new().map_err(js_error)?;
         for (name, value) in request.headers() {
-            if BROWSER_FORBIDDEN_HEADER_NAMES
-                .iter()
-                .any(|forbidden_name| name.eq_ignore_ascii_case(forbidden_name))
-            {
+            if is_browser_forbidden_header(name) {
                 continue;
             }
             headers.set(name, value).map_err(js_error)?;
@@ -328,5 +334,35 @@ mod tests {
             .await
             .unwrap_err();
         assert!(matches!(error, crate::error::EveryMapError::ClientError(_)));
+    }
+}
+
+#[cfg(test)]
+mod browser_header_tests {
+    use super::is_browser_forbidden_header;
+
+    #[test]
+    fn fetch_forbidden_headers_are_refused() {
+        for header_name in [
+            "user-agent",
+            "User-Agent",
+            "cookie",
+            "host",
+            "origin",
+            "referer",
+            "connection",
+        ] {
+            assert!(
+                is_browser_forbidden_header(header_name),
+                "{header_name} is controlled by the Fetch standard"
+            );
+        }
+    }
+
+    #[test]
+    fn ordinary_request_headers_pass() {
+        for header_name in ["accept", "content-type", "x-goog-api-key", "authorization"] {
+            assert!(!is_browser_forbidden_header(header_name));
+        }
     }
 }
