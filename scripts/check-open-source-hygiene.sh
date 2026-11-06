@@ -23,6 +23,12 @@ forbidden_patterns=(
     'AKIA[0-9A-Z]{16}'
     'ghp_[A-Za-z0-9]{36}'
     'sk-[A-Za-z0-9]{20,}'
+    # A recorded provider payload may keep the shape of a response field but
+    # never a live opaque token: a session id is credential-adjacent account
+    # material, and the same value appears in the image URLs beside it.
+    '"sessionId"[[:space:]]*:[[:space:]]*"[A-Za-z0-9_-]{40,}'
+    'session=[A-Za-z0-9_.~-]{40,}'
+    'signature=[A-Za-z0-9%._~-]{40,}'
 )
 
 violations=0
