@@ -127,6 +127,19 @@ mod platform {
     use wasm_bindgen_futures::{spawn_local, JsFuture};
     use web_sys::{Headers, Request, RequestInit, RequestMode, Response};
 
+    /// Header names the Fetch standard controls. A page cannot set them, and a
+    /// browser that treats one as a custom header preflights the request —
+    /// which a tiles endpoint without an `OPTIONS` route answers with 404. They
+    /// are dropped before the browser request is built.
+    const BROWSER_FORBIDDEN_HEADER_NAMES: [&str; 6] = [
+        "user-agent",
+        "cookie",
+        "host",
+        "origin",
+        "referer",
+        "connection",
+    ];
+
     /// `window.fetch`-backed transport for WebAssembly targets.
     pub struct FetchTransport;
 
@@ -192,6 +205,12 @@ mod platform {
 
         let headers = Headers::new().map_err(js_error)?;
         for (name, value) in request.headers() {
+            if BROWSER_FORBIDDEN_HEADER_NAMES
+                .iter()
+                .any(|forbidden_name| name.eq_ignore_ascii_case(forbidden_name))
+            {
+                continue;
+            }
             headers.set(name, value).map_err(js_error)?;
         }
         if let Some(body) = request.body() {
