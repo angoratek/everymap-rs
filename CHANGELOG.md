@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- The CLI's MapQuest arm did not install its raster-tile provider, so `tile --provider mapquest --variant raster` was refused although the crate serves raster tiles.
+
 ## [0.4.1] — 2026-11-06
 
 ### Fixed

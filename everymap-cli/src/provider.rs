@@ -11,8 +11,8 @@ use everymap_core::domains::tiling::{RasterTileProvider, VectorTileProvider};
 use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::traffic::TrafficProvider;
 use everymap_providers_mapquest::{
-    MapQuestClient, MapQuestGeocoder, MapQuestProviderConfiguration, MapQuestRouter,
-    MapQuestTrafficProvider,
+    MapQuestClient, MapQuestGeocoder, MapQuestProviderConfiguration, MapQuestRasterTileProvider,
+    MapQuestRouter, MapQuestTrafficProvider,
 };
 use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
 use everymap_providers_valhalla::{ValhallaProviderConfiguration, ValhallaRouter};
@@ -277,7 +277,7 @@ impl ProviderRegistry {
             isoline: Box::new(MapQuestUnsupportedIsoline),
             route_matcher: Box::new(MapQuestUnsupportedRouteMatcher),
             tour_planner: Box::new(MapQuestUnsupportedTourPlanner),
-            raster_tile_provider: None,
+            raster_tile_provider: Some(Box::new(MapQuestRasterTileProvider::new(client.clone()))),
             vector_tile_provider: None,
             attribute_provider: Box::new(MapQuestUnsupportedAttributeProvider),
             image_provider: Box::new(MapQuestUnsupportedMapImageProvider),
