@@ -4,6 +4,7 @@
 
 ### Fixed
 - The recorded MapQuest directions payload carried the live session id from the capture, embedded six times (the `sessionId` field and the image URLs beside it). The payload now keeps a synthetic placeholder, and the hygiene gate refuses a session or signature token in any tracked file. The value remains in the history behind tags v0.3.0–v0.4.0; whether to rewrite that history is an owner decision recorded in the plan.
+- The CLI validation suite now asserts the typed tile flags the command takes (`--variant`, `--format`, `--resolution`); it still asserted the removed `--layer` flag, so the tagged 0.4.0 run's `cli-validate` job failed after the release.
 
 ## [0.4.0] — 2026-11-05
 

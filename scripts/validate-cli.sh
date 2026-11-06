@@ -474,11 +474,12 @@ assert_out "tile z10"          ""  $API tile --z 10 --x 550 --y 335
 assert_out "tile z18"          ""  $API tile --z 18 --x 140800 --y 85984
 assert_out "tile z22"          ""  $API tile --z 22 --x 4000000 --y 3000000
 
-# Layer
-assert_out "tile --layer base"     ""  $API tile --z 14 --x 8800 --y 5374 --layer base
-assert_out "tile --layer hybrid"   ""  $API tile --z 14 --x 8800 --y 5374 --layer hybrid
-assert_out "tile --layer labels"   ""  $API tile --z 14 --x 8800 --y 5374 --layer labels
-assert_out "tile --layer empty"    ""  $API tile --z 14 --x 8800 --y 5374 --layer ""
+# Variant, and the raster request's format and resolution
+assert_out "tile --variant vector"     ""  $API tile --z 14 --x 8800 --y 5374 --variant vector
+assert_out "tile --variant raster"     ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster
+assert_out "tile --format png"         ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster --format png
+assert_out "tile --format jpeg"        ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster --format jpeg
+assert_out "tile --resolution retina"  ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster --resolution retina
 
 # Custom output file
 OUT="/tmp/everymap-validate-tile.omv"
@@ -601,7 +602,8 @@ assert_out "help match-route --transport"  "--transport"      match-route --help
 assert_out "help tour --stops"             "--stops"          tour --help
 assert_out "help tour --departure"         "--departure"      tour --help
 assert_out "help tile --z"                 "--z"              tile --help
-assert_out "help tile --layer"             "--layer"          tile --help
+assert_out "help tile --variant"           "--variant"        tile --help
+assert_out "help tile --format"            "--format"         tile --help
 assert_out "help tile --output-file"       "--output-file"    tile --help
 assert_out "help attributes --bbox"        "--bbox"           attributes --help
 assert_out "help attributes --layer"       "--layer"          attributes --help
