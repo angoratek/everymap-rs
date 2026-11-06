@@ -3,7 +3,8 @@
 ## [Unreleased]
 
 ### Fixed
-- The recorded MapQuest directions payload carried the live session id from the capture, embedded six times (the `sessionId` field and the image URLs beside it). The payload now keeps a synthetic placeholder, and the hygiene gate refuses a session or signature token in any tracked file. The value remains in the history behind tags v0.3.0–v0.4.0; whether to rewrite that history is an owner decision recorded in the plan.
+- Mapbox, Radar and Google routes always reported an empty shape, or silently dropped points: the first two decoded the provider's encoded polyline with HERE's flexible-polyline codec and swallowed the failure, and Google's hand-rolled decoder shifted past the integer width on malformed input. `everymap-core` now carries one hardened encoded-polyline decoder (precision 5 and 6, bounded accumulator, alphabet and range checks), and the three providers return `ProviderError("INVALID_POLYLINE")` instead of a plausible empty route. Their contract fixtures carry valid shapes and assert the decoded points.
+- The recorded MapQuest directions payload carried the live session id from the capture, embedded six times (the `sessionId` field and the image URLs beside it). The payload now keeps a synthetic placeholder, and the hygiene gate refuses a session or signature token in any tracked file. The repository history and tags v0.3.0–v0.4.0 were rewritten to remove it; the 0.3.0–0.4.0 crate tarballs on crates.io predate the rewrite and are recorded in `SECURITY.md`.
 - The CLI validation suite now asserts the typed tile flags the command takes (`--variant`, `--format`, `--resolution`); it still asserted the removed `--layer` flag, so the tagged 0.4.0 run's `cli-validate` job failed after the release.
 
 ## [0.4.0] — 2026-11-05
