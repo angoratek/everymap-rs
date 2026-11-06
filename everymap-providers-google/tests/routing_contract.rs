@@ -11,8 +11,9 @@ use wiremock::{Match, Mock, MockServer, Request, ResponseTemplate};
 
 const FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.travelMode,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
 
-/// Encoded polyline for a simple two-point route.
-const ENCODED_POLYLINE: &str = "_m_I??c~_I??~o~@";
+/// The Routes API's classic encoded polyline: three points across California
+/// and Nevada.
+const ENCODED_POLYLINE: &str = "_p~iF~ps|U_ulLnnqC_mqNvxq`@";
 
 /// Exact header matcher. wiremock's `header` matcher splits values on
 /// commas, which would break the comma-separated field mask value.

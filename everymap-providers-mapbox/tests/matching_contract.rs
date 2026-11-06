@@ -19,7 +19,7 @@ async fn test_matching_contract() {
                 "confidence": 0.95,
                 "distance": 1500.0,
                 "duration": 120.0,
-                "geometry": "~bidF_olxI~d~C",
+                "geometry": "_yp_IgdypAfojU~vmbA",
                 "legs": []
             }
         ],
@@ -80,7 +80,7 @@ async fn test_matching_with_heading() {
             "confidence": 0.95,
             "distance": 1500.0,
             "duration": 120.0,
-            "geometry": "~bidF_olxI~d~C",
+            "geometry": "_yp_IgdypAfojU~vmbA",
             "legs": []
         }],
         "tracepoints": [
@@ -127,7 +127,7 @@ async fn test_matching_with_departure_time() {
             "confidence": 0.92,
             "distance": 1500.0,
             "duration": 110.0,
-            "geometry": "~bidF_olxI~d~C",
+            "geometry": "_yp_IgdypAfojU~vmbA",
             "legs": []
         }],
         "tracepoints": [

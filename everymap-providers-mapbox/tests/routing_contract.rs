@@ -17,7 +17,7 @@ async fn test_routing_contract() {
             {
                 "distance": 947000.0,
                 "duration": 32400.0,
-                "geometry": "~bidF_olxI~d~C",
+                "geometry": "_yp_IgdypAfojU~vmbA",
                 "legs": [
                     {
                         "distance": 947000.0,
@@ -72,6 +72,10 @@ async fn test_routing_contract() {
     assert_eq!(response.routes.len(), 1);
     assert_eq!(response.routes[0].distance, 947000.0);
     assert_eq!(response.routes[0].duration, 32400.0);
+    assert!(
+        !response.routes[0].geometry.points.is_empty(),
+        "the recorded polyline decodes into the route shape"
+    );
 }
 
 #[tokio::test]
@@ -83,7 +87,7 @@ async fn test_routing_with_departure_time() {
         "routes": [{
             "distance": 947000.0,
             "duration": 31000.0,
-            "geometry": "~bidF_olxI~d~C",
+            "geometry": "_yp_IgdypAfojU~vmbA",
             "legs": [{
                 "distance": 947000.0,
                 "duration": 31000.0,

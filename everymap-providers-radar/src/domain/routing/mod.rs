@@ -6,7 +6,7 @@ use everymap_core::domains::routing::{
     AvoidType, RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
-use everymap_core::types::Coordinate;
+use everymap_core::types::{Coordinate, Polyline};
 pub use types::*;
 
 const DIRECTIONS_BASE_URL: &str = "https://api.radar.io/v1/route/directions";
@@ -95,8 +95,19 @@ fn map_avoid_types(avoid_types: &[AvoidType]) -> Option<String> {
     }
 }
 
-impl From<RadarDirectionsRoute> for RouteResult {
-    fn from(route: RadarDirectionsRoute) -> Self {
+/// Number of decimal places in the `polyline6` geometry the Directions API
+/// returns for the `geometry=polyline6` request.
+const RADAR_POLYLINE_PRECISION: u8 = 6;
+
+/// The failure a route carries when its encoded shape cannot be decoded.
+fn invalid_polyline(detail: String) -> EveryMapError {
+    EveryMapError::provider("radar", "INVALID_POLYLINE", detail)
+}
+
+impl TryFrom<RadarDirectionsRoute> for RouteResult {
+    type Error = EveryMapError;
+
+    fn try_from(route: RadarDirectionsRoute) -> Result<Self, Self::Error> {
         let raw = serde_json::to_value(&route).unwrap_or_default();
 
         let distance = route.distance.value;
@@ -107,6 +118,19 @@ impl From<RadarDirectionsRoute> for RouteResult {
             .and_then(|g| g.polyline.as_ref())
             .cloned()
             .unwrap_or_default();
+        // Radar answers `geometry=polyline6` with the Mapbox encoding; HERE's
+        // flexible polyline is a different format and would decode to nothing.
+        let geometry = if geometry_str.is_empty() {
+            Polyline::new(Vec::new())
+        } else {
+            Polyline::new(
+                everymap_core::types::decode_encoded_polyline(
+                    &geometry_str,
+                    RADAR_POLYLINE_PRECISION,
+                )
+                .map_err(invalid_polyline)?,
+            )
+        };
 
         let steps: Vec<RouteStep> = route
             .legs
@@ -129,18 +153,16 @@ impl From<RadarDirectionsRoute> for RouteResult {
             })
             .collect();
 
-        Self {
+        Ok(Self {
             distance,
             duration,
-            geometry: everymap_core::types::Polyline::new(
-                everymap_core::types::FlexiblePolyline::decode(&geometry_str).unwrap_or_default(),
-            ),
+            geometry,
             transport_mode: None,
             steps,
             bounding_box: None,
             raw: Some(raw),
             legs: Vec::new(),
-        }
+        })
     }
 }
 
@@ -231,11 +253,11 @@ impl everymap_core::domains::routing::Router for RadarRouter {
             ));
         }
 
-        let routes: Vec<RouteResult> = radar_res
+        let routes = radar_res
             .routes
             .into_iter()
-            .map(RouteResult::from)
-            .collect();
+            .map(RouteResult::try_from)
+            .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
 
         Ok(RouteResponse { routes })
     }
@@ -275,7 +297,7 @@ mod tests {
     fn test_radar_directions_route_to_route_result() {
         let route = RadarDirectionsRoute {
             geometry: Some(RadarGeometry {
-                polyline: Some("BFoz5xJ67i1B1B7PzIhacL2U1GE4".to_string()),
+                polyline: Some("w{idcBgiooXfzj~Evd}_T".to_string()),
             }),
             distance: RadarMetric {
                 value: 15000.0,
@@ -287,7 +309,7 @@ mod tests {
             },
             legs: vec![],
         };
-        let result: RouteResult = route.into();
+        let result = RouteResult::try_from(route).expect("the fixture route converts");
 
         assert!((result.distance - 15000.0).abs() < f64::EPSILON);
         // Duration converted from minutes to seconds: 25 * 60 = 1500
@@ -310,7 +332,7 @@ mod tests {
             },
             legs: vec![],
         };
-        let result: RouteResult = route.into();
+        let result = RouteResult::try_from(route).expect("the fixture route converts");
 
         assert!((result.distance - 5000.0).abs() < f64::EPSILON);
         assert!((result.duration - 600.0).abs() < f64::EPSILON);
@@ -379,7 +401,7 @@ mod tests {
             },
             legs: vec![leg],
         };
-        let result: RouteResult = route.into();
+        let result = RouteResult::try_from(route).expect("the fixture route converts");
 
         assert_eq!(result.steps.len(), 1);
         assert_eq!(

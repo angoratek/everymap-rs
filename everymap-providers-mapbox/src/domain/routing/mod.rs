@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use everymap_core::domains::routing::{
     RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Coordinate, Polyline};
 use std::sync::Arc;
 
@@ -66,14 +66,29 @@ fn transport_mode_to_profile(mode: &TransportMode) -> &'static str {
     }
 }
 
-impl From<MapBoxRoute> for RouteResult {
-    fn from(route: MapBoxRoute) -> Self {
-        // Decode polyline geometry if present; otherwise extract from legs
-        let points: Vec<Coordinate> = route
-            .geometry
-            .as_ref()
-            .and_then(|encoded| everymap_core::types::FlexiblePolyline::decode(encoded).ok())
-            .unwrap_or_default();
+/// Number of decimal places in the `polyline` geometry the Directions API
+/// returns for the `geometries=polyline` request.
+const MAPBOX_POLYLINE_PRECISION: u8 = 5;
+
+/// The failure a route carries when its encoded shape cannot be decoded.
+fn invalid_polyline(detail: String) -> EveryMapError {
+    EveryMapError::provider("mapbox", "INVALID_POLYLINE", detail)
+}
+
+impl TryFrom<MapBoxRoute> for RouteResult {
+    type Error = EveryMapError;
+
+    fn try_from(route: MapBoxRoute) -> Result<Self, Self::Error> {
+        // The Directions API answers `geometries=polyline` with the classic
+        // Google encoding, not HERE's flexible polyline; decoding it with the
+        // wrong codec would silently report an empty shape.
+        let points: Vec<Coordinate> = match route.geometry.as_deref() {
+            Some(encoded) if !encoded.is_empty() => {
+                everymap_core::types::decode_encoded_polyline(encoded, MAPBOX_POLYLINE_PRECISION)
+                    .map_err(invalid_polyline)?
+            }
+            _ => Vec::new(),
+        };
 
         let steps: Vec<RouteStep> = route
             .legs
@@ -100,7 +115,7 @@ impl From<MapBoxRoute> for RouteResult {
             })
             .collect();
 
-        RouteResult {
+        Ok(RouteResult {
             distance: route.distance,
             duration: route.duration,
             geometry: Polyline::new(points),
@@ -109,7 +124,7 @@ impl From<MapBoxRoute> for RouteResult {
             bounding_box: None,
             raw: None,
             legs: Vec::new(),
-        }
+        })
     }
 }
 
@@ -185,8 +200,11 @@ impl Router for MapBoxRouter {
             .query(&params);
 
         let result: MapBoxRouteResponse = self.client.request_json(builder).await?;
-        Ok(RouteResponse {
-            routes: result.routes.into_iter().map(|r| r.into()).collect(),
-        })
+        let routes = result
+            .routes
+            .into_iter()
+            .map(RouteResult::try_from)
+            .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
+        Ok(RouteResponse { routes })
     }
 }

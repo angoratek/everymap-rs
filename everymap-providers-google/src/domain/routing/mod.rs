@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use everymap_core::domains::routing::{
     DepartureTime, RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{BoundingBox, Coordinate, Polyline};
 pub use types::*;
 
@@ -109,8 +109,13 @@ fn coordinate_from_location(location: &GoogleRoutesLocation) -> Option<Coordinat
     Coordinate::new(location.lat_lng.latitude, location.lat_lng.longitude).ok()
 }
 
-impl From<GoogleRoute> for RouteResult {
-    fn from(route: GoogleRoute) -> Self {
+/// Number of decimal places in the encoded polyline the Routes API returns.
+const GOOGLE_POLYLINE_PRECISION: u8 = 5;
+
+impl TryFrom<GoogleRoute> for RouteResult {
+    type Error = EveryMapError;
+
+    fn try_from(route: GoogleRoute) -> Result<Self, Self::Error> {
         let duration = route
             .duration
             .as_deref()
@@ -128,12 +133,26 @@ impl From<GoogleRoute> for RouteResult {
                     .unwrap_or(0) as f64
             });
 
-        let geometry = route
-            .polyline
-            .as_ref()
-            .and_then(|polyline| polyline.encoded_polyline.as_deref())
-            .map(decode_google_polyline)
-            .unwrap_or_else(|| Polyline::new(vec![]));
+        // The Routes API answers the classic Google encoding; the shared
+        // decoder bounds the accumulator and refuses a malformed shape instead
+        // of dropping points or shifting past the integer width.
+        let geometry =
+            match route
+                .polyline
+                .as_ref()
+                .and_then(|polyline| polyline.encoded_polyline.as_deref())
+            {
+                Some(encoded) if !encoded.is_empty() => Polyline::new(
+                    everymap_core::types::decode_encoded_polyline(
+                        encoded,
+                        GOOGLE_POLYLINE_PRECISION,
+                    )
+                    .map_err(|detail| {
+                        EveryMapError::provider("google", "INVALID_POLYLINE", detail)
+                    })?,
+                ),
+                _ => Polyline::new(Vec::new()),
+            };
 
         let steps: Vec<RouteStep> = route
             .legs
@@ -179,7 +198,7 @@ impl From<GoogleRoute> for RouteResult {
                 Some(BoundingBox::new(north_east, south_west))
             });
 
-        Self {
+        Ok(Self {
             distance,
             duration,
             geometry,
@@ -188,60 +207,8 @@ impl From<GoogleRoute> for RouteResult {
             bounding_box,
             raw: None,
             legs: Vec::new(),
-        }
+        })
     }
-}
-
-/// Decode a Google-encoded polyline (algorithm from Google Maps API docs).
-fn decode_google_polyline(encoded: &str) -> Polyline {
-    let mut points = Vec::new();
-    let mut index = 0usize;
-    let mut lat = 0i64;
-    let mut lng = 0i64;
-
-    while index < encoded.len() {
-        let (dlat, new_index) = decode_polyline_value(encoded, index);
-        lat += dlat;
-        index = new_index;
-        let (dlng, new_index) = decode_polyline_value(encoded, index);
-        lng += dlng;
-        index = new_index;
-
-        let latitude = lat as f64 / 1e5;
-        let longitude = lng as f64 / 1e5;
-        if let Ok(coordinate) = Coordinate::new(latitude, longitude) {
-            points.push(coordinate);
-        }
-    }
-
-    Polyline::new(points)
-}
-
-fn decode_polyline_value(encoded: &str, mut index: usize) -> (i64, usize) {
-    let mut result = 0i64;
-    let mut shift = 0u32;
-    let bytes = encoded.as_bytes();
-
-    loop {
-        if index >= bytes.len() {
-            break;
-        }
-        let b = (bytes[index] as i64) - 63;
-        index += 1;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-        if b < 0x20 {
-            break;
-        }
-    }
-
-    if result & 1 != 0 {
-        result = !(result >> 1);
-    } else {
-        result >>= 1;
-    }
-
-    (result, index)
 }
 
 #[async_trait]
@@ -370,11 +337,11 @@ impl Router for GoogleRouter {
 
         let google_response: GoogleRoutesResponse = self.client.request_json(builder).await?;
 
-        let routes: Vec<RouteResult> = google_response
+        let routes = google_response
             .routes
             .into_iter()
-            .map(RouteResult::from)
-            .collect();
+            .map(RouteResult::try_from)
+            .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
 
         Ok(RouteResponse { routes })
     }

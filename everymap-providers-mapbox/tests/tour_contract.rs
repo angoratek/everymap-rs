@@ -17,7 +17,7 @@ async fn test_tour_optimization_contract() {
             {
                 "distance": 25000.0,
                 "duration": 1800.0,
-                "geometry": "~bidF_olxI~d~C",
+                "geometry": "_yp_IgdypAfojU~vmbA",
                 "legs": []
             }
         ],
@@ -79,7 +79,7 @@ async fn test_tour_with_provider_extra_source_destination() {
         "trips": [{
             "distance": 12500.0,
             "duration": 900.0,
-            "geometry": "~bidF_olxI~d~C",
+            "geometry": "_yp_IgdypAfojU~vmbA",
             "legs": []
         }],
         "waypoints": [

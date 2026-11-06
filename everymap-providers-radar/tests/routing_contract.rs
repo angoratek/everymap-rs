@@ -44,7 +44,7 @@ async fn test_routing_contract() {
                         "maneuver": "start"
                     }]
                 }],
-                "geometry": { "polyline": "" }
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
             }]
         })))
         .mount(&server)
@@ -61,6 +61,11 @@ async fn test_routing_contract() {
     assert!((route.distance - 250000.0).abs() < 1.0);
     assert!((route.duration - 120.5 * 60.0).abs() < 1.0); // converted from minutes to seconds
     assert_eq!(route.steps.len(), 1);
+    assert_eq!(
+        route.geometry.points.len(),
+        2,
+        "the polyline6 test vector decodes into the route shape"
+    );
 }
 
 #[tokio::test]
