@@ -55,7 +55,7 @@ pub struct RadarDirectionsStep {
     pub voice_instructions: Option<String>,
     pub geometry: Option<RadarGeometry>,
     pub mode: Option<String>,
-    #[serde(default, alias = "manuever")]
+    #[serde(default)]
     pub maneuver: Option<String>,
     #[serde(default)]
     pub street_name: Option<String>,
