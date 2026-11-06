@@ -11,17 +11,24 @@ We aim to acknowledge reports within 48 hours and provide an initial assessment 
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.2.x   | Yes                |
-| < 0.2.0 | No                 |
+| 0.4.x   | Yes                |
+| < 0.4.0 | No                 |
 
 ## Security Considerations
 
-- **API keys**: Never commit API keys to version control. Set keys via environment variables
-  (`EVERYMAP_HERE_API_KEY`, `EVERYMAP_GOOGLE_API_KEY`, `EVERYMAP_TOMTOM_API_KEY`,
-  `EVERYMAP_MAPBOX_API_KEY`, `EVERYMAP_MAPQUEST_API_KEY`, `EVERYMAP_RADAR_API_KEY`) or the config file
-  (`~/.everymap/config.toml`, with `[providers.<name>]` sections). The generic
-  `EVERYMAP_API_KEY` env var serves as a fallback. API keys in memory are zeroized on drop
-  via the `zeroize` crate.
-- **TLS**: All provider APIs are accessed over HTTPS. The underlying HTTP client enforces TLS.
+- **API keys**: Never commit API keys to version control. The benchmark reads the
+  per-provider variables (`EVERYMAP_HERE_API_KEY`, `EVERYMAP_GOOGLE_API_KEY`,
+  `EVERYMAP_TOMTOM_API_KEY`, `EVERYMAP_MAPBOX_API_KEY`, `EVERYMAP_MAPQUEST_API_KEY`,
+  `EVERYMAP_RADAR_API_KEY`); the CLI reads `EVERYMAP_API_KEY` and the config file
+  (`~/.everymap/config.toml`, with `[providers.<name>]` sections). API keys in memory
+  are zeroized on drop via the `zeroize` crate.
+- **TLS**: Hosted provider APIs are accessed over HTTPS. The self-hosted OSRM and
+  Valhalla defaults may be plain HTTP on a local deployment.
 - **Unsafe code**: This project uses `#[deny(unsafe_code)]` at the workspace level. No `unsafe` blocks
   exist in the codebase.
+- **Removed capture artefact (November 2026)**: a recorded MapQuest directions
+  response carried the session id from the capture. The repository history and the
+  release tags were rewritten to replace it, and the hygiene gate now refuses a
+  session or signature token. The 0.3.0–0.4.0 `everymap-providers-mapquest` tarballs
+  on crates.io predate the rewrite and cannot be changed; they are superseded by
+  0.4.1, and yanking them is tracked as a release decision.
