@@ -1,9 +1,9 @@
 //! Named public vector-tile sources.
 //!
-//! These constructors carry the templates, attribution and terms the Rustic
-//! Maps SDK registry publishes for the keyless vector base maps, so a caller
-//! names a source instead of repeating a template. Each returns a ready
-//! [`UrlTemplateVectorTileSource`] for [`crate::UrlTemplateVectorTileProvider`].
+//! These constructors carry the templates, attribution and terms published by
+//! the tileset operators, so a caller names a source instead of repeating a
+//! template. Each returns a ready [`UrlTemplateVectorTileSource`] for
+//! [`crate::UrlTemplateVectorTileProvider`].
 
 use crate::provider::UrlTemplateVectorTileSource;
 use everymap_core::domains::tiling::{VectorTileEncoding, VectorTileSourceDescriptor};
