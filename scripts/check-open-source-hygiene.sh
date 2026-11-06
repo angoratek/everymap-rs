@@ -29,11 +29,16 @@ forbidden_patterns=(
     '"sessionId"[[:space:]]*:[[:space:]]*"[A-Za-z0-9_-]{40,}'
     'session=[A-Za-z0-9_.~-]{40,}'
     'signature=[A-Za-z0-9%._~-]{40,}'
+    # This library keeps its own identity: a consumer SDK's name, namespace or
+    # repository never appears in its sources, documents or generated pages.
+    'Rustic Maps'
+    'rustic-maps-sdk'
+    'rustic_maps'
 )
 
 violations=0
 for pattern in "${forbidden_patterns[@]}"; do
-    if matches=$(git grep -InE "$pattern" -- . ':!Cargo.lock' 2>/dev/null); then
+    if matches=$(git grep -InE "$pattern" -- . ':!Cargo.lock' ':!scripts/check-open-source-hygiene.sh' 2>/dev/null); then
         printf '%s\n' "$matches" >&2
         printf 'open-source-hygiene: the pattern /%s/ appears above.\n' "$pattern" >&2
         violations=1

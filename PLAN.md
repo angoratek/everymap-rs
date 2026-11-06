@@ -137,7 +137,7 @@ The 0.2.2-era prose still described five providers, ten traits and eight crates.
 
 ### M2 — `everymap-providers-photon` · *status: open (owner-directed 2026-11-04)*
 
-> Verify: a provider crate implements `Geocoder`, `PlaceSearchProvider` and `AutocompleteProvider` against the public Photon instance and a configurable base URL, its contract tests replay committed fixtures without a network call, it builds and lints for `wasm32`, and a release carrying it lets the Rustic Maps SDK delete its own Photon crate and its transport crate.
+> Verify: a provider crate implements `Geocoder`, `PlaceSearchProvider` and `AutocompleteProvider` against the public Photon instance and a configurable base URL, its contract tests replay committed fixtures without a network call, it builds and lints for `wasm32`, and a release carrying it lets a consumer delete its own Photon crate and its transport crate.
 
 - [x] Crate and client (round 198): one keyless client over the Photon API (`/api`, `/reverse`), a configurable base URL, the identifying User-Agent, and the shared pipeline (`/api`), a configurable base URL, the identifying User-Agent, pacing, retry and the shared pipeline.
 - [x] Contracts (round 198): forward and reverse geocoding, settled place search and type-ahead, with Photon's feature classes mapped onto `SearchQuality` and its address parts onto `Address`, settled place search and type-ahead, with the SDK's existing fixture vocabulary (feature types, extent, country-code filtering) mapped onto `SearchResult`/`SearchQuality`/`AutocompleteResult`.
@@ -145,7 +145,7 @@ The 0.2.2-era prose still described five providers, ten traits and eight crates.
 - [x] Add the crate to the browser closure, the CI matrix, the generated READMEs and the changelog (round 198).
 - [x] `openstreetmap_us_vector_source()` (round 199): the named source carries an identifying User-Agent (`OPENSTREETMAP_US_USER_AGENT`) and the service's full policy in its terms text, so a host serves OSM US through the URL-template provider without losing the request policy.
 - [x] Release 0.3.2, which carried the Photon crate, the OSM US source policy and the raster pacing ceiling (round 200).
-- [x] Release the patch that carries both, and hand the Rustic Maps SDK the version to move to (0.3.2).
+- [x] Release the patch that carries both, and hand a consumer the version to move to (0.3.2).
 
 ### M4 — One contract surface for every provider · *status: open (owner ruling 2026-11-05)*
 

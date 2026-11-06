@@ -25,27 +25,44 @@ if ! [[ "$NEW_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
     exit 1
 fi
 
-# Get current version from any crate
-CURRENT_VERSION=$(grep '^version' "$REPO_ROOT/everymap-core/Cargo.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
+# Read the workspace version the crate manifests inherit.
+CURRENT_VERSION=$(awk '
+    /^\[workspace\.package\]/ { in_section = 1; next }
+    /^\[/ { in_section = 0 }
+    in_section && /^version = "/ {
+        match($0, /"[^"]+"/)
+        print substr($0, RSTART + 1, RLENGTH - 2)
+        exit
+    }
+' "$REPO_ROOT/Cargo.toml")
+
+if [[ -z "$CURRENT_VERSION" ]]; then
+    echo "Error: the workspace version could not be read from $REPO_ROOT/Cargo.toml"
+    exit 1
+fi
 
 if [[ "$CURRENT_VERSION" == "$NEW_VERSION" ]]; then
     echo "Already at version $NEW_VERSION, nothing to do."
     exit 0
 fi
 
-echo "Bumping all crates from $CURRENT_VERSION to $NEW_VERSION"
+echo "Bumping the workspace from $CURRENT_VERSION to $NEW_VERSION"
 
-# Update version in each crate's Cargo.toml
-for crate_dir in "$REPO_ROOT"/everymap-*/; do
-    crate_name=$(basename "$crate_dir")
-    echo "  $crate_name"
-    sed -i.bak "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" "$crate_dir/Cargo.toml"
-    rm -f "$crate_dir/Cargo.toml.bak"
-done
-
-# Update workspace dependency versions in root Cargo.toml
+# Every crate inherits the workspace version, so exactly one manifest line and
+# every inter-crate dependency declaration change.
+sed -i.bak "s/^version = \"$CURRENT_VERSION\"/version = \"$NEW_VERSION\"/" "$REPO_ROOT/Cargo.toml"
+rm -f "$REPO_ROOT/Cargo.toml.bak"
 sed -i.bak "s|version = \"$CURRENT_VERSION\" }|version = \"$NEW_VERSION\" }|g" "$REPO_ROOT/Cargo.toml"
 rm -f "$REPO_ROOT/Cargo.toml.bak"
+
+if ! grep -q "^version = \"$NEW_VERSION\"" "$REPO_ROOT/Cargo.toml"; then
+    echo "Error: the workspace version was not updated"
+    exit 1
+fi
+if grep -q "version = \"$CURRENT_VERSION\"" "$REPO_ROOT/Cargo.toml"; then
+    echo "Error: a workspace dependency still pins $CURRENT_VERSION"
+    exit 1
+fi
 
 echo ""
 echo "All crates bumped to $NEW_VERSION"

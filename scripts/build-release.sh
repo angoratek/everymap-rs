@@ -33,7 +33,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$VERSION" ]]; then
-    VERSION=$(grep '^version' "$REPO_ROOT/everymap-cli/Cargo.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
+    VERSION=$(awk '
+        /^\[workspace\.package\]/ { in_section = 1; next }
+        /^\[/ { in_section = 0 }
+        in_section && /^version = "/ {
+            match($0, /"[^"]+"/)
+            print substr($0, RSTART + 1, RLENGTH - 2)
+            exit
+        }
+    ' "$REPO_ROOT/Cargo.toml")
 fi
 
 mkdir -p "$OUTPUT_DIR"
