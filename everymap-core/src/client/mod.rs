@@ -19,8 +19,10 @@ use std::time::Duration;
 use web_time::Instant;
 
 pub use observer::{
-    is_sensitive_header, redact_url, RequestObservation, RequestObserver, ResponseObservation,
-    REDACTED_HEADER_NAMES, REDACTED_QUERY_PARAMETERS, REDACTED_VALUE,
+    capture_response_excerpt, is_sensitive_header, redact_url, response_excerpt_capture_enabled,
+    set_response_excerpt_capture, RequestObservation, RequestObserver, ResponseObservation,
+    REDACTED_HEADER_NAMES, REDACTED_QUERY_PARAMETERS, REDACTED_RESPONSE_FIELD_NAMES,
+    REDACTED_VALUE, RESPONSE_EXCERPT_MAXIMUM_BYTES,
 };
 pub use rate_limit::TokenBucket;
 /// The native client builder a provider exposes through
@@ -244,12 +246,14 @@ impl ProviderClient {
             match self.transport.send(request.clone()).await {
                 Ok(response) => {
                     let elapsed = start.elapsed();
+                    let response_excerpt = capture_response_excerpt(response.body());
                     if let Some(observer) = &observer {
                         observer.on_response(&ResponseObservation {
                             provider: self.provider_name,
                             status: Some(response.status()),
                             elapsed,
                             attempt,
+                            response_excerpt: response_excerpt.as_deref(),
                         });
                     }
                     if response.is_success() {
@@ -317,6 +321,7 @@ impl ProviderClient {
                             status: None,
                             elapsed,
                             attempt,
+                            response_excerpt: None,
                         });
                     }
                     if attempt < max_attempts {
