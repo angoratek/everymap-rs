@@ -124,6 +124,15 @@ impl PhotonClient {
         }
     }
 
+    /// Installs the observer that receives this client's request attempts,
+    /// replacing any installed earlier.
+    ///
+    /// # Parameters
+    /// - `observer` — receives every request attempt and its outcome.
+    pub fn set_observer(&mut self, observer: Arc<dyn everymap_core::client::RequestObserver>) {
+        self.inner.set_observer(observer);
+    }
+
     /// Builds a client that executes requests through an explicit transport.
     ///
     /// # Parameters

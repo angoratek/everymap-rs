@@ -126,6 +126,23 @@ impl OsrmRouter {
         Self::with_client(Arc::new(OsrmClient::keyless()), configuration)
     }
 
+    /// Builds a router that publishes each attempt to `observer`.
+    ///
+    /// # Parameters
+    /// - `configuration` — deployment base URL and user agent.
+    /// - `observer` — receives every request attempt and its outcome.
+    ///
+    /// # Returns
+    /// A router ready to calculate routes and report each attempt.
+    pub fn with_observer(
+        configuration: OsrmProviderConfiguration,
+        observer: Arc<dyn everymap_core::client::RequestObserver>,
+    ) -> Self {
+        let mut client = OsrmClient::keyless();
+        client.set_observer(observer);
+        Self::with_client(Arc::new(client), configuration)
+    }
+
     /// Builds a router that executes requests through an explicit transport.
     ///
     /// # Parameters
