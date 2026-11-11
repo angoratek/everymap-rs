@@ -11,7 +11,19 @@
 - The CLI's provider registry carried an unused MapQuest traffic stub beside a comment claiming MapQuest serves no traffic, and an `unreachable!` for an unknown provider key. The stub is gone and an unknown key answers a typed validation error.
 
 ### Added
+- CLI commands exit non-zero when the provider call fails, so a script can tell a refused request from a successful one.
 - `MapBoxTileProvider::with_tileset_id` selects the tileset a provider serves; the descriptor and the requested path follow it, and the default stays Streets v8.
+
+### Changed
+- `OAuth2Provider` holds its token lock only to read or replace the cached token, never across the token request, and each request carries a configurable timeout (ten seconds by default). A slow token endpoint can no longer block every capability that shares the credential.
+- Native transport failures answer a classified `TransportError` sentence instead of `reqwest`'s own message, which printed the request URL and therefore a query-string credential. Response-body read failures take the same path.
+
+### Fixed (continued)
+- TomTom honours a caller's traffic `bounding_box` and sends the incident bbox in the documented `minLon,minLat,maxLon,maxLat` order; a radius still works when no box is supplied.
+- Mapbox `permanent_geocode` sends `permanent=true`, and `batch_geocode` posts the v6 batch endpoint with every query in one request instead of issuing sequential forward lookups.
+- `scripts/check-publish-readiness.sh` fails on a crate or inter-crate dependency version that differs from the workspace version.
+- The release workflow runs the full CI set: formatting, clippy, the whole nextest suite, the open-source hygiene gate, the CLI validation suite and publish readiness.
+- The open-source hygiene gate also scans binary files and commit metadata.
 
 ## [0.4.3] — 2026-11-10
 

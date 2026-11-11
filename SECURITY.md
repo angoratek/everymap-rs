@@ -34,5 +34,7 @@ We aim to acknowledge reports within 48 hours and provide an initial assessment 
   session or signature token. Versions 0.4.1, 0.4.2 and 0.4.3 are published and
   carry the corrected payload. The 0.3.0–0.4.0 `everymap-providers-mapquest`
   tarballs on crates.io predate the rewrite and cannot be changed; they are
-  superseded by 0.4.1 and later, and yanking them remains an owner decision. The
-  release workflow publishes crates and attaches binaries, and does not yank.
+  superseded by 0.4.1 and later. The owner approved yanking them on 2026-11-10;
+  the yank is pending a registry token on the machine that runs it, because the
+  token is held only by the release workflow. The release workflow publishes
+  crates and attaches binaries, and does not yank.
