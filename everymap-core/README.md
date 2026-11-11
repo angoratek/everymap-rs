@@ -20,7 +20,7 @@ Core traits, types, and error handling for [EveryMap-RS](https://github.com/ango
 - **Navigation-grade routing**: `Router::calculate_route_with_waypoints` takes ordered waypoints and returns legs, typed maneuvers with stable labels, display and speech instructions, lane guidance, step and leg shapes, and `route_capabilities`
 - **Typed tiles**: `RasterTileProvider` with a typed request and a response that echoes format and resolution; `VectorTileProvider` with a source descriptor carrying cache namespace, attribution, zoom span, wire encoding and style hints
 - **Shared types**: `Coordinate`, `BoundingBox`, `Address`, `Polyline`
-- **Auth**: `AuthProvider` trait with `ApiKeyProvider` and `HeaderAuthProvider` — API keys are zeroized on drop
+- **Auth**: `AuthProvider` trait with `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` and `NoAuthProvider` — API keys, client secrets and cached tokens are zeroized on drop
 - **HTTP**: backend-neutral `ProviderClient` on the `HttpTransport` seam — `reqwest` natively, `window.fetch` on WebAssembly, with token-bucket rate limiting, idempotent-GET retries, timeouts, and credential redaction
 - **Errors**: structured `EveryMapError` (`HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, and more)
 - **Stub macros**: 8 `unsupported_*!` macros so provider crates stub out unsupported contracts cleanly
