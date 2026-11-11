@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.2] — 2026-11-06
 
 ### Added
 - Observers can receive a bounded response excerpt. `set_response_excerpt_capture(true)` makes each client hand `ResponseObservation::response_excerpt` the first 512 bytes of the response body, truncated on a character boundary, with every credential-bearing JSON member or `name=value` assignment replaced by `***`; the switch is off by default and the excerpt is `None` while it is. Request bodies and header values stay out of the seam.
