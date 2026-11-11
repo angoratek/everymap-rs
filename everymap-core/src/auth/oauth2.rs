@@ -39,7 +39,13 @@ pub struct OAuth2Provider {
     token_endpoint: String,
     transport: Arc<dyn HttpTransport>,
     cached_token: Mutex<Option<CachedToken>>,
+    /// Timeout applied to each token request, so an unresponsive endpoint
+    /// cannot hold a caller indefinitely.
+    request_timeout: Duration,
 }
+
+/// Timeout applied to a token request unless the caller sets another one.
+const DEFAULT_TOKEN_REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// OAuth 2.0 client credentials (zeroized on drop).
 #[derive(Zeroize)]
@@ -104,23 +110,36 @@ impl OAuth2Provider {
             token_endpoint,
             transport,
             cached_token: Mutex::new(None),
+            request_timeout: DEFAULT_TOKEN_REQUEST_TIMEOUT,
         }
+    }
+
+    /// Overrides the timeout applied to each token request.
+    pub fn set_request_timeout(&mut self, request_timeout: Duration) {
+        self.request_timeout = request_timeout;
     }
 
     /// Return a valid cached access token, fetching a new one when missing or expired.
     ///
-    /// The fetch happens while holding the token lock, so concurrent callers
-    /// share a single token request instead of stampeding the token endpoint.
+    /// The lock is held only to read or replace the cached token, never across
+    /// the token request: a slow endpoint cannot block every other capability
+    /// that needs the same credential. Two callers that race an expired token
+    /// may each request one; the last response wins, which is harmless because
+    /// both tokens are valid for the same client.
     async fn access_token(&self) -> EveryMapResult<String> {
-        let mut cached = self.cached_token.lock().await;
-        if let Some(token) = cached.as_ref() {
-            if Instant::now() < token.expires_at {
-                return Ok(token.access_token.clone());
-            }
+        let cached_token = {
+            let cached = self.cached_token.lock().await;
+            cached
+                .as_ref()
+                .filter(|token| Instant::now() < token.expires_at)
+                .map(|token| token.access_token.clone())
+        };
+        if let Some(access_token) = cached_token {
+            return Ok(access_token);
         }
         let new_token = self.fetch_token().await?;
         let access_token = new_token.access_token.clone();
-        *cached = Some(new_token);
+        *self.cached_token.lock().await = Some(new_token);
         Ok(access_token)
     }
 
@@ -136,7 +155,9 @@ impl OAuth2Provider {
             form_pairs.push(("scope", scope));
         }
 
-        let request = HttpRequest::new(Method::Post, &self.token_endpoint).form(&form_pairs);
+        let request = HttpRequest::new(Method::Post, &self.token_endpoint)
+            .form(&form_pairs)
+            .timeout(self.request_timeout);
         let response = self.transport.send(request).await?;
 
         let status = response.status();
@@ -244,5 +265,58 @@ mod tests {
         assert!(is_valid_header_value("Bearer token-abc"));
         assert!(!is_valid_header_value("Bearer token\nabc"));
         assert!(!is_valid_header_value(""));
+    }
+
+    /// Records the token requests and answers one fixed access token.
+    struct RecordingTokenTransport {
+        requests: std::sync::Mutex<Vec<crate::http::HttpRequest>>,
+    }
+
+    #[async_trait]
+    impl crate::http::HttpTransport for RecordingTokenTransport {
+        async fn send(
+            &self,
+            request: crate::http::HttpRequest,
+        ) -> EveryMapResult<crate::http::HttpResponse> {
+            self.requests
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .push(request);
+            Ok(crate::http::HttpResponse::new(
+                200,
+                crate::http::HttpHeaders::default(),
+                br#"{"access_token":"tok","expires_in":3600}"#.to_vec(),
+            ))
+        }
+    }
+
+    #[tokio::test]
+    async fn a_token_request_carries_the_configured_timeout_and_the_token_is_cached() {
+        let transport = std::sync::Arc::new(RecordingTokenTransport {
+            requests: std::sync::Mutex::new(Vec::new()),
+        });
+        let mut provider = OAuth2Provider::with_transport(
+            transport.clone(),
+            "https://auth.example.test/token".to_string(),
+            "client-id".to_string(),
+            "client-secret".to_string(),
+            None,
+        );
+        provider.set_request_timeout(Duration::from_secs(7));
+
+        let first = provider.access_token().await.expect("the token answers");
+        let second = provider
+            .access_token()
+            .await
+            .expect("the cached token answers");
+        assert_eq!(first, "tok");
+        assert_eq!(second, "tok");
+
+        let requests = transport
+            .requests
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert_eq!(requests.len(), 1, "the second call serves the cached token");
+        assert_eq!(requests[0].timeout_value(), Some(Duration::from_secs(7)));
     }
 }
