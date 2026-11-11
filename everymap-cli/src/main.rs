@@ -380,7 +380,10 @@ async fn main() {
         });
 
     let output_format = output::OutputFormat::from_str(&cli.output);
-    let registry = ProviderRegistry::new(&cli.provider, api_key, key_param, cli.verbose);
+    let registry = match ProviderRegistry::try_new(&cli.provider, api_key, key_param, cli.verbose) {
+        Ok(registry) => registry,
+        Err(error) => exit_with_error(&error.to_string()),
+    };
     run_commands(&cli, &registry, &output_format).await;
 }
 

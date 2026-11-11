@@ -50,8 +50,8 @@ fn deployment_base_url_or_default(credential: String, default_base_url: &str) ->
 
 // The domains MapQuest's service does not serve, and every domain OSRM and
 // Valhalla do not serve: each answers with the documented unsupported error
-// instead of pretending to work.
-everymap_core::unsupported_traffic!(MapQuestUnsupportedTraffic, "mapquest");
+// instead of pretending to work. MapQuest serves traffic through its own
+// provider, so no traffic stub exists for it.
 everymap_core::unsupported_isoline!(MapQuestUnsupportedIsoline, "mapquest");
 everymap_core::unsupported_matcher!(MapQuestUnsupportedRouteMatcher, "mapquest");
 everymap_core::unsupported_tour!(MapQuestUnsupportedTourPlanner, "mapquest");
@@ -78,17 +78,27 @@ everymap_core::unsupported_attributes!(ValhallaUnsupportedAttributes, "valhalla"
 everymap_core::unsupported_image!(ValhallaUnsupportedImage, "valhalla");
 
 impl ProviderRegistry {
-    pub fn new(provider: &str, api_key: String, key_param: String, verbose: bool) -> Self {
+    /// Builds the provider set for one provider key. An unknown key answers a
+    /// validation error naming it, so a caller that skips the CLI's own
+    /// provider check still gets a reported failure rather than a panic.
+    pub fn try_new(
+        provider: &str,
+        api_key: String,
+        key_param: String,
+        verbose: bool,
+    ) -> Result<Self, everymap_core::error::EveryMapError> {
         match provider {
-            "here" => Self::new_here(api_key, key_param, verbose),
-            "google" => Self::new_google(api_key, key_param, verbose),
-            "tomtom" => Self::new_tomtom(api_key, key_param, verbose),
-            "mapbox" => Self::new_mapbox(api_key, key_param, verbose),
-            "radar" => Self::new_radar(api_key, verbose),
-            "mapquest" => Self::new_mapquest(api_key, verbose),
-            "osrm" => Self::new_osrm(api_key),
-            "valhalla" => Self::new_valhalla(api_key),
-            _ => unreachable!("Provider validation already done in main"),
+            "here" => Ok(Self::new_here(api_key, key_param, verbose)),
+            "google" => Ok(Self::new_google(api_key, key_param, verbose)),
+            "tomtom" => Ok(Self::new_tomtom(api_key, key_param, verbose)),
+            "mapbox" => Ok(Self::new_mapbox(api_key, key_param, verbose)),
+            "radar" => Ok(Self::new_radar(api_key, verbose)),
+            "mapquest" => Ok(Self::new_mapquest(api_key, verbose)),
+            "osrm" => Ok(Self::new_osrm(api_key)),
+            "valhalla" => Ok(Self::new_valhalla(api_key)),
+            unknown => Err(everymap_core::error::EveryMapError::ValidationError(
+                format!("unsupported provider {unknown:?}"),
+            )),
         }
     }
 
