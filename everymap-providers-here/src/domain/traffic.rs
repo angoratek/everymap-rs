@@ -5,13 +5,62 @@ use async_trait::async_trait;
 use everymap_core::domains::traffic::{
     TrafficFlow, TrafficOptions, TrafficProvider, TrafficResponse,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
 use std::sync::Arc;
 
 pub use types::*;
 
 const TRAFFIC_BASE_URL: &str = "https://data.traffic.hereapi.com/v7";
+
+/// Metres in one degree of latitude at the WGS 84 mean radius. The contract
+/// states a traffic radius in metres while HERE Traffic takes a rectangle in
+/// degrees, so a radius becomes a latitude offset through this value.
+const METRES_PER_DEGREE_LATITUDE: f64 = 111_320.0;
+
+/// Builds the HERE `in` area filter for a traffic query.
+///
+/// A caller-supplied bounding box is used verbatim. Otherwise the contract's
+/// radius, which is in metres, becomes a latitude/longitude offset around the
+/// coordinate. HERE Traffic has no default area, so a query carrying neither a
+/// box nor a radius is refused instead of being answered for guessed ground.
+///
+/// # Parameters
+/// - `location` — the centre a radius is measured from.
+/// - `options` — the caller's area bounds.
+///
+/// # Returns
+/// The `bbox:west,south,east,north` filter both traffic endpoints expect.
+///
+/// # Errors
+/// Returns [`EveryMapError::ValidationError`] when `options` carries neither a
+/// `bounding_box` nor a `radius`.
+fn traffic_area_filter(location: &Coordinate, options: &TrafficOptions) -> EveryMapResult<String> {
+    if let Some(bounding_box) = &options.bounding_box {
+        return Ok(format!(
+            "bbox:{},{},{},{}",
+            bounding_box.south_west.lng,
+            bounding_box.south_west.lat,
+            bounding_box.north_east.lng,
+            bounding_box.north_east.lat,
+        ));
+    }
+    let radius_metres = options.radius.ok_or_else(|| {
+        EveryMapError::ValidationError(
+            "traffic requires a radius in metres or a bounding box".to_string(),
+        )
+    })?;
+    let latitude_offset = radius_metres / METRES_PER_DEGREE_LATITUDE;
+    let longitude_offset =
+        radius_metres / (METRES_PER_DEGREE_LATITUDE * location.lat.to_radians().cos());
+    Ok(format!(
+        "bbox:{},{},{},{}",
+        location.lng - longitude_offset,
+        location.lat - latitude_offset,
+        location.lng + longitude_offset,
+        location.lat + latitude_offset,
+    ))
+}
 
 /// Implementation of TrafficProvider for HERE Technologies.
 ///
@@ -260,40 +309,31 @@ impl TrafficProvider for HereTraffic {
         location: &Coordinate,
         options: &TrafficOptions,
     ) -> EveryMapResult<TrafficResponse> {
-        // Convert core options to HERE-specific options
-        let here_options = flow_options_from_core(options);
+        // Convert core options to HERE-specific options and query exactly the
+        // ground the caller asked about.
+        let area_filter = traffic_area_filter(location, options)?;
+        let mut here_options = flow_options_from_core(options);
+        here_options.in_filter = Some(area_filter.clone());
 
         // Use the rich flow API and extract simplified data
         let flow_response = self.get_flow(*location, &here_options).await?;
 
         let flows: Vec<TrafficFlow> = flow_response.results.into_iter().map(Into::into).collect();
 
-        // Fetch incidents when requested
+        // Fetch incidents when requested, over the same area as the flow query.
         let mut incidents = vec![];
         if options.include_incidents.unwrap_or(false) {
-            // Build a bounding box around the location using the radius or a default
-            let radius_km = options.radius.unwrap_or(10.0);
-            let lat_offset = radius_km / 111.32;
-            let lng_offset = radius_km / (111.32 * location.lat.to_radians().cos());
-            let bbox = format!(
-                "bbox:{},{},{},{}",
-                location.lng - lng_offset,
-                location.lat - lat_offset,
-                location.lng + lng_offset,
-                location.lat + lat_offset,
-            );
             let incidents_options = HereIncidentsOptions {
-                in_filter: Some(bbox),
+                in_filter: Some(area_filter),
                 location_referencing: Some(vec![LocationReferencing::None]),
                 ..Default::default()
             };
-            if let Ok(incident_response) = self.get_incidents(&incidents_options).await {
-                incidents = incident_response
-                    .results
-                    .into_iter()
-                    .map(|item| item.incident.into())
-                    .collect();
-            }
+            let incident_response = self.get_incidents(&incidents_options).await?;
+            incidents = incident_response
+                .results
+                .into_iter()
+                .map(|item| item.incident.into())
+                .collect();
         }
 
         Ok(TrafficResponse {

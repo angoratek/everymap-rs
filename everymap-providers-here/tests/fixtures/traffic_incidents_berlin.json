@@ -1,0 +1,22 @@
+{
+  "results": [
+    {
+      "location": {
+        "description": "A1 Northbound",
+        "length": 500.0
+      },
+      "incident": {
+        "id": "INC_123",
+        "type": "accident",
+        "criticality": "major",
+        "status": "active",
+        "startTime": "2024-01-01T08:00:00Z",
+        "endTime": "2024-01-01T12:00:00Z",
+        "description": {
+          "value": "Major accident on A1",
+          "language": "en"
+        }
+      }
+    }
+  ]
+}
