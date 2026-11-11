@@ -26,7 +26,7 @@ async fn test_attributes_by_place_ids() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -85,7 +85,7 @@ async fn test_attributes_along_path() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -157,7 +157,7 @@ async fn test_attributes_with_units() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;

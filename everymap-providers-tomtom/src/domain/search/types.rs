@@ -185,12 +185,12 @@ pub struct TomTomReverseGeocodeBoundingBox {
 /// Position (lat/lon) from TomTom.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomPosition {
-    /// Latitude in degrees.
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub lat: f64,
-    /// Longitude in degrees.
+    pub lat: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub lon: f64,
+    pub lon: Option<f64>,
 }
 
 /// Bounding box from TomTom.

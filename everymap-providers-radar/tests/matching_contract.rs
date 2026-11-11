@@ -13,8 +13,7 @@ async fn setup_matching_mock() -> (MockServer, RadarRouteMatcher) {
         "prj_test_pk_123".to_string(),
     ));
     let client = Arc::new(RadarClient::new(auth));
-    let matcher =
-        RadarRouteMatcher::with_base_url(client, format!("{}/v1/route/match", server.uri()));
+    let matcher = RadarRouteMatcher::with_base_url(client, server.uri());
     (server, matcher)
 }
 

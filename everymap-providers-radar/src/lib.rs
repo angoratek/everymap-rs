@@ -1,5 +1,7 @@
 pub mod client;
 pub mod domain;
+pub mod endpoints;
+mod error_mapping;
 pub mod ext;
 
 pub use client::RadarClient;

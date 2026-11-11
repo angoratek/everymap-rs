@@ -1,28 +1,42 @@
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
 use async_trait::async_trait;
 use everymap_core::domains::imaging::{ImageOptions, ImageResponse, MapImageProvider};
 use everymap_core::error::EveryMapResult;
 use everymap_core::types::Coordinate;
 use std::sync::Arc;
 
-const STATIC_MAPS_BASE_URL: &str = "https://maps.googleapis.com/maps/api/staticmap";
+/// Service root of the Google Static Maps API.
+const STATIC_MAPS_SERVICE_ROOT: &str = "https://maps.googleapis.com";
+
+/// Documented path of the Google Static Maps API.
+const STATIC_MAPS_PATH: &str = "/maps/api/staticmap";
 
 /// Implementation of MapImageProvider for Google Static Maps API.
 pub struct GoogleMapImageProvider {
     pub(crate) client: Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GoogleMapImageProvider {
     pub fn new(client: Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: STATIC_MAPS_BASE_URL.to_string(),
+            service_root: STATIC_MAPS_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates an image provider against a Google service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://maps.googleapis.com` or a test server's origin. The
+    ///   documented path is appended.
+    pub fn with_base_url(client: Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
     }
 }
 
@@ -86,7 +100,7 @@ impl MapImageProvider for GoogleMapImageProvider {
             }
         }
 
-        let url = self.base_url.clone();
+        let url = endpoint_url(&self.service_root, STATIC_MAPS_PATH);
         let builder = self
             .client
             .build_request(everymap_core::http::Method::GET, &url)

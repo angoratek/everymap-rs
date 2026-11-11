@@ -121,14 +121,18 @@ pub struct RadarChain {
 use crate::domain::matching::RadarRouteMatcher;
 use crate::domain::routing::RadarRouter;
 use crate::domain::search::RadarGeocoder;
+use crate::error_mapping::ensure_success;
 
 #[async_trait]
 impl RadarGeocoderExt for RadarGeocoder {
     async fn ip_geocode(&self) -> EveryMapResult<RadarIpGeocodeResponse> {
+        let url = self.ip_geocode_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.ip_geocode_url);
-        self.client.request_json(builder).await
+            .build_request(everymap_core::http::Method::GET, &url);
+        let response: RadarIpGeocodeResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 
     async fn autocomplete(
@@ -152,12 +156,15 @@ impl RadarGeocoderExt for RadarGeocoder {
             params.push(("countryCode", cc.clone()));
         }
 
+        let url = self.autocomplete_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.autocomplete_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        self.client.request_json(builder).await
+        let response: RadarAutocompleteResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 
     async fn validate_address(
@@ -184,12 +191,16 @@ impl RadarGeocoderExt for RadarGeocoder {
             params.push(("addressLabel", label.clone()));
         }
 
+        let url = self.address_validation_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.validate_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        self.client.request_json(builder).await
+        let response: RadarAddressValidationResponse =
+            self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 }
 
@@ -225,12 +236,15 @@ impl RadarRouterExt for RadarRouter {
             params.push(("units", u.to_string()));
         }
 
+        let url = self.distance_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.distance_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        self.client.request_json(builder).await
+        let response: RadarDistanceResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 
     async fn matrix(
@@ -266,12 +280,15 @@ impl RadarRouterExt for RadarRouter {
             params.push(("units", u.to_string()));
         }
 
+        let url = self.matrix_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.matrix_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        self.client.request_json(builder).await
+        let response: RadarMatrixResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 }
 
@@ -300,12 +317,15 @@ impl RadarSearchExt for RadarGeocoder {
             params.push(("limit", l.to_string()));
         }
 
+        let url = self.place_search_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.places_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        self.client.request_json(builder).await
+        let response: RadarPlaceSearchResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 }
 
@@ -339,6 +359,9 @@ impl RadarMatchingExt for RadarRouteMatcher {
             "geometry": "polyline6"
         });
 
-        self.client.post_json(&self.base_url, &body).await
+        let url = self.endpoint();
+        let response: RadarRouteMatchResponse = self.client.post_json(&url, &body).await?;
+        ensure_success(response.meta.code)?;
+        Ok(response)
     }
 }

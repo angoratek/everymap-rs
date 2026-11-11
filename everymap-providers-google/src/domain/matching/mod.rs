@@ -1,6 +1,6 @@
 pub mod types;
 
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
 use async_trait::async_trait;
 use everymap_core::domains::matching::{
     MatchedPoint, MatchingOptions, RouteMatcher, TraceResponse,
@@ -11,26 +11,40 @@ use std::sync::Arc;
 
 pub use types::*;
 
-const ROADS_BASE_URL: &str = "https://roads.googleapis.com/v1";
+/// Service root of the Google Roads API.
+const ROADS_SERVICE_ROOT: &str = "https://roads.googleapis.com";
+
+/// Documented path of the Google Roads API `snapToRoads` method.
+const SNAP_TO_ROADS_PATH: &str = "/v1/snapToRoads";
 
 /// Implementation of RouteMatcher for Google Maps Roads API.
 ///
 /// Uses the `snapToRoads` endpoint to snap GPS points to the road network.
 pub struct GoogleRouteMatcher {
     pub(crate) client: Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GoogleRouteMatcher {
     pub fn new(client: Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: ROADS_BASE_URL.to_string(),
+            service_root: ROADS_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a matcher against a Google Roads service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://roads.googleapis.com` or a test server's origin. The
+    ///   documented path is appended.
+    pub fn with_base_url(client: Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
     }
 }
 
@@ -87,13 +101,13 @@ impl RouteMatcher for GoogleRouteMatcher {
             params.push(("interpolate", "true".to_string()));
         }
 
-        let url = format!("{}/snapToRoads", self.base_url);
+        let url = endpoint_url(&self.service_root, SNAP_TO_ROADS_PATH);
         let builder = self
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let response: GoogleSnapResponse = self.client.request_json(builder).await?;
+        let response: GoogleSnapResponse = self.client.request_parsed_json(builder).await?;
 
         let matched_points: Vec<MatchedPoint> = response
             .snapped_points

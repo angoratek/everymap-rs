@@ -1,11 +1,13 @@
 pub mod types;
 
 use crate::client::TomTomClient;
+use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchQuality, SearchResponse, SearchResult,
+    SearchResultType,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Address, BoundingBox, Coordinate};
 use std::sync::Arc;
 
@@ -45,12 +47,69 @@ fn classify_result_type(result_type: &str) -> SearchResultType {
     }
 }
 
-impl From<TomTomSearchResult> for SearchResult {
-    fn from(r: TomTomSearchResult) -> Self {
-        let coordinate = r
+/// Maps a TomTom result type onto the contract's match quality.
+fn quality_from_result_type(result_type: &str) -> Option<SearchQuality> {
+    match result_type.to_lowercase().as_str() {
+        "point address" | "address range" | "address" => Some(SearchQuality::StreetAddress),
+        "street" => Some(SearchQuality::Street),
+        "cross street" => Some(SearchQuality::Intersection),
+        "poi" => Some(SearchQuality::Point),
+        // TomTom reports a settlement or administrative area as one coarse
+        // "Geography" type; the contract's settlement level is the closest
+        // match.
+        "geography" => Some(SearchQuality::City),
+        _ => None,
+    }
+}
+
+/// Parses a TomTom `"lat,lon"` string into a coordinate.
+fn parse_lat_lon(value: &str) -> Option<Coordinate> {
+    let (latitude, longitude) = value.split_once(',')?;
+    let latitude = latitude.trim().parse::<f64>().ok()?;
+    let longitude = longitude.trim().parse::<f64>().ok()?;
+    Coordinate::new(latitude, longitude).ok()
+}
+
+/// Infers the granularity of a reverse geocode result from its address.
+///
+/// A reverse geocode response carries no result type, so the most specific
+/// populated address component names the granularity.
+fn quality_from_reverse_address(address: &TomTomReverseGeocodeAddress) -> Option<SearchQuality> {
+    if address.street_name.is_some() || address.street.is_some() {
+        return Some(SearchQuality::StreetAddress);
+    }
+    if address.postal_code.is_some() {
+        return Some(SearchQuality::PostalCode);
+    }
+    if address.municipality.is_some() || address.local_name.is_some() {
+        return Some(SearchQuality::City);
+    }
+    if address.country_subdivision.is_some() {
+        return Some(SearchQuality::State);
+    }
+    if address.country.is_some() {
+        return Some(SearchQuality::Country);
+    }
+    None
+}
+
+impl TryFrom<TomTomSearchResult> for SearchResult {
+    type Error = EveryMapError;
+
+    fn try_from(r: TomTomSearchResult) -> Result<Self, Self::Error> {
+        let position = r
             .position
-            .map(|p| Coordinate::new(p.lat, p.lon).unwrap_or(Coordinate::ORIGIN))
-            .unwrap_or(Coordinate::ORIGIN);
+            .as_ref()
+            .ok_or_else(|| invalid_response("search result lacks a position"))?;
+        let latitude = position
+            .lat
+            .ok_or_else(|| invalid_response("search result position lacks a latitude"))?;
+        let longitude = position
+            .lon
+            .ok_or_else(|| invalid_response("search result position lacks a longitude"))?;
+        let coordinate = Coordinate::new(latitude, longitude)
+            .map_err(|_| invalid_response("search result carries an invalid position"))?;
+        let quality = r.result_type.as_deref().and_then(quality_from_result_type);
 
         let title = r.address.as_ref().and_then(|a| a.freeform_address.clone());
 
@@ -73,8 +132,8 @@ impl From<TomTomSearchResult> for SearchResult {
 
         let bounding_box = r.bounding_box.and_then(|bounding_box| {
             Some(BoundingBox::new(
-                Coordinate::new(bounding_box.top_left.lat, bounding_box.top_left.lon).ok()?,
-                Coordinate::new(bounding_box.btm_right.lat, bounding_box.btm_right.lon).ok()?,
+                Coordinate::new(bounding_box.top_left.lat?, bounding_box.top_left.lon?).ok()?,
+                Coordinate::new(bounding_box.btm_right.lat?, bounding_box.btm_right.lon?).ok()?,
             ))
         });
 
@@ -84,60 +143,46 @@ impl From<TomTomSearchResult> for SearchResult {
             .map(classify_result_type)
             .unwrap_or(SearchResultType::Unknown);
 
-        SearchResult {
+        Ok(Self {
             id: r.id,
             title,
             coordinate,
             address,
             result_type,
-            quality: None,
+            quality,
             distance: r.total_distance,
             confidence: r.score,
             categories: Vec::new(),
             bounding_box,
             raw: None,
-        }
+        })
     }
 }
 
-impl From<TomTomReverseGeocodeResult> for SearchResult {
-    fn from(r: TomTomReverseGeocodeResult) -> Self {
-        // Reverse geocode position is a "lat,lon" string
-        let coordinate = r
+impl TryFrom<TomTomReverseGeocodeResult> for SearchResult {
+    type Error = EveryMapError;
+
+    fn try_from(r: TomTomReverseGeocodeResult) -> Result<Self, Self::Error> {
+        // Reverse geocode position is a "lat,lon" string.
+        let position = r
             .position
             .as_deref()
-            .and_then(|s| {
-                let parts: Vec<&str> = s.split(',').collect();
-                if parts.len() == 2 {
-                    let lat = parts[0].parse::<f64>().ok()?;
-                    let lng = parts[1].parse::<f64>().ok()?;
-                    Coordinate::new(lat, lng).ok()
-                } else {
-                    None
-                }
-            })
-            .unwrap_or(Coordinate::ORIGIN);
+            .ok_or_else(|| invalid_response("reverse geocode result lacks a position"))?;
+        let coordinate = parse_lat_lon(position).ok_or_else(|| {
+            invalid_response("reverse geocode result carries an invalid position")
+        })?;
 
-        // Extract bounding_box before moving address
+        // Extract bounding_box before moving address.
         let bounding_box = r.address.as_ref().and_then(|a| {
             a.bounding_box.as_ref().and_then(|bb| {
-                fn parse_lat_lon(s: &str) -> Option<Coordinate> {
-                    let parts: Vec<&str> = s.split(',').collect();
-                    if parts.len() == 2 {
-                        let lat = parts[0].parse::<f64>().ok()?;
-                        let lng = parts[1].parse::<f64>().ok()?;
-                        Coordinate::new(lat, lng).ok()
-                    } else {
-                        None
-                    }
-                }
-                let ne = bb.north_east.as_deref().and_then(parse_lat_lon)?;
-                let sw = bb.south_west.as_deref().and_then(parse_lat_lon)?;
-                Some(BoundingBox::new(ne, sw))
+                let north_east = bb.north_east.as_deref().and_then(parse_lat_lon)?;
+                let south_west = bb.south_west.as_deref().and_then(parse_lat_lon)?;
+                Some(BoundingBox::new(north_east, south_west))
             })
         });
 
         let title = r.address.as_ref().and_then(|a| a.freeform_address.clone());
+        let quality = r.address.as_ref().and_then(quality_from_reverse_address);
 
         let address = r
             .address
@@ -155,31 +200,41 @@ impl From<TomTomReverseGeocodeResult> for SearchResult {
             })
             .unwrap_or_else(Address::empty);
 
-        SearchResult {
+        Ok(Self {
             id: r.id,
             title,
             coordinate,
             address,
             result_type: SearchResultType::ExactMatch,
-            quality: None,
+            quality,
             distance: r.total_distance,
             confidence: None,
             categories: Vec::new(),
             bounding_box,
             raw: None,
-        }
+        })
     }
 }
 
-impl From<TomTomSearchResponse> for SearchResponse {
-    fn from(response: TomTomSearchResponse) -> Self {
-        // Forward geocode uses "results", reverse geocode uses "addresses"
+impl TryFrom<TomTomSearchResponse> for SearchResponse {
+    type Error = EveryMapError;
+
+    fn try_from(response: TomTomSearchResponse) -> Result<Self, Self::Error> {
+        // Forward geocode uses "results", reverse geocode uses "addresses".
         let items = if !response.results.is_empty() {
-            response.results.into_iter().map(|r| r.into()).collect()
+            response
+                .results
+                .into_iter()
+                .map(SearchResult::try_from)
+                .collect::<EveryMapResult<Vec<_>>>()?
         } else {
-            response.addresses.into_iter().map(|r| r.into()).collect()
+            response
+                .addresses
+                .into_iter()
+                .map(SearchResult::try_from)
+                .collect::<EveryMapResult<Vec<_>>>()?
         };
-        SearchResponse { items }
+        Ok(SearchResponse { items })
     }
 }
 
@@ -235,8 +290,8 @@ impl Geocoder for TomTomGeocoder {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: TomTomSearchResponse = self.client.request_json(builder).await?;
-        Ok(result.into())
+        let result: TomTomSearchResponse = self.client.request_parsed_json(builder).await?;
+        SearchResponse::try_from(result)
     }
 
     async fn reverse_geocode(
@@ -272,7 +327,53 @@ impl Geocoder for TomTomGeocoder {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: TomTomSearchResponse = self.client.request_json(builder).await?;
-        Ok(result.into())
+        let result: TomTomSearchResponse = self.client.request_parsed_json(builder).await?;
+        SearchResponse::try_from(result)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_result_without_a_position_is_invalid() {
+        let result: TomTomSearchResult = serde_json::from_value(json!({
+            "address": { "freeformAddress": "Berlin" },
+            "type": "Geography"
+        }))
+        .expect("the fixture deserializes");
+        match SearchResult::try_from(result) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn quality_comes_from_the_result_type() {
+        let result: TomTomSearchResult = serde_json::from_value(json!({
+            "position": { "lat": 52.52, "lon": 13.405 },
+            "type": "Point Address"
+        }))
+        .expect("the fixture deserializes");
+        let mapped = SearchResult::try_from(result).expect("the fixture maps");
+        assert_eq!(mapped.quality, Some(SearchQuality::StreetAddress));
+    }
+
+    #[test]
+    fn reverse_quality_comes_from_the_most_specific_address_component() {
+        let result: TomTomReverseGeocodeResult = serde_json::from_value(json!({
+            "position": "52.520264,13.399690",
+            "address": {
+                "municipality": "Berlin",
+                "country": "Deutschland"
+            }
+        }))
+        .expect("the fixture deserializes");
+        let mapped = SearchResult::try_from(result).expect("the fixture maps");
+        assert_eq!(mapped.quality, Some(SearchQuality::City));
     }
 }

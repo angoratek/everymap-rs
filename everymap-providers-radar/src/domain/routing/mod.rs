@@ -1,55 +1,58 @@
 pub mod types;
 
 use crate::client::RadarClient;
+use crate::endpoints::{endpoint, DIRECTIONS_PATH, DISTANCE_PATH, MATRIX_PATH, RADAR_API_ROOT};
+use crate::error_mapping::{ensure_success, invalid_response};
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    AvoidType, RouteOptions, RouteResponse, RouteResult, RouteStep, TransportMode,
+    AvoidType, RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult, RouteStep,
+    TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Coordinate, Polyline};
 pub use types::*;
 
-const DIRECTIONS_BASE_URL: &str = "https://api.radar.io/v1/route/directions";
-
 /// Implementation of `Router` for Radar Directions API.
 pub struct RadarRouter {
     pub(crate) client: std::sync::Arc<RadarClient>,
-    pub(crate) base_url: String,
-    pub(crate) distance_url: String,
-    pub(crate) matrix_url: String,
+    pub(crate) service_root: String,
 }
 
 impl RadarRouter {
     pub fn new(client: std::sync::Arc<RadarClient>) -> Self {
         Self {
             client,
-            base_url: DIRECTIONS_BASE_URL.to_string(),
-            distance_url: "https://api.radar.io/v1/route/distance".to_string(),
-            matrix_url: "https://api.radar.io/v1/route/matrix".to_string(),
+            service_root: RADAR_API_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<RadarClient>, base_url: String) -> Self {
+    /// Creates a router against a Radar service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Radar client.
+    /// - `service_root` — the scheme and host serving the API, for example
+    ///   `https://api.radar.io` or a test server's origin. Every Radar
+    ///   endpoint is derived from this one root.
+    pub fn with_base_url(client: std::sync::Arc<RadarClient>, service_root: String) -> Self {
         Self {
             client,
-            base_url,
-            distance_url: "https://api.radar.io/v1/route/distance".to_string(),
-            matrix_url: "https://api.radar.io/v1/route/matrix".to_string(),
+            service_root,
         }
     }
 
-    pub fn with_ext_urls(
-        client: std::sync::Arc<RadarClient>,
-        base_url: String,
-        distance_url: String,
-        matrix_url: String,
-    ) -> Self {
-        Self {
-            client,
-            base_url,
-            distance_url,
-            matrix_url,
-        }
+    /// The directions endpoint.
+    fn directions_endpoint(&self) -> String {
+        endpoint(&self.service_root, DIRECTIONS_PATH)
+    }
+
+    /// The distance endpoint.
+    pub(crate) fn distance_endpoint(&self) -> String {
+        endpoint(&self.service_root, DISTANCE_PATH)
+    }
+
+    /// The distance matrix endpoint.
+    pub(crate) fn matrix_endpoint(&self) -> String {
+        endpoint(&self.service_root, MATRIX_PATH)
     }
 }
 
@@ -104,53 +107,44 @@ fn invalid_polyline(detail: String) -> EveryMapError {
     EveryMapError::provider("radar", "INVALID_POLYLINE", detail)
 }
 
+/// Number of seconds in one minute, the unit Radar durations use.
+const SECONDS_PER_MINUTE: f64 = 60.0;
+
 impl TryFrom<RadarDirectionsRoute> for RouteResult {
     type Error = EveryMapError;
 
     fn try_from(route: RadarDirectionsRoute) -> Result<Self, Self::Error> {
-        let raw = serde_json::to_value(&route).unwrap_or_default();
-
-        let distance = route.distance.value;
-        let duration = route.duration.value * 60.0; // Radar returns minutes
+        let raw = serde_json::to_value(&route).ok();
+        let distance = route
+            .distance
+            .value
+            .ok_or_else(|| invalid_response("route distance lacks a value"))?;
+        let duration = route
+            .duration
+            .value
+            .ok_or_else(|| invalid_response("route duration lacks a value"))?
+            * SECONDS_PER_MINUTE;
         let geometry_str = route
             .geometry
             .as_ref()
-            .and_then(|g| g.polyline.as_ref())
-            .cloned()
-            .unwrap_or_default();
+            .and_then(|geometry| geometry.polyline.as_deref())
+            .filter(|polyline| !polyline.is_empty())
+            .ok_or_else(|| invalid_response("route lacks an encoded polyline"))?;
         // Radar answers `geometry=polyline6` with the Mapbox encoding; HERE's
         // flexible polyline is a different format and would decode to nothing.
-        let geometry = if geometry_str.is_empty() {
-            Polyline::new(Vec::new())
-        } else {
-            Polyline::new(
-                everymap_core::types::decode_encoded_polyline(
-                    &geometry_str,
-                    RADAR_POLYLINE_PRECISION,
-                )
+        let geometry = Polyline::new(
+            everymap_core::types::decode_encoded_polyline(geometry_str, RADAR_POLYLINE_PRECISION)
                 .map_err(invalid_polyline)?,
-            )
-        };
+        );
 
-        let steps: Vec<RouteStep> = route
+        let legs: Vec<RouteLeg> = route
             .legs
             .into_iter()
-            .flat_map(|leg| leg.steps)
-            .map(|s| RouteStep {
-                instruction: s.instructions,
-                distance: Some(s.distance.value),
-                duration: Some(s.duration.value * 60.0), // Radar returns minutes
-                start_coordinate: s.start_location.map(|l| {
-                    Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)
-                }),
-                end_coordinate: s.end_location.map(|l| {
-                    Coordinate::new(l.latitude, l.longitude).unwrap_or(Coordinate::ORIGIN)
-                }),
-                maneuver_type: None,
-                speech_instruction: None,
-                lane_guidances: Vec::new(),
-                shape: Vec::new(),
-            })
+            .map(route_leg_from_radar)
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        let steps: Vec<RouteStep> = legs
+            .iter()
+            .flat_map(|leg| leg.steps.iter().cloned())
             .collect();
 
         Ok(Self {
@@ -160,9 +154,57 @@ impl TryFrom<RadarDirectionsRoute> for RouteResult {
             transport_mode: None,
             steps,
             bounding_box: None,
-            raw: Some(raw),
-            legs: Vec::new(),
+            raw,
+            legs,
         })
+    }
+}
+
+/// Projects one Radar Directions leg onto the contract's route leg.
+fn route_leg_from_radar(leg: RadarDirectionsLeg) -> EveryMapResult<RouteLeg> {
+    let shape = leg
+        .geometry
+        .as_ref()
+        .and_then(|geometry| geometry.polyline.as_deref())
+        .filter(|polyline| !polyline.is_empty())
+        .and_then(|polyline| {
+            everymap_core::types::decode_encoded_polyline(polyline, RADAR_POLYLINE_PRECISION).ok()
+        })
+        .unwrap_or_default();
+    let distance = leg
+        .distance
+        .value
+        .ok_or_else(|| invalid_response("route leg distance lacks a value"))?;
+    let duration = leg
+        .duration
+        .value
+        .ok_or_else(|| invalid_response("route leg duration lacks a value"))?
+        * SECONDS_PER_MINUTE;
+    let steps = leg.steps.into_iter().map(route_step_from_radar).collect();
+    Ok(RouteLeg {
+        distance,
+        duration,
+        steps,
+        shape,
+    })
+}
+
+/// Projects one Radar Directions step onto the contract's route step.
+fn route_step_from_radar(step: RadarDirectionsStep) -> RouteStep {
+    RouteStep {
+        instruction: step.instructions,
+        distance: step.distance.value,
+        duration: step.duration.value.map(|value| value * SECONDS_PER_MINUTE),
+        start_coordinate: step
+            .start_location
+            .and_then(|location| Coordinate::new(location.latitude?, location.longitude?).ok()),
+        end_coordinate: step
+            .end_location
+            .and_then(|location| Coordinate::new(location.latitude?, location.longitude?).ok()),
+        maneuver_type: None,
+        speech_instruction: None,
+        lane_guidances: Vec::new(),
+        shape: Vec::new(),
     }
 }
 
@@ -235,23 +277,14 @@ impl everymap_core::domains::routing::Router for RadarRouter {
             params.push(("lang", lang.clone()));
         }
 
+        let url = self.directions_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.base_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let radar_res: RadarDirectionsResponse = self.client.request_json(builder).await?;
-
-        if radar_res.meta.code != 200 {
-            return Err(EveryMapError::provider(
-                "radar",
-                radar_res.meta.code.to_string(),
-                format!(
-                    "Directions request failed with status {}",
-                    radar_res.meta.code
-                ),
-            ));
-        }
+        let radar_res: RadarDirectionsResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(radar_res.meta.code)?;
 
         let routes = radar_res
             .routes
@@ -260,6 +293,20 @@ impl everymap_core::domains::routing::Router for RadarRouter {
             .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
 
         Ok(RouteResponse { routes })
+    }
+
+    fn route_capabilities(&self) -> RouteCapabilities {
+        RouteCapabilities {
+            supported_transport_modes: vec![
+                TransportMode::Car,
+                TransportMode::Truck,
+                TransportMode::Pedestrian,
+                TransportMode::Bicycle,
+            ],
+            // The Directions API ranks paths for travel time; it exposes no
+            // distance-minimizing strategy.
+            supports_shortest_route_strategy: false,
+        }
     }
 }
 
@@ -300,11 +347,11 @@ mod tests {
                 polyline: Some("w{idcBgiooXfzj~Evd}_T".to_string()),
             }),
             distance: RadarMetric {
-                value: 15000.0,
+                value: Some(15000.0),
                 text: "15 km".to_string(),
             },
             duration: RadarMetric {
-                value: 25.0,
+                value: Some(25.0),
                 text: "25 min".to_string(),
             },
             legs: vec![],
@@ -319,44 +366,45 @@ mod tests {
     }
 
     #[test]
-    fn test_radar_directions_route_no_geometry() {
+    fn a_route_without_geometry_is_invalid() {
         let route = RadarDirectionsRoute {
             geometry: None,
             distance: RadarMetric {
-                value: 5000.0,
+                value: Some(5000.0),
                 text: "5 km".to_string(),
             },
             duration: RadarMetric {
-                value: 10.0,
+                value: Some(10.0),
                 text: "10 min".to_string(),
             },
             legs: vec![],
         };
-        let result = RouteResult::try_from(route).expect("the fixture route converts");
-
-        assert!((result.distance - 5000.0).abs() < f64::EPSILON);
-        assert!((result.duration - 600.0).abs() < f64::EPSILON);
-        assert!(result.geometry.points.is_empty());
+        match RouteResult::try_from(route) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
     }
 
     #[test]
     fn test_radar_directions_route_with_steps() {
         let step = RadarDirectionsStep {
             distance: RadarMetric {
-                value: 200.0,
+                value: Some(200.0),
                 text: "200 m".to_string(),
             },
             duration: RadarMetric {
-                value: 0.5,
+                value: Some(0.5),
                 text: "30 sec".to_string(),
             },
             start_location: Some(RadarLocation {
-                latitude: 40.71,
-                longitude: -74.00,
+                latitude: Some(40.71),
+                longitude: Some(-74.00),
             }),
             end_location: Some(RadarLocation {
-                latitude: 40.72,
-                longitude: -74.01,
+                latitude: Some(40.72),
+                longitude: Some(-74.01),
             }),
             bearing_before: 0.0,
             bearing_after: 90.0,
@@ -371,38 +419,42 @@ mod tests {
         };
         let leg = RadarDirectionsLeg {
             start_location: RadarLocation {
-                latitude: 40.71,
-                longitude: -74.00,
+                latitude: Some(40.71),
+                longitude: Some(-74.00),
             },
             end_location: RadarLocation {
-                latitude: 40.72,
-                longitude: -74.01,
+                latitude: Some(40.72),
+                longitude: Some(-74.01),
             },
             distance: RadarMetric {
-                value: 200.0,
+                value: Some(200.0),
                 text: "200 m".to_string(),
             },
             duration: RadarMetric {
-                value: 0.5,
+                value: Some(0.5),
                 text: "30 sec".to_string(),
             },
             geometry: None,
             steps: vec![step],
         };
         let route = RadarDirectionsRoute {
-            geometry: Some(RadarGeometry { polyline: None }),
+            geometry: Some(RadarGeometry {
+                polyline: Some("w{idcBgiooXfzj~Evd}_T".to_string()),
+            }),
             distance: RadarMetric {
-                value: 200.0,
+                value: Some(200.0),
                 text: "200 m".to_string(),
             },
             duration: RadarMetric {
-                value: 0.5,
+                value: Some(0.5),
                 text: "30 sec".to_string(),
             },
             legs: vec![leg],
         };
         let result = RouteResult::try_from(route).expect("the fixture route converts");
 
+        assert_eq!(result.legs.len(), 1);
+        assert_eq!(result.legs[0].steps.len(), 1);
         assert_eq!(result.steps.len(), 1);
         assert_eq!(
             result.steps[0].instruction,

@@ -77,10 +77,10 @@ pub struct GoogleGeolocationResponse {
 /// Location from Google Geolocation API.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct GoogleGeolocationLocation {
-    /// Latitude in degrees.
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub lat: f64,
-    /// Longitude in degrees.
+    pub lat: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub lng: f64,
+    pub lng: Option<f64>,
 }

@@ -101,7 +101,7 @@ impl IsolineProvider for TomTomIsoline {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: TomTomReachableRangeResponse = self.client.request_json(builder).await?;
+        let result: TomTomReachableRangeResponse = self.client.request_parsed_json(builder).await?;
 
         let isolines: Vec<IsolineResult> = result
             .reachable_range

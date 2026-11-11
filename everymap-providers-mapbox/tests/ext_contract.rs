@@ -64,8 +64,8 @@ async fn test_permanent_geocode_contract() {
         Some("Brandenburg Gate, Berlin, Germany".to_string())
     );
     let coords = props.coordinates.as_ref().unwrap();
-    assert_eq!(coords.longitude, 13.3777);
-    assert_eq!(coords.latitude, 52.5163);
+    assert_eq!(coords.longitude, Some(13.3777));
+    assert_eq!(coords.latitude, Some(52.5163));
 }
 
 #[tokio::test]
@@ -205,8 +205,8 @@ async fn test_route_with_profile_contract() {
 
     assert_eq!(response.code, Some("Ok".to_string()));
     assert_eq!(response.routes.len(), 1);
-    assert_eq!(response.routes[0].distance, 1052000.0);
-    assert_eq!(response.routes[0].duration, 36720.0);
+    assert_eq!(response.routes[0].distance, Some(1052000.0));
+    assert_eq!(response.routes[0].duration, Some(36720.0));
     assert_eq!(response.routes[0].legs.len(), 1);
     assert_eq!(response.routes[0].legs[0].steps.len(), 1);
 }

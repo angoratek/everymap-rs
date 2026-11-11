@@ -42,15 +42,7 @@ async fn test_ip_geocode_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let geocoder = everymap_providers_radar::RadarGeocoder::with_ext_urls(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-        format!("{}/v1/geocode/ip", server.uri()),
-        format!("{}/v1/search/autocomplete", server.uri()),
-        format!("{}/v1/addresses/validate", server.uri()),
-        format!("{}/v1/search/places", server.uri()),
-    );
+    let geocoder = everymap_providers_radar::RadarGeocoder::with_base_url(client, server.uri());
 
     let result = RadarGeocoderExt::ip_geocode(&geocoder).await.unwrap();
     let addr = result.address.as_ref().unwrap();
@@ -86,15 +78,7 @@ async fn test_autocomplete_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let geocoder = everymap_providers_radar::RadarGeocoder::with_ext_urls(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-        format!("{}/v1/geocode/ip", server.uri()),
-        format!("{}/v1/search/autocomplete", server.uri()),
-        format!("{}/v1/addresses/validate", server.uri()),
-        format!("{}/v1/search/places", server.uri()),
-    );
+    let geocoder = everymap_providers_radar::RadarGeocoder::with_base_url(client, server.uri());
 
     let options = RadarAutocompleteOptions {
         layers: Some("address".to_string()),
@@ -138,12 +122,7 @@ async fn test_distance_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let router = everymap_providers_radar::RadarRouter::with_ext_urls(
-        client,
-        format!("{}/v1/route/directions", server.uri()),
-        format!("{}/v1/route/distance", server.uri()),
-        format!("{}/v1/route/matrix", server.uri()),
-    );
+    let router = everymap_providers_radar::RadarRouter::with_base_url(client, server.uri());
 
     let origin = test_coordinate();
     let destination = Coordinate::new(52.52, 13.405).unwrap();
@@ -158,7 +137,10 @@ async fn test_distance_contract() {
     .unwrap();
     assert!(result.routes.car.is_some());
     assert!(result.routes.bike.is_some());
-    assert_eq!(result.routes.car.as_ref().unwrap().distance.value, 3200.0);
+    assert_eq!(
+        result.routes.car.as_ref().unwrap().distance.value,
+        Some(3200.0)
+    );
 }
 
 #[tokio::test]
@@ -188,12 +170,7 @@ async fn test_matrix_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let router = everymap_providers_radar::RadarRouter::with_ext_urls(
-        client,
-        format!("{}/v1/route/directions", server.uri()),
-        format!("{}/v1/route/distance", server.uri()),
-        format!("{}/v1/route/matrix", server.uri()),
-    );
+    let router = everymap_providers_radar::RadarRouter::with_base_url(client, server.uri());
 
     let origins = vec![test_coordinate(), Coordinate::new(52.52, 13.405).unwrap()];
     let destinations = vec![Coordinate::new(52.51, 13.40).unwrap()];
@@ -238,15 +215,7 @@ async fn test_search_places_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let geocoder = everymap_providers_radar::RadarGeocoder::with_ext_urls(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-        format!("{}/v1/geocode/ip", server.uri()),
-        format!("{}/v1/search/autocomplete", server.uri()),
-        format!("{}/v1/addresses/validate", server.uri()),
-        format!("{}/v1/search/places", server.uri()),
-    );
+    let geocoder = everymap_providers_radar::RadarGeocoder::with_base_url(client, server.uri());
 
     let result = RadarSearchExt::search_places(
         &geocoder,
@@ -301,10 +270,7 @@ async fn test_match_route_with_attributes_contract() {
         .await;
 
     let client = Arc::new(RadarClient::new(auth()));
-    let matcher = everymap_providers_radar::RadarRouteMatcher::with_base_url(
-        client,
-        format!("{}/v1/route/match", server.uri()),
-    );
+    let matcher = everymap_providers_radar::RadarRouteMatcher::with_base_url(client, server.uri());
 
     let points = vec![test_coordinate(), Coordinate::new(52.517, 13.3785).unwrap()];
     let result =
@@ -312,8 +278,8 @@ async fn test_match_route_with_attributes_contract() {
             .await
             .unwrap();
     assert_eq!(result.matched_path.len(), 2);
-    assert!((result.matched_path[0].latitude - 52.5163).abs() < 0.001);
+    assert!((result.matched_path[0].latitude.unwrap() - 52.5163).abs() < 0.001);
     let attrs = result.road_attributes.as_ref().unwrap();
     assert_eq!(attrs.len(), 2);
-    assert!((attrs[0].speed_limit.as_ref().unwrap().value - 50.0).abs() < 0.01);
+    assert!((attrs[0].speed_limit.as_ref().unwrap().value.unwrap() - 50.0).abs() < 0.01);
 }

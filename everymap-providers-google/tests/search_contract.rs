@@ -1,5 +1,6 @@
 use everymap_core::auth::ApiKeyProvider;
 use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
 use everymap_providers_google::client::GoogleClient;
 use everymap_providers_google::GoogleGeocoder;
@@ -36,8 +37,8 @@ async fn test_geocode_contract() {
         "status": "OK"
     });
 
-    // GoogleGeocoder uses base_url directly as the full URL, so with_base_url
-    // replaces the entire URL with the mock server URI (path becomes "/")
+    // with_base_url takes the service root; the geocoding path is appended,
+    // so every request reaches this mock server.
     Mock::given(method("GET"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
@@ -278,4 +279,87 @@ async fn test_geocode_with_limit_truncation() {
     assert_eq!(result.items.len(), 2);
     assert_eq!(result.items[0].id, Some("id1".to_string()));
     assert_eq!(result.items[1].id, Some("id2".to_string()));
+}
+
+#[tokio::test]
+async fn request_denied_with_http_200_is_an_auth_error() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "results": [],
+            "status": "REQUEST_DENIED",
+            "error_message": "The provided API key is invalid."
+        })))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let geocoder = GoogleGeocoder::with_base_url(Arc::new(GoogleClient::new(auth)), server.uri());
+
+    let error = geocoder
+        .geocode("Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EveryMapError::AuthError { provider, .. } if provider == "google"
+    ));
+}
+
+#[tokio::test]
+async fn over_query_limit_with_http_200_is_rate_limited() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "results": [],
+            "status": "OVER_QUERY_LIMIT",
+            "error_message": "You have exceeded your rate-limit."
+        })))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let geocoder = GoogleGeocoder::with_base_url(Arc::new(GoogleClient::new(auth)), server.uri());
+
+    let error = geocoder
+        .reverse_geocode(
+            &Coordinate::new(52.52, 13.405).unwrap(),
+            &ReverseGeocodeOptions::default(),
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EveryMapError::RateLimited { provider, .. } if provider == "google"
+    ));
+}
+
+#[tokio::test]
+async fn malformed_body_is_a_serialization_error() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("not json"))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let geocoder = GoogleGeocoder::with_base_url(Arc::new(GoogleClient::new(auth)), server.uri());
+
+    let error = geocoder
+        .geocode("Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap_err();
+    assert!(matches!(error, EveryMapError::SerializationError { .. }));
 }

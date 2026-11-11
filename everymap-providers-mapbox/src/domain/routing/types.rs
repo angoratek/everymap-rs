@@ -15,12 +15,12 @@ pub struct MapBoxRouteResponse {
 /// A single route from MapBox.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MapBoxRoute {
-    /// Route distance in meters.
+    /// Route distance in meters, absent when the service omits it.
     #[serde(default, rename = "distance")]
-    pub distance: f64,
-    /// Route duration in seconds.
+    pub distance: Option<f64>,
+    /// Route duration in seconds, absent when the service omits it.
     #[serde(default, rename = "duration")]
-    pub duration: f64,
+    pub duration: Option<f64>,
     /// Encoded polyline geometry.
     #[serde(default, rename = "geometry")]
     pub geometry: Option<String>,
@@ -32,10 +32,12 @@ pub struct MapBoxRoute {
 /// A leg of a MapBox route.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MapBoxRouteLeg {
+    /// Leg distance in meters, absent when the service omits it.
     #[serde(default, rename = "distance")]
-    pub distance: f64,
+    pub distance: Option<f64>,
+    /// Leg duration in seconds, absent when the service omits it.
     #[serde(default, rename = "duration")]
-    pub duration: f64,
+    pub duration: Option<f64>,
     #[serde(default, rename = "summary")]
     pub summary: Option<String>,
     #[serde(default)]
@@ -45,10 +47,12 @@ pub struct MapBoxRouteLeg {
 /// A step/instruction in a MapBox route leg.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MapBoxRouteStep {
+    /// Step distance in meters, absent when the service omits it.
     #[serde(default, rename = "distance")]
-    pub distance: f64,
+    pub distance: Option<f64>,
+    /// Step duration in seconds, absent when the service omits it.
     #[serde(default, rename = "duration")]
-    pub duration: f64,
+    pub duration: Option<f64>,
     #[serde(default, rename = "instruction")]
     pub instruction: Option<String>,
     #[serde(default, rename = "name")]

@@ -84,7 +84,7 @@ impl TomTomGeocoderExt for super::domain::search::TomTomGeocoder {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 
     async fn category_search(
@@ -117,7 +117,7 @@ impl TomTomGeocoderExt for super::domain::search::TomTomGeocoder {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 }
 
@@ -142,7 +142,7 @@ impl TomTomTrafficExt for super::domain::traffic::TomTomTraffic {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 
     async fn get_incidents(
@@ -163,6 +163,6 @@ impl TomTomTrafficExt for super::domain::traffic::TomTomTraffic {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 }

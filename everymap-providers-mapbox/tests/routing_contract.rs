@@ -1,5 +1,5 @@
 use everymap_core::auth::ApiKeyProvider;
-use everymap_core::domains::routing::{DepartureTime, RouteOptions, Router};
+use everymap_core::domains::routing::{DepartureTime, RouteOptions, Router, TransportMode};
 use everymap_core::types::Coordinate;
 use everymap_providers_mapbox::client::MapBoxClient;
 use everymap_providers_mapbox::MapBoxRouter;
@@ -128,4 +128,34 @@ async fn test_routing_with_departure_time() {
         .await
         .unwrap();
     assert_eq!(response.routes.len(), 1);
+}
+
+#[test]
+fn routing_reports_the_modes_and_strategy_it_honours() {
+    let auth = Arc::new(ApiKeyProvider::new(
+        "pk.test123".to_string(),
+        "access_token".to_string(),
+    ));
+    let router = MapBoxRouter::with_base_url(
+        Arc::new(MapBoxClient::new(auth)),
+        "http://127.0.0.1:9".to_string(),
+    );
+
+    let capabilities = router.route_capabilities();
+    assert_eq!(
+        capabilities.supported_transport_modes,
+        vec![
+            TransportMode::Car,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+        ]
+    );
+    assert!(
+        !capabilities.supports_transport_mode(TransportMode::Truck),
+        "the Directions API substitutes driving for a truck request"
+    );
+    assert!(
+        !capabilities.supports_shortest_route_strategy,
+        "the Directions API exposes no distance-minimizing strategy"
+    );
 }

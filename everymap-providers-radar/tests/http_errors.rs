@@ -21,11 +21,7 @@ async fn test_geocode_unauthorized() {
 
     let auth = Arc::new(HeaderAuthProvider::new("invalid-key".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let geocoder = RadarGeocoder::with_base_url(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-    );
+    let geocoder = RadarGeocoder::with_base_url(client, server.uri());
 
     let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
@@ -50,11 +46,7 @@ async fn test_geocode_forbidden() {
 
     let auth = Arc::new(HeaderAuthProvider::new("test-key".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let geocoder = RadarGeocoder::with_base_url(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-    );
+    let geocoder = RadarGeocoder::with_base_url(client, server.uri());
 
     let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
@@ -82,11 +74,7 @@ async fn test_geocode_rate_limited() {
 
     let auth = Arc::new(HeaderAuthProvider::new("test-key".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let geocoder = RadarGeocoder::with_base_url(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-    );
+    let geocoder = RadarGeocoder::with_base_url(client, server.uri());
 
     let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());
@@ -111,11 +99,7 @@ async fn test_geocode_server_error() {
 
     let auth = Arc::new(HeaderAuthProvider::new("test-key".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let geocoder = RadarGeocoder::with_base_url(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-    );
+    let geocoder = RadarGeocoder::with_base_url(client, server.uri());
 
     let result = geocoder.geocode("Berlin", &GeocodeOptions::default()).await;
     assert!(result.is_err());

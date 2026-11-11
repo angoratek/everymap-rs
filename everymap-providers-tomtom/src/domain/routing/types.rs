@@ -25,12 +25,12 @@ pub struct TomTomRoute {
 /// Route summary from TomTom.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomRouteSummary {
-    /// Length in meters.
+    /// Length in meters, absent when the service omits it.
     #[serde(default, rename = "lengthInMeters")]
-    pub length_in_meters: u64,
-    /// Travel time in seconds.
+    pub length_in_meters: Option<u64>,
+    /// Travel time in seconds, absent when the service omits it.
     #[serde(default, rename = "travelTimeInSeconds")]
-    pub travel_time_in_seconds: u64,
+    pub travel_time_in_seconds: Option<u64>,
     /// Traffic delay in seconds.
     #[serde(default, rename = "trafficDelayInSeconds")]
     pub traffic_delay_in_seconds: Option<u64>,
@@ -59,10 +59,10 @@ pub struct TomTomRouteLeg {
 /// A point on a route from TomTom.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct TomTomRoutePoint {
-    /// Latitude.
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub latitude: f64,
-    /// Longitude.
+    pub latitude: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub longitude: f64,
+    pub longitude: Option<f64>,
 }

@@ -1,5 +1,6 @@
 use everymap_core::auth::{AuthProvider, HeaderAuthProvider};
 use everymap_core::domains::search::{GeocodeOptions, Geocoder, ReverseGeocodeOptions};
+use everymap_core::error::EveryMapError;
 use everymap_core::types::{BoundingBox, Coordinate};
 use everymap_providers_radar::{RadarClient, RadarGeocoder};
 use std::sync::Arc;
@@ -11,11 +12,7 @@ async fn setup_geocoder_mock() -> (MockServer, RadarGeocoder) {
     let auth: Arc<dyn AuthProvider> =
         Arc::new(HeaderAuthProvider::new("prj_test_pk_123".to_string()));
     let client = Arc::new(RadarClient::new(auth));
-    let geocoder = RadarGeocoder::with_base_url(
-        client,
-        format!("{}/v1/geocode/forward", server.uri()),
-        format!("{}/v1/geocode/reverse", server.uri()),
-    );
+    let geocoder = RadarGeocoder::with_base_url(client, server.uri());
     (server, geocoder)
 }
 
@@ -155,4 +152,79 @@ async fn test_geocode_with_bounding_box_warns() {
     // bounding_box logs a warning but the request still works
     let result = geocoder.geocode("Berlin", &options).await.unwrap();
     assert_eq!(result.items.len(), 1);
+}
+
+async fn respond_with_envelope(envelope: serde_json::Value) -> (MockServer, RadarGeocoder) {
+    let (server, geocoder) = setup_geocoder_mock().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(envelope))
+        .mount(&server)
+        .await;
+    (server, geocoder)
+}
+
+#[tokio::test]
+async fn a_rejected_credential_envelope_is_an_auth_error() {
+    let (_server, geocoder) =
+        respond_with_envelope(serde_json::json!({"meta": {"code": 401}})).await;
+
+    let error = geocoder
+        .geocode("Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EveryMapError::AuthError { provider, .. } if provider == "radar"
+    ));
+}
+
+#[tokio::test]
+async fn a_quota_envelope_is_rate_limited() {
+    let (_server, geocoder) =
+        respond_with_envelope(serde_json::json!({"meta": {"code": 429}})).await;
+
+    let error = geocoder
+        .reverse_geocode(
+            &Coordinate::new(52.52, 13.405).unwrap(),
+            &ReverseGeocodeOptions::default(),
+        )
+        .await
+        .unwrap_err();
+    assert!(matches!(
+        error,
+        EveryMapError::RateLimited { provider, .. } if provider == "radar"
+    ));
+}
+
+#[tokio::test]
+async fn a_provider_status_envelope_keeps_its_code() {
+    let (_server, geocoder) =
+        respond_with_envelope(serde_json::json!({"meta": {"code": 422}})).await;
+
+    let error = geocoder
+        .geocode("Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap_err();
+    match error {
+        EveryMapError::ProviderError { provider, code, .. } => {
+            assert_eq!(provider, "radar");
+            assert_eq!(code, "422");
+        }
+        other => panic!("expected a provider error, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn a_malformed_body_is_a_serialization_error() {
+    let (server, geocoder) = setup_geocoder_mock().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_string("not json"))
+        .mount(&server)
+        .await;
+
+    let error = geocoder
+        .geocode("Berlin", &GeocodeOptions::default())
+        .await
+        .unwrap_err();
+    assert!(matches!(error, EveryMapError::SerializationError { .. }));
 }

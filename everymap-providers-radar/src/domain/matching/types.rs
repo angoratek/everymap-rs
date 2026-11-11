@@ -17,10 +17,12 @@ pub struct RadarRouteMatchResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarMatchedPoint {
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub latitude: f64,
+    pub latitude: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub longitude: f64,
+    pub longitude: Option<f64>,
     pub original_index: Option<u32>,
 }
 

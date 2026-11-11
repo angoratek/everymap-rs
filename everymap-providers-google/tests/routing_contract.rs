@@ -87,8 +87,8 @@ impl Match for BodyWithoutField {
     }
 }
 
-/// GoogleRouter uses base_url directly as the full URL, so with_base_url
-/// replaces the entire URL with the mock server URI (path becomes "/").
+/// with_base_url takes the Routes service root; the computeRoutes path is
+/// appended, so every request reaches this mock server.
 fn google_router(server: &MockServer) -> GoogleRouter {
     let auth = Arc::new(ApiKeyProvider::new(
         "test-key".to_string(),
@@ -371,4 +371,40 @@ async fn test_routing_with_provider_extra_waypoints() {
         .await
         .unwrap();
     assert_eq!(result.routes.len(), 1);
+}
+
+#[test]
+fn routing_reports_the_modes_and_strategy_it_honours() {
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let router = GoogleRouter::with_base_url(
+        Arc::new(GoogleClient::new(auth)),
+        "http://127.0.0.1:9".to_string(),
+    );
+
+    let capabilities = router.route_capabilities();
+    assert_eq!(
+        capabilities.supported_transport_modes,
+        vec![
+            TransportMode::Car,
+            TransportMode::Taxi,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+            TransportMode::Scooter,
+        ]
+    );
+    assert!(
+        !capabilities.supports_transport_mode(TransportMode::Truck),
+        "Routes API v2 substitutes DRIVE for a truck request"
+    );
+    assert!(
+        !capabilities.supports_transport_mode(TransportMode::Bus),
+        "Routes API v2 substitutes DRIVE for a transit request"
+    );
+    assert!(
+        !capabilities.supports_shortest_route_strategy,
+        "Routes API v2 exposes no distance-minimizing strategy"
+    );
 }

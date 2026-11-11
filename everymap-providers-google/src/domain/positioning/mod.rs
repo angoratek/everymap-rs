@@ -1,18 +1,23 @@
 pub mod types;
 
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
+use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::positioning::{
     NetworkPositioner, PositioningOptions, PositioningResponse as CorePositioningResponse,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
 use serde::Serialize;
 use std::sync::Arc;
 
 pub use types::*;
 
-const GEOLOCATION_BASE_URL: &str = "https://www.googleapis.com/geolocation/v1";
+/// Service root of the Google Geolocation API.
+const GEOLOCATION_SERVICE_ROOT: &str = "https://www.googleapis.com";
+
+/// Documented path of the Google Geolocation API.
+const GEOLOCATION_PATH: &str = "/geolocation/v1/geolocate";
 
 /// Internal request body for the Geolocation API.
 #[derive(Debug, Serialize)]
@@ -39,19 +44,29 @@ impl From<GooglePositioningOptions> for GeolocationRequestBody {
 /// Implementation of NetworkPositioner for Google Geolocation API.
 pub struct GooglePositioner {
     pub(crate) client: Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GooglePositioner {
     pub fn new(client: Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: GEOLOCATION_BASE_URL.to_string(),
+            service_root: GEOLOCATION_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a positioner against a Google service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://www.googleapis.com` or a test server's origin. The documented
+    ///   path is appended.
+    pub fn with_base_url(client: Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
     }
 
     /// Get position estimate with rich response type.
@@ -60,14 +75,14 @@ impl GooglePositioner {
         &self,
         options: GooglePositioningOptions,
     ) -> EveryMapResult<GoogleGeolocationResponse> {
-        let url = format!("{}/geolocate", self.base_url);
+        let url = endpoint_url(&self.service_root, GEOLOCATION_PATH);
         let body = GeolocationRequestBody::from(options);
         let builder = self
             .client
             .build_request(everymap_core::http::Method::POST, &url)
             .json(&body)?;
 
-        let result: GoogleGeolocationResponse = self.client.request_json(builder).await?;
+        let result: GoogleGeolocationResponse = self.client.request_parsed_json(builder).await?;
         Ok(result)
     }
 }
@@ -86,11 +101,21 @@ fn positioning_options_from_core(options: &PositioningOptions) -> GooglePosition
     google_opts
 }
 
-impl From<GoogleGeolocationResponse> for CorePositioningResponse {
-    fn from(response: GoogleGeolocationResponse) -> Self {
-        let coordinate = Coordinate::new(response.location.lat, response.location.lng)
-            .unwrap_or(Coordinate::ORIGIN);
-        Self {
+impl TryFrom<GoogleGeolocationResponse> for CorePositioningResponse {
+    type Error = EveryMapError;
+
+    fn try_from(response: GoogleGeolocationResponse) -> Result<Self, Self::Error> {
+        let latitude = response
+            .location
+            .lat
+            .ok_or_else(|| invalid_response("position estimate lacks a latitude"))?;
+        let longitude = response
+            .location
+            .lng
+            .ok_or_else(|| invalid_response("position estimate lacks a longitude"))?;
+        let coordinate = Coordinate::new(latitude, longitude)
+            .map_err(|_| invalid_response("position estimate carries an invalid location"))?;
+        Ok(Self {
             coordinate,
             accuracy: if response.accuracy > 0.0 {
                 Some(response.accuracy)
@@ -100,7 +125,7 @@ impl From<GoogleGeolocationResponse> for CorePositioningResponse {
             altitude: None,
             altitude_accuracy: None,
             raw: None,
-        }
+        })
     }
 }
 
@@ -112,6 +137,6 @@ impl NetworkPositioner for GooglePositioner {
     ) -> EveryMapResult<CorePositioningResponse> {
         let google_opts = positioning_options_from_core(options);
         let result = self.locate(google_opts).await?;
-        Ok(result.into())
+        CorePositioningResponse::try_from(result)
     }
 }

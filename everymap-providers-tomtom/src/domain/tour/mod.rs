@@ -76,7 +76,7 @@ impl TourPlanner for TomTomTourPlanner {
             .build_request(everymap_core::http::Method::POST, &url)
             .json(&body)?;
 
-        let result: TomTomOptimizationResponse = self.client.request_json(builder).await?;
+        let result: TomTomOptimizationResponse = self.client.request_parsed_json(builder).await?;
 
         // Map optimized order back to stops in optimized sequence
         let tour_stops: Vec<TourStop> = result

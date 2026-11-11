@@ -1,55 +1,83 @@
 pub mod types;
 
 use crate::client::RadarClient;
+use crate::endpoints::{endpoint, MATCH_ROUTE_PATH, RADAR_API_ROOT};
+use crate::error_mapping::{ensure_success, invalid_response};
 use async_trait::async_trait;
 use everymap_core::domains::matching::{MatchedPoint, MatchingOptions, TraceResponse};
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
 pub use types::*;
 
-const MATCH_BASE_URL: &str = "https://api.radar.io/v1/route/match";
-
 /// Implementation of `RouteMatcher` for Radar Route Match API.
 pub struct RadarRouteMatcher {
     pub(crate) client: std::sync::Arc<RadarClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl RadarRouteMatcher {
     pub fn new(client: std::sync::Arc<RadarClient>) -> Self {
         Self {
             client,
-            base_url: MATCH_BASE_URL.to_string(),
+            service_root: RADAR_API_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<RadarClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a matcher against a Radar service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Radar client.
+    /// - `service_root` — the scheme and host serving the API, for example
+    ///   `https://api.radar.io` or a test server's origin. Every Radar
+    ///   endpoint is derived from this one root.
+    pub fn with_base_url(client: std::sync::Arc<RadarClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
+    }
+
+    /// The route matching endpoint.
+    pub(crate) fn endpoint(&self) -> String {
+        endpoint(&self.service_root, MATCH_ROUTE_PATH)
     }
 }
 
-impl From<RadarRouteMatchResponse> for TraceResponse {
-    fn from(response: RadarRouteMatchResponse) -> Self {
-        let raw = serde_json::to_value(&response).unwrap_or_default();
+impl TryFrom<RadarRouteMatchResponse> for TraceResponse {
+    type Error = EveryMapError;
 
-        let matched_points: Vec<MatchedPoint> = response
-            .matched_path
-            .into_iter()
-            .map(|p| MatchedPoint {
-                coordinate: Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN),
+    fn try_from(response: RadarRouteMatchResponse) -> Result<Self, Self::Error> {
+        let raw = serde_json::to_value(&response).ok();
+
+        let mut matched_points = Vec::with_capacity(response.matched_path.len());
+        for point in response.matched_path {
+            let latitude = point
+                .latitude
+                .ok_or_else(|| invalid_response("matched point lacks a latitude"))?;
+            let longitude = point
+                .longitude
+                .ok_or_else(|| invalid_response("matched point lacks a longitude"))?;
+            let coordinate = Coordinate::new(latitude, longitude)
+                .map_err(|_| invalid_response("matched point carries an invalid location"))?;
+            matched_points.push(MatchedPoint {
+                coordinate,
                 confidence: None,
                 road_name: None,
-            })
-            .collect();
+            });
+        }
 
-        let distance = response.distance.as_ref().map(|d| d.value).unwrap_or(0.0);
+        let distance = response
+            .distance
+            .as_ref()
+            .and_then(|metric| metric.value)
+            .ok_or_else(|| invalid_response("route match lacks a distance"))?;
 
-        Self {
+        Ok(Self {
             matched_points,
             distance,
             duration: None,
-            raw: Some(raw),
-        }
+            raw,
+        })
     }
 }
 
@@ -106,21 +134,11 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
             "geometry": "polyline6"
         });
 
-        let radar_res: RadarRouteMatchResponse =
-            self.client.post_json(&self.base_url, &body).await?;
+        let url = self.endpoint();
+        let radar_res: RadarRouteMatchResponse = self.client.post_json(&url, &body).await?;
+        ensure_success(radar_res.meta.code)?;
 
-        if radar_res.meta.code != 200 {
-            return Err(EveryMapError::provider(
-                "radar",
-                radar_res.meta.code.to_string(),
-                format!(
-                    "Route match request failed with status {}",
-                    radar_res.meta.code
-                ),
-            ));
-        }
-
-        Ok(TraceResponse::from(radar_res))
+        TraceResponse::try_from(radar_res)
     }
 }
 
@@ -134,24 +152,24 @@ mod tests {
             meta: crate::domain::types::RadarMeta { code: 200 },
             matched_path: vec![
                 crate::domain::matching::types::RadarMatchedPoint {
-                    latitude: 40.7128,
-                    longitude: -74.006,
+                    latitude: Some(40.7128),
+                    longitude: Some(-74.006),
                     original_index: Some(0),
                 },
                 crate::domain::matching::types::RadarMatchedPoint {
-                    latitude: 40.713,
-                    longitude: -74.005,
+                    latitude: Some(40.713),
+                    longitude: Some(-74.005),
                     original_index: Some(1),
                 },
             ],
             distance: Some(crate::domain::types::RadarMetric {
-                value: 1200.0,
+                value: Some(1200.0),
                 text: "1.2 km".to_string(),
             }),
             geometry: None,
             road_attributes: None,
         };
-        let result: TraceResponse = match_res.into();
+        let result = TraceResponse::try_from(match_res).expect("the fixture match converts");
 
         assert_eq!(result.matched_points.len(), 2);
         assert!((result.distance - 1200.0).abs() < f64::EPSILON);
@@ -161,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn test_radar_route_match_response_no_distance() {
+    fn a_match_without_a_distance_is_invalid() {
         let match_res = RadarRouteMatchResponse {
             meta: crate::domain::types::RadarMeta { code: 200 },
             matched_path: vec![],
@@ -169,9 +187,11 @@ mod tests {
             geometry: None,
             road_attributes: None,
         };
-        let result: TraceResponse = match_res.into();
-
-        assert!(result.matched_points.is_empty());
-        assert!((result.distance - 0.0).abs() < f64::EPSILON);
+        match TraceResponse::try_from(match_res) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
     }
 }

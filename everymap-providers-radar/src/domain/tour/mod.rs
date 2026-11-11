@@ -1,30 +1,48 @@
 pub mod types;
 
 use crate::client::RadarClient;
+use crate::endpoints::{endpoint, OPTIMIZE_TOUR_PATH, RADAR_API_ROOT};
+use crate::error_mapping::{ensure_success, invalid_response};
 use async_trait::async_trait;
 use everymap_core::domains::tour::{TourOptions, TourResponse, TourStop};
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::Coordinate;
 pub use types::*;
 
-const OPTIMIZE_BASE_URL: &str = "https://api.radar.io/v1/route/optimize";
+/// Number of seconds in one minute, the unit Radar durations use.
+const SECONDS_PER_MINUTE: f64 = 60.0;
 
 /// Implementation of `TourPlanner` for Radar Optimize Route API.
 pub struct RadarTourPlanner {
     pub(crate) client: std::sync::Arc<RadarClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl RadarTourPlanner {
     pub fn new(client: std::sync::Arc<RadarClient>) -> Self {
         Self {
             client,
-            base_url: OPTIMIZE_BASE_URL.to_string(),
+            service_root: RADAR_API_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<RadarClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a tour planner against a Radar service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Radar client.
+    /// - `service_root` — the scheme and host serving the API, for example
+    ///   `https://api.radar.io` or a test server's origin. Every Radar
+    ///   endpoint is derived from this one root.
+    pub fn with_base_url(client: std::sync::Arc<RadarClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
+    }
+
+    /// The tour optimization endpoint.
+    fn endpoint(&self) -> String {
+        endpoint(&self.service_root, OPTIMIZE_TOUR_PATH)
     }
 }
 
@@ -80,65 +98,90 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             }
         }
 
+        let url = self.endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.base_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let radar_res: RadarOptimizeResponse = self.client.request_json(builder).await?;
+        let radar_res: RadarOptimizeResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(radar_res.meta.code)?;
 
-        if radar_res.meta.code != 200 {
-            return Err(EveryMapError::provider(
-                "radar",
-                radar_res.meta.code.to_string(),
-                format!(
-                    "Optimize request failed with status {}",
-                    radar_res.meta.code
-                ),
-            ));
+        if radar_res.route.legs.is_empty() {
+            return Err(invalid_response("optimized tour carries no legs"));
         }
 
-        let tour_stops: Vec<TourStop> = radar_res
+        let mut tour_stops: Vec<TourStop> = Vec::with_capacity(radar_res.route.legs.len() + 1);
+        for leg in &radar_res.route.legs {
+            let duration = leg
+                .duration
+                .value
+                .ok_or_else(|| invalid_response("optimized leg duration lacks a value"))?
+                * SECONDS_PER_MINUTE;
+            let distance = leg
+                .distance
+                .value
+                .ok_or_else(|| invalid_response("optimized leg distance lacks a value"))?;
+            let start_latitude = leg
+                .start_location
+                .latitude
+                .ok_or_else(|| invalid_response("optimized leg start lacks a latitude"))?;
+            let start_longitude = leg
+                .start_location
+                .longitude
+                .ok_or_else(|| invalid_response("optimized leg start lacks a longitude"))?;
+            tour_stops.push(TourStop {
+                coordinate: Coordinate::new(start_latitude, start_longitude).map_err(|_| {
+                    invalid_response("optimized leg carries an invalid start location")
+                })?,
+                arrival_time: None,
+                departure_time: None,
+                duration: Some(duration),
+                distance_from_previous: Some(distance),
+            });
+        }
+
+        // Add the final destination.
+        let last_leg = radar_res
             .route
             .legs
-            .iter()
-            .flat_map(|leg| {
-                let start = TourStop {
-                    coordinate: Coordinate::new(
-                        leg.start_location.latitude,
-                        leg.start_location.longitude,
-                    )
-                    .unwrap_or(Coordinate::ORIGIN),
-                    arrival_time: None,
-                    departure_time: None,
-                    duration: Some(leg.duration.value * 60.0),
-                    distance_from_previous: Some(leg.distance.value),
-                };
-                vec![start]
-            })
-            .collect();
-
-        // Add the final destination
-        let final_stop = radar_res.route.legs.last().map(|leg| TourStop {
-            coordinate: Coordinate::new(leg.end_location.latitude, leg.end_location.longitude)
-                .unwrap_or(Coordinate::ORIGIN),
+            .last()
+            .expect("the leg list was checked to be non-empty");
+        let end_latitude = last_leg
+            .end_location
+            .latitude
+            .ok_or_else(|| invalid_response("optimized leg end lacks a latitude"))?;
+        let end_longitude = last_leg
+            .end_location
+            .longitude
+            .ok_or_else(|| invalid_response("optimized leg end lacks a longitude"))?;
+        tour_stops.push(TourStop {
+            coordinate: Coordinate::new(end_latitude, end_longitude)
+                .map_err(|_| invalid_response("optimized leg carries an invalid end location"))?,
             arrival_time: None,
             departure_time: None,
             duration: None,
             distance_from_previous: None,
         });
 
-        let mut all_stops = tour_stops;
-        if let Some(fs) = final_stop {
-            all_stops.push(fs);
-        }
+        let total_distance = radar_res
+            .route
+            .distance
+            .value
+            .ok_or_else(|| invalid_response("optimized tour distance lacks a value"))?;
+        let total_duration = radar_res
+            .route
+            .duration
+            .value
+            .ok_or_else(|| invalid_response("optimized tour duration lacks a value"))?
+            * SECONDS_PER_MINUTE;
 
         Ok(TourResponse {
-            stops: all_stops,
-            total_distance: Some(radar_res.route.distance.value),
-            total_duration: Some(radar_res.route.duration.value * 60.0),
+            stops: tour_stops,
+            total_distance: Some(total_distance),
+            total_duration: Some(total_duration),
             unassigned_count: None,
-            raw: Some(serde_json::to_value(radar_res).unwrap_or_default()),
+            raw: serde_json::to_value(&radar_res).ok(),
         })
     }
 }

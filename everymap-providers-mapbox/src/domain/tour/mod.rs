@@ -88,7 +88,7 @@ impl TourPlanner for MapBoxTourPlanner {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: MapBoxOptimizationResponse = self.client.request_json(builder).await?;
+        let result: MapBoxOptimizationResponse = self.client.request_parsed_json(builder).await?;
 
         // Build tour stops from waypoints in optimized order
         let mut waypoints: Vec<(usize, Option<Coordinate>)> = result

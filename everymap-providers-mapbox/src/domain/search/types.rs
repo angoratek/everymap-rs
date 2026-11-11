@@ -73,10 +73,12 @@ pub struct MapBoxProperties {
 /// Coordinate object from MapBox v6 properties.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct MapBoxCoordinates {
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub longitude: f64,
+    pub longitude: Option<f64>,
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub latitude: f64,
+    pub latitude: Option<f64>,
 }
 
 /// Context information from MapBox v6.

@@ -14,10 +14,12 @@ pub struct RadarGeocodeResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarAddress {
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub latitude: f64,
+    pub latitude: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub longitude: f64,
+    pub longitude: Option<f64>,
     #[serde(default)]
     pub geometry: Option<serde_json::Value>,
     #[serde(default)]

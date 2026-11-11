@@ -176,3 +176,35 @@ async fn test_routing_with_bus_transport_mode() {
         .unwrap();
     assert_eq!(response.routes.len(), 1);
 }
+
+#[test]
+fn routing_reports_the_modes_and_strategy_it_honours() {
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let router = TomTomRouter::with_base_url(
+        Arc::new(TomTomClient::new(auth)),
+        "http://127.0.0.1:9".to_string(),
+    );
+
+    let capabilities = router.route_capabilities();
+    assert_eq!(
+        capabilities.supported_transport_modes,
+        vec![
+            TransportMode::Car,
+            TransportMode::Truck,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+            TransportMode::Bus,
+        ]
+    );
+    assert!(
+        !capabilities.supports_transport_mode(TransportMode::Scooter),
+        "the Routing API substitutes car for a scooter request"
+    );
+    assert!(
+        capabilities.supports_shortest_route_strategy,
+        "the Routing API selects a distance-minimizing path through routeType=shortest"
+    );
+}

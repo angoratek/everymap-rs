@@ -1,54 +1,81 @@
 pub mod types;
 
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
+use crate::error_mapping::{invalid_response, status_error};
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchQuality, SearchResponse, SearchResult,
+    SearchResultType,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Address, BoundingBox, Coordinate};
 pub use types::*;
 
-const GEOCODING_BASE_URL: &str = "https://maps.googleapis.com/maps/api/geocode/json";
+/// Service root of the Google Maps Geocoding API.
+const GEOCODING_SERVICE_ROOT: &str = "https://maps.googleapis.com";
+
+/// Documented path of the Google Maps Geocoding API.
+const GEOCODING_PATH: &str = "/maps/api/geocode/json";
 
 /// Implementation of `Geocoder` for Google Maps Geocoding API.
 pub struct GoogleGeocoder {
     pub(crate) client: std::sync::Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GoogleGeocoder {
     pub fn new(client: std::sync::Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: GEOCODING_BASE_URL.to_string(),
+            service_root: GEOCODING_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a geocoder against a Google service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://maps.googleapis.com` or a test server's origin. The
+    ///   documented path is appended.
+    pub fn with_base_url(client: std::sync::Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
+    }
+
+    /// The endpoint URL this geocoder sends requests to.
+    fn endpoint(&self) -> String {
+        endpoint_url(&self.service_root, GEOCODING_PATH)
     }
 }
 
-impl From<GoogleGeocodeResult> for SearchResult {
-    fn from(result: GoogleGeocodeResult) -> Self {
-        let coordinate = result
-            .geometry
-            .as_ref()
-            .and_then(|g| g.location.as_ref())
-            .map(|loc| Coordinate::new(loc.lat, loc.lng).unwrap_or(Coordinate::ORIGIN))
-            .unwrap_or(Coordinate::ORIGIN);
+impl TryFrom<GoogleGeocodeResult> for SearchResult {
+    type Error = EveryMapError;
 
-        let bounding_box = result
+    fn try_from(result: GoogleGeocodeResult) -> Result<Self, Self::Error> {
+        let geometry = result
             .geometry
             .as_ref()
-            .and_then(|g| g.viewport.as_ref())
-            .map(|v| {
-                BoundingBox::new(
-                    Coordinate::new(v.northeast.lat, v.northeast.lng).unwrap_or(Coordinate::ORIGIN),
-                    Coordinate::new(v.southwest.lat, v.southwest.lng).unwrap_or(Coordinate::ORIGIN),
-                )
-            });
+            .ok_or_else(|| invalid_response("geocode result lacks geometry"))?;
+        let location = geometry
+            .location
+            .as_ref()
+            .ok_or_else(|| invalid_response("geocode result lacks a location"))?;
+        let coordinate = Coordinate::new(location.lat, location.lng)
+            .map_err(|_| invalid_response("geocode result carries an invalid location"))?;
+
+        let bounding_box = match geometry.viewport.as_ref() {
+            Some(viewport) => {
+                let north_east = Coordinate::new(viewport.northeast.lat, viewport.northeast.lng)
+                    .map_err(|_| invalid_response("geocode viewport carries an invalid corner"))?;
+                let south_west = Coordinate::new(viewport.southwest.lat, viewport.southwest.lng)
+                    .map_err(|_| invalid_response("geocode viewport carries an invalid corner"))?;
+                Some(BoundingBox::new(north_east, south_west))
+            }
+            None => None,
+        };
 
         let address = Address {
             label: result.formatted_address.clone(),
@@ -68,20 +95,63 @@ impl From<GoogleGeocodeResult> for SearchResult {
         };
 
         let result_type = classify_result_type(&result.types);
+        let quality = classify_quality(&result.types, geometry.location_type.as_deref());
 
-        Self {
+        Ok(Self {
             id: result.place_id.clone(),
             title: result.formatted_address.clone(),
             coordinate,
             address,
             result_type,
-            quality: None,
+            quality,
             distance: None,
             confidence: None,
             categories: vec![],
             bounding_box,
-            raw: Some(serde_json::to_value(result).unwrap_or_default()),
+            raw: serde_json::to_value(&result).ok(),
+        })
+    }
+}
+
+/// Maps a Google address-component type onto the contract's match quality.
+///
+/// Google orders its `types` array from the most specific classification to
+/// the most general, so the first recognised type wins.
+fn classify_quality(types: &[String], location_type: Option<&str>) -> Option<SearchQuality> {
+    types
+        .iter()
+        .find_map(|component_type| quality_from_component_type(component_type))
+        .or_else(|| location_type.and_then(quality_from_location_type))
+}
+
+/// Maps one Google address-component type onto a match quality.
+fn quality_from_component_type(component_type: &str) -> Option<SearchQuality> {
+    match component_type {
+        "street_address" | "premise" | "subpremise" | "postal_code_suffix" => {
+            Some(SearchQuality::StreetAddress)
         }
+        "route" => Some(SearchQuality::Street),
+        "intersection" => Some(SearchQuality::Intersection),
+        "postal_code" => Some(SearchQuality::PostalCode),
+        "locality" | "postal_town" | "sublocality" | "sublocality_level_1" | "neighborhood" => {
+            Some(SearchQuality::City)
+        }
+        "administrative_area_level_2" => Some(SearchQuality::County),
+        "administrative_area_level_1" => Some(SearchQuality::State),
+        "country" => Some(SearchQuality::Country),
+        "point_of_interest" | "establishment" => Some(SearchQuality::Point),
+        _ => None,
+    }
+}
+
+/// Maps a Google `location_type` onto a match quality.
+fn quality_from_location_type(location_type: &str) -> Option<SearchQuality> {
+    match location_type {
+        "ROOFTOP" => Some(SearchQuality::Point),
+        "RANGE_INTERPOLATED" => Some(SearchQuality::StreetAddress),
+        "GEOMETRIC_CENTER" => Some(SearchQuality::Street),
+        "APPROXIMATE" => Some(SearchQuality::City),
+        _ => None,
     }
 }
 
@@ -186,30 +256,26 @@ impl Geocoder for GoogleGeocoder {
             }
         }
 
-        let url = self.base_url.clone();
+        let url = self.endpoint();
         let builder = self
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let google_res: GoogleGeocodeResponse = self.client.request_json(builder).await?;
+        let google_res: GoogleGeocodeResponse = self.client.request_parsed_json(builder).await?;
 
         if google_res.status != "OK" && google_res.status != "ZERO_RESULTS" {
-            return Err(EveryMapError::provider(
-                "google",
+            return Err(status_error(
                 &google_res.status,
-                google_res
-                    .error_message
-                    .as_deref()
-                    .unwrap_or("Unknown error"),
+                google_res.error_message.as_deref(),
             ));
         }
 
         let mut items: Vec<SearchResult> = google_res
             .results
             .into_iter()
-            .map(SearchResult::from)
-            .collect();
+            .map(SearchResult::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
 
         // Google API lacks a limit parameter; truncate client-side
         if let Some(limit) = options.limit {
@@ -254,31 +320,81 @@ impl Geocoder for GoogleGeocoder {
             }
         }
 
-        let url = self.base_url.clone();
+        let url = self.endpoint();
         let builder = self
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let google_res: GoogleGeocodeResponse = self.client.request_json(builder).await?;
+        let google_res: GoogleGeocodeResponse = self.client.request_parsed_json(builder).await?;
 
         if google_res.status != "OK" && google_res.status != "ZERO_RESULTS" {
-            return Err(EveryMapError::provider(
-                "google",
+            return Err(status_error(
                 &google_res.status,
-                google_res
-                    .error_message
-                    .as_deref()
-                    .unwrap_or("Unknown error"),
+                google_res.error_message.as_deref(),
             ));
         }
 
         let items: Vec<SearchResult> = google_res
             .results
             .into_iter()
-            .map(SearchResult::from)
-            .collect();
+            .map(SearchResult::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
 
         Ok(SearchResponse { items })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn deserialize_result(value: serde_json::Value) -> GoogleGeocodeResult {
+        serde_json::from_value(value).expect("the fixture deserializes")
+    }
+
+    #[test]
+    fn a_result_without_a_location_is_invalid() {
+        let result = deserialize_result(json!({
+            "formatted_address": "Berlin",
+            "types": ["locality"]
+        }));
+        match SearchResult::try_from(result) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn quality_comes_from_the_most_specific_component_type() {
+        let result = deserialize_result(json!({
+            "formatted_address": "Brandenburger Tor, Berlin",
+            "geometry": {
+                "location": { "lat": 52.5163, "lng": 13.3777 },
+                "location_type": "APPROXIMATE"
+            },
+            "types": ["street_address", "political"],
+            "address_components": []
+        }));
+        let mapped = SearchResult::try_from(result).expect("the fixture maps");
+        assert_eq!(mapped.quality, Some(SearchQuality::StreetAddress));
+    }
+
+    #[test]
+    fn quality_falls_back_to_the_location_type() {
+        let result = deserialize_result(json!({
+            "formatted_address": "Some place",
+            "geometry": {
+                "location": { "lat": 52.5163, "lng": 13.3777 },
+                "location_type": "ROOFTOP"
+            },
+            "types": ["political"],
+            "address_components": []
+        }));
+        let mapped = SearchResult::try_from(result).expect("the fixture maps");
+        assert_eq!(mapped.quality, Some(SearchQuality::Point));
     }
 }

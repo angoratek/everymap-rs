@@ -19,7 +19,7 @@ async fn test_positioning_contract() {
     });
 
     Mock::given(method("POST"))
-        .and(path("/geolocate"))
+        .and(path("/geolocation/v1/geolocate"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -54,7 +54,7 @@ async fn test_positioning_with_wifi() {
     });
 
     Mock::given(method("POST"))
-        .and(path("/geolocate"))
+        .and(path("/geolocation/v1/geolocate"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -99,7 +99,7 @@ async fn test_positioning_locate_rich() {
     });
 
     Mock::given(method("POST"))
-        .and(path("/geolocate"))
+        .and(path("/geolocation/v1/geolocate"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -126,7 +126,7 @@ async fn test_positioning_locate_rich() {
 
     let result = positioner.locate(google_opts).await.unwrap();
 
-    assert_eq!(result.location.lat, 51.5074);
-    assert_eq!(result.location.lng, -0.1278);
+    assert_eq!(result.location.lat, Some(51.5074));
+    assert_eq!(result.location.lng, Some(-0.1278));
     assert_eq!(result.accuracy, 100.0);
 }

@@ -163,7 +163,7 @@ impl IsolineProvider for MapBoxIsoline {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: MapBoxIsochroneResponse = self.client.request_json(builder).await?;
+        let result: MapBoxIsochroneResponse = self.client.request_parsed_json(builder).await?;
 
         let isolines: Vec<IsolineResult> = result
             .features

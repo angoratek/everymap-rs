@@ -1,15 +1,21 @@
 pub mod types;
 
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
+use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    DepartureTime, RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
+    DepartureTime, RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult,
+    RouteStep, Router, TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{BoundingBox, Coordinate, Polyline};
 pub use types::*;
 
-const ROUTES_BASE_URL: &str = "https://routes.googleapis.com/directions/v2:computeRoutes";
+/// Service root of the Google Routes API.
+const ROUTES_SERVICE_ROOT: &str = "https://routes.googleapis.com";
+
+/// Documented path of the Google Routes API `computeRoutes` method.
+const ROUTES_PATH: &str = "/directions/v2:computeRoutes";
 
 /// Required field mask header for Routes API v2 — requests without it fail.
 const ROUTES_FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.travelMode,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
@@ -17,19 +23,34 @@ const ROUTES_FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.tr
 /// Implementation of `Router` for Google Maps Routes API v2.
 pub struct GoogleRouter {
     pub(crate) client: std::sync::Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GoogleRouter {
     pub fn new(client: std::sync::Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: ROUTES_BASE_URL.to_string(),
+            service_root: ROUTES_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: std::sync::Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates a router against a Google Routes service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://routes.googleapis.com` or a test server's origin. The
+    ///   documented path is appended.
+    pub fn with_base_url(client: std::sync::Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
+    }
+
+    /// The endpoint URL this router sends requests to.
+    fn endpoint(&self) -> String {
+        endpoint_url(&self.service_root, ROUTES_PATH)
     }
 }
 
@@ -120,83 +141,63 @@ impl TryFrom<GoogleRoute> for RouteResult {
             .duration
             .as_deref()
             .and_then(parse_google_duration)
-            .unwrap_or(0.0);
+            .ok_or_else(|| invalid_response("route lacks a parseable duration"))?;
 
         let distance = route
             .distance_meters
-            .map(|value| value as f64)
-            .unwrap_or_else(|| {
-                route
-                    .legs
-                    .first()
-                    .and_then(|leg| leg.distance_meters)
-                    .unwrap_or(0) as f64
-            });
+            .ok_or_else(|| invalid_response("route lacks distanceMeters"))?
+            as f64;
 
+        let encoded = match route
+            .polyline
+            .as_ref()
+            .and_then(|polyline| polyline.encoded_polyline.as_deref())
+        {
+            Some(encoded) if !encoded.is_empty() => encoded,
+            _ => return Err(invalid_response("route lacks an encoded polyline")),
+        };
         // The Routes API answers the classic Google encoding; the shared
         // decoder bounds the accumulator and refuses a malformed shape instead
         // of dropping points or shifting past the integer width.
-        let geometry =
-            match route
-                .polyline
-                .as_ref()
-                .and_then(|polyline| polyline.encoded_polyline.as_deref())
-            {
-                Some(encoded) if !encoded.is_empty() => Polyline::new(
-                    everymap_core::types::decode_encoded_polyline(
-                        encoded,
-                        GOOGLE_POLYLINE_PRECISION,
-                    )
-                    .map_err(|detail| {
-                        EveryMapError::provider("google", "INVALID_POLYLINE", detail)
-                    })?,
-                ),
-                _ => Polyline::new(Vec::new()),
-            };
+        let geometry = Polyline::new(
+            everymap_core::types::decode_encoded_polyline(encoded, GOOGLE_POLYLINE_PRECISION)
+                .map_err(|detail| EveryMapError::provider("google", "INVALID_POLYLINE", detail))?,
+        );
 
-        let steps: Vec<RouteStep> = route
+        let legs: Vec<RouteLeg> = route
             .legs
-            .first()
-            .map(|leg| {
-                leg.steps
-                    .iter()
-                    .map(|step| RouteStep {
-                        instruction: step
-                            .navigation_instruction
-                            .as_ref()
-                            .and_then(|instruction| instruction.instructions.clone()),
-                        distance: step.distance_meters.map(|value| value as f64),
-                        duration: step
-                            .static_duration
-                            .as_deref()
-                            .and_then(parse_google_duration),
-                        start_coordinate: step
-                            .start_location
-                            .as_ref()
-                            .and_then(coordinate_from_location),
-                        end_coordinate: step
-                            .end_location
-                            .as_ref()
-                            .and_then(coordinate_from_location),
-                        maneuver_type: None,
-                        speech_instruction: None,
-                        lane_guidances: Vec::new(),
-                        shape: Vec::new(),
-                    })
-                    .collect()
-            })
-            .unwrap_or_default();
+            .into_iter()
+            .map(RouteLeg::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        let steps: Vec<RouteStep> = legs
+            .iter()
+            .flat_map(|leg| leg.steps.iter().cloned())
+            .collect();
 
-        let bounding_box =
-            route.viewport.as_ref().and_then(|viewport| {
-                let north_east = viewport.high.as_ref().and_then(|lat_lng| {
-                    Coordinate::new(lat_lng.latitude, lat_lng.longitude).ok()
-                })?;
-                let south_west = viewport.low.as_ref().and_then(|lat_lng| {
-                    Coordinate::new(lat_lng.latitude, lat_lng.longitude).ok()
-                })?;
+        let bounding_box = match route.viewport.as_ref() {
+            Some(viewport) => {
+                let north_east = viewport
+                    .high
+                    .as_ref()
+                    .ok_or_else(|| invalid_response("route viewport lacks its north-east corner"))
+                    .and_then(|lat_lng| {
+                        Coordinate::new(lat_lng.latitude, lat_lng.longitude).map_err(|_| {
+                            invalid_response("route viewport carries an invalid corner")
+                        })
+                    })?;
+                let south_west = viewport
+                    .low
+                    .as_ref()
+                    .ok_or_else(|| invalid_response("route viewport lacks its south-west corner"))
+                    .and_then(|lat_lng| {
+                        Coordinate::new(lat_lng.latitude, lat_lng.longitude).map_err(|_| {
+                            invalid_response("route viewport carries an invalid corner")
+                        })
+                    })?;
                 Some(BoundingBox::new(north_east, south_west))
-            });
+            }
+            None => None,
+        };
 
         Ok(Self {
             distance,
@@ -206,8 +207,57 @@ impl TryFrom<GoogleRoute> for RouteResult {
             steps,
             bounding_box,
             raw: None,
-            legs: Vec::new(),
+            legs,
         })
+    }
+}
+
+impl TryFrom<GoogleRouteLeg> for RouteLeg {
+    type Error = EveryMapError;
+
+    fn try_from(leg: GoogleRouteLeg) -> Result<Self, Self::Error> {
+        let distance = leg
+            .distance_meters
+            .ok_or_else(|| invalid_response("route leg lacks distanceMeters"))?
+            as f64;
+        let duration = leg
+            .duration
+            .as_deref()
+            .and_then(parse_google_duration)
+            .ok_or_else(|| invalid_response("route leg lacks a parseable duration"))?;
+        let steps = leg.steps.into_iter().map(route_step_from_google).collect();
+        Ok(Self {
+            distance,
+            duration,
+            steps,
+            shape: Vec::new(),
+        })
+    }
+}
+
+/// Projects one Routes API v2 step onto the contract's route step.
+fn route_step_from_google(step: GoogleRouteStep) -> RouteStep {
+    RouteStep {
+        instruction: step
+            .navigation_instruction
+            .and_then(|instruction| instruction.instructions),
+        distance: step.distance_meters.map(|value| value as f64),
+        duration: step
+            .static_duration
+            .as_deref()
+            .and_then(parse_google_duration),
+        start_coordinate: step
+            .start_location
+            .as_ref()
+            .and_then(coordinate_from_location),
+        end_coordinate: step
+            .end_location
+            .as_ref()
+            .and_then(coordinate_from_location),
+        maneuver_type: None,
+        speech_instruction: None,
+        lane_guidances: Vec::new(),
+        shape: Vec::new(),
     }
 }
 
@@ -328,14 +378,15 @@ impl Router for GoogleRouter {
             }
         }
 
-        let url = self.base_url.clone();
+        let url = self.endpoint();
         let builder = self
             .client
             .build_request(everymap_core::http::Method::POST, &url)
             .header("X-Goog-FieldMask", ROUTES_FIELD_MASK)
             .json(&request)?;
 
-        let google_response: GoogleRoutesResponse = self.client.request_json(builder).await?;
+        let google_response: GoogleRoutesResponse =
+            self.client.request_parsed_json(builder).await?;
 
         let routes = google_response
             .routes
@@ -344,6 +395,21 @@ impl Router for GoogleRouter {
             .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
 
         Ok(RouteResponse { routes })
+    }
+
+    fn route_capabilities(&self) -> RouteCapabilities {
+        RouteCapabilities {
+            supported_transport_modes: vec![
+                TransportMode::Car,
+                TransportMode::Taxi,
+                TransportMode::Pedestrian,
+                TransportMode::Bicycle,
+                TransportMode::Scooter,
+            ],
+            // Routes API v2 ranks paths for travel time; it exposes no
+            // distance-minimizing strategy.
+            supports_shortest_route_strategy: false,
+        }
     }
 }
 
@@ -376,5 +442,60 @@ mod tests {
         let value =
             departure_time_string(&DepartureTime::Iso8601("2024-06-01T08:00:00Z".to_string()));
         assert_eq!(value.as_deref(), Some("2024-06-01T08:00:00Z"));
+    }
+
+    fn deserialize_route(value: serde_json::Value) -> GoogleRoute {
+        serde_json::from_value(value).expect("the fixture deserializes")
+    }
+
+    #[test]
+    fn a_route_without_a_duration_is_invalid() {
+        let route = deserialize_route(serde_json::json!({
+            "distanceMeters": 1000,
+            "polyline": { "encodedPolyline": "_p~iF~ps|U" }
+        }));
+        match RouteResult::try_from(route) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn a_route_without_a_polyline_is_invalid() {
+        let route = deserialize_route(serde_json::json!({
+            "distanceMeters": 1000,
+            "duration": "60s"
+        }));
+        match RouteResult::try_from(route) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn route_legs_carry_their_own_summary_and_steps() {
+        let route = deserialize_route(serde_json::json!({
+            "distanceMeters": 1000,
+            "duration": "60s",
+            "polyline": { "encodedPolyline": "_p~iF~ps|U" },
+            "legs": [{
+                "distanceMeters": 1000,
+                "duration": "60s",
+                "steps": [{
+                    "distanceMeters": 1000,
+                    "staticDuration": "60s",
+                    "navigationInstruction": { "instructions": "Head north" }
+                }]
+            }]
+        }));
+        let result = RouteResult::try_from(route).expect("the fixture converts");
+        assert_eq!(result.legs.len(), 1);
+        assert_eq!(result.legs[0].distance, 1000.0);
+        assert_eq!(result.legs[0].steps.len(), 1);
+        assert_eq!(result.steps.len(), 1);
     }
 }

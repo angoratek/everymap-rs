@@ -27,7 +27,7 @@ async fn test_matching_contract() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/snapToRoads"))
+        .and(path("/v1/snapToRoads"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -87,7 +87,7 @@ async fn test_matching_with_interpolate() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/snapToRoads"))
+        .and(path("/v1/snapToRoads"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;

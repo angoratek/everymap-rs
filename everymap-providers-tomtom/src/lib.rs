@@ -1,5 +1,6 @@
 pub mod client;
 pub mod domain;
+mod error_mapping;
 pub mod ext;
 
 pub use client::TomTomClient;

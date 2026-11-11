@@ -12,8 +12,7 @@ async fn setup_router_mock() -> (MockServer, RadarRouter) {
         "prj_test_pk_123".to_string(),
     ));
     let client = Arc::new(RadarClient::new(auth));
-    let router =
-        RadarRouter::with_base_url(client, format!("{}/v1/route/directions", server.uri()));
+    let router = RadarRouter::with_base_url(client, server.uri());
     (server, router)
 }
 
@@ -82,13 +81,13 @@ async fn test_routing_with_provider_extra_alternatives() {
                     "duration": { "value": 120.5, "text": "2h 0m" },
                     "distance": { "value": 250000, "text": "250 km" },
                     "legs": [],
-                    "geometry": { "polyline": "" }
+                    "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
                 },
                 {
                     "duration": { "value": 130.0, "text": "2h 10m" },
                     "distance": { "value": 260000, "text": "260 km" },
                     "legs": [],
-                    "geometry": { "polyline": "" }
+                    "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
                 }
             ]
         })))
@@ -123,7 +122,7 @@ async fn test_routing_with_provider_extra_avoid() {
                 "duration": { "value": 130.0, "text": "2h 10m" },
                 "distance": { "value": 255000, "text": "255 km" },
                 "legs": [],
-                "geometry": { "polyline": "" }
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
             }]
         })))
         .mount(&server)
@@ -157,7 +156,7 @@ async fn test_routing_with_core_avoid_field() {
                 "duration": { "value": 130.0, "text": "2h 10m" },
                 "distance": { "value": 255000, "text": "255 km" },
                 "legs": [],
-                "geometry": { "polyline": "" }
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
             }]
         })))
         .mount(&server)
@@ -192,13 +191,13 @@ async fn test_routing_with_core_alternatives_field() {
                     "duration": { "value": 120.5, "text": "2h 0m" },
                     "distance": { "value": 250000, "text": "250 km" },
                     "legs": [],
-                    "geometry": { "polyline": "" }
+                    "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
                 },
                 {
                     "duration": { "value": 130.0, "text": "2h 10m" },
                     "distance": { "value": 260000, "text": "260 km" },
                     "legs": [],
-                    "geometry": { "polyline": "" }
+                    "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
                 }
             ]
         })))
@@ -232,7 +231,7 @@ async fn test_routing_with_core_avoid_zero_alternatives() {
                 "duration": { "value": 120.5, "text": "2h 0m" },
                 "distance": { "value": 250000, "text": "250 km" },
                 "legs": [],
-                "geometry": { "polyline": "" }
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
             }]
         })))
         .mount(&server)
@@ -268,7 +267,7 @@ async fn test_routing_with_core_avoid_unsupported_types() {
                 "duration": { "value": 120.5, "text": "2h 0m" },
                 "distance": { "value": 250000, "text": "250 km" },
                 "legs": [],
-                "geometry": { "polyline": "" }
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
             }]
         })))
         .mount(&server)
@@ -287,4 +286,34 @@ async fn test_routing_with_core_avoid_unsupported_types() {
         .await
         .unwrap();
     assert_eq!(result.routes.len(), 1);
+}
+
+#[test]
+fn routing_reports_the_modes_and_strategy_it_honours() {
+    let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new(
+        "prj_test_pk_123".to_string(),
+    ));
+    let router = RadarRouter::with_base_url(
+        Arc::new(RadarClient::new(auth)),
+        "http://127.0.0.1:9".to_string(),
+    );
+
+    let capabilities = router.route_capabilities();
+    assert_eq!(
+        capabilities.supported_transport_modes,
+        vec![
+            TransportMode::Car,
+            TransportMode::Truck,
+            TransportMode::Pedestrian,
+            TransportMode::Bicycle,
+        ]
+    );
+    assert!(
+        !capabilities.supports_transport_mode(TransportMode::Scooter),
+        "the Directions API substitutes foot for a scooter request"
+    );
+    assert!(
+        !capabilities.supports_shortest_route_strategy,
+        "the Directions API exposes no distance-minimizing strategy"
+    );
 }

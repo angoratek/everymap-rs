@@ -13,8 +13,7 @@ async fn setup_tour_mock() -> (MockServer, RadarTourPlanner) {
         "prj_test_pk_123".to_string(),
     ));
     let client = Arc::new(RadarClient::new(auth));
-    let planner =
-        RadarTourPlanner::with_base_url(client, format!("{}/v1/route/optimize", server.uri()));
+    let planner = RadarTourPlanner::with_base_url(client, server.uri());
     (server, planner)
 }
 

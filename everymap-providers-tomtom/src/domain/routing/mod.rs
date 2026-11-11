@@ -1,11 +1,13 @@
 pub mod types;
 
 use crate::client::TomTomClient;
+use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    AvoidType, RouteOptions, RouteResponse, RouteResult, Router, TransportMode,
+    AvoidType, RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult,
+    RouteStrategy, Router, TransportMode,
 };
-use everymap_core::error::EveryMapResult;
+use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Coordinate, Polyline};
 use std::sync::Arc;
 
@@ -50,26 +52,83 @@ fn transport_mode_to_tomtom(mode: &TransportMode) -> &'static str {
     }
 }
 
-impl From<TomTomRoute> for RouteResult {
-    fn from(route: TomTomRoute) -> Self {
-        let summary = route.summary.unwrap_or_default();
-        let points: Vec<Coordinate> = route
-            .legs
-            .iter()
-            .flat_map(|leg| leg.points.iter())
-            .map(|p| Coordinate::new(p.latitude, p.longitude).unwrap_or(Coordinate::ORIGIN))
-            .collect();
+impl TryFrom<TomTomRoute> for RouteResult {
+    type Error = EveryMapError;
 
-        RouteResult {
-            distance: summary.length_in_meters as f64,
-            duration: summary.travel_time_in_seconds as f64,
+    fn try_from(route: TomTomRoute) -> Result<Self, Self::Error> {
+        let summary = route
+            .summary
+            .ok_or_else(|| invalid_response("route lacks a summary"))?;
+        if route.legs.is_empty() {
+            return Err(invalid_response("route carries no legs"));
+        }
+        let legs: Vec<RouteLeg> = route
+            .legs
+            .into_iter()
+            .map(RouteLeg::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        let points: Vec<Coordinate> = legs
+            .iter()
+            .flat_map(|leg| leg.shape.iter().copied())
+            .collect();
+        if points.is_empty() {
+            return Err(invalid_response("route carries no geometry"));
+        }
+
+        let distance = summary
+            .length_in_meters
+            .ok_or_else(|| invalid_response("route summary lacks a length"))?;
+        let duration = summary
+            .travel_time_in_seconds
+            .ok_or_else(|| invalid_response("route summary lacks a travel time"))?;
+
+        Ok(Self {
+            distance: distance as f64,
+            duration: duration as f64,
             geometry: Polyline::new(points),
             transport_mode: None,
-            steps: Vec::new(), // TomTom doesn't provide step-level instructions in basic response
+            // The basic response carries no step-level instructions.
+            steps: Vec::new(),
             bounding_box: None,
             raw: None,
-            legs: Vec::new(),
-        }
+            legs,
+        })
+    }
+}
+
+impl TryFrom<TomTomRouteLeg> for RouteLeg {
+    type Error = EveryMapError;
+
+    fn try_from(leg: TomTomRouteLeg) -> Result<Self, Self::Error> {
+        let summary = leg
+            .summary
+            .ok_or_else(|| invalid_response("route leg lacks a summary"))?;
+        let shape = leg
+            .points
+            .into_iter()
+            .map(|point| {
+                let latitude = point
+                    .latitude
+                    .ok_or_else(|| invalid_response("route leg point lacks a latitude"))?;
+                let longitude = point
+                    .longitude
+                    .ok_or_else(|| invalid_response("route leg point lacks a longitude"))?;
+                Coordinate::new(latitude, longitude)
+                    .map_err(|_| invalid_response("route leg carries an invalid point"))
+            })
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        let distance = summary
+            .length_in_meters
+            .ok_or_else(|| invalid_response("route leg summary lacks a length"))?;
+        let duration = summary
+            .travel_time_in_seconds
+            .ok_or_else(|| invalid_response("route leg summary lacks a travel time"))?;
+        Ok(Self {
+            distance: distance as f64,
+            duration: duration as f64,
+            steps: Vec::new(),
+            shape,
+        })
     }
 }
 
@@ -114,6 +173,7 @@ impl Router for TomTomRouter {
         if let Some(arrival) = &options.arrival_time {
             params.push(("arriveAt", arrival.to_string()));
         }
+        let mut provider_route_type = None;
         if let Some(extra) = &options.provider_extra {
             if let Some(obj) = extra.as_object() {
                 if let Some(v) = obj.get("vehicleMaxSpeed").and_then(|v| v.as_u64()) {
@@ -123,6 +183,7 @@ impl Router for TomTomRouter {
                     params.push(("hilliness", v.to_string()));
                 }
                 if let Some(v) = obj.get("routeType").and_then(|v| v.as_str()) {
+                    provider_route_type = Some(v.to_string());
                     params.push(("routeType", v.to_string()));
                 }
                 if let Some(v) = obj.get("traffic").and_then(|v| v.as_bool()) {
@@ -130,15 +191,76 @@ impl Router for TomTomRouter {
                 }
             }
         }
+        // The contract's strategy is honoured through the API's route type; a
+        // provider-extra route type stays authoritative for power users.
+        if provider_route_type.is_none() && options.route_strategy == Some(RouteStrategy::Shortest)
+        {
+            params.push(("routeType", "shortest".to_string()));
+        }
 
         let builder = self
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: TomTomRouteResponse = self.client.request_json(builder).await?;
-        Ok(RouteResponse {
-            routes: result.routes.into_iter().map(|r| r.into()).collect(),
-        })
+        let result: TomTomRouteResponse = self.client.request_parsed_json(builder).await?;
+        let routes = result
+            .routes
+            .into_iter()
+            .map(RouteResult::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        Ok(RouteResponse { routes })
+    }
+
+    fn route_capabilities(&self) -> RouteCapabilities {
+        RouteCapabilities {
+            supported_transport_modes: vec![
+                TransportMode::Car,
+                TransportMode::Truck,
+                TransportMode::Pedestrian,
+                TransportMode::Bicycle,
+                TransportMode::Bus,
+            ],
+            // The Routing API selects a distance-minimizing path through
+            // `routeType=shortest`.
+            supports_shortest_route_strategy: true,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_route_without_a_summary_is_invalid() {
+        let route: TomTomRoute =
+            serde_json::from_value(json!({"legs": []})).expect("the fixture deserializes");
+        match RouteResult::try_from(route) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn route_legs_are_populated_from_the_response() {
+        let route: TomTomRoute = serde_json::from_value(json!({
+            "summary": { "lengthInMeters": 1000, "travelTimeInSeconds": 60 },
+            "legs": [{
+                "summary": { "lengthInMeters": 1000, "travelTimeInSeconds": 60 },
+                "points": [
+                    { "latitude": 52.52, "longitude": 13.405 },
+                    { "latitude": 51.5, "longitude": -0.12 }
+                ]
+            }]
+        }))
+        .expect("the fixture deserializes");
+        let result = RouteResult::try_from(route).expect("the fixture converts");
+        assert_eq!(result.legs.len(), 1);
+        assert_eq!(result.legs[0].distance, 1000.0);
+        assert_eq!(result.geometry.points.len(), 2);
     }
 }

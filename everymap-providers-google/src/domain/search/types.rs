@@ -69,14 +69,16 @@ pub struct GooglePlusCode {
     pub global_code: Option<String>,
 }
 
-impl From<GoogleGeocodeResponse> for SearchResponse {
-    fn from(response: GoogleGeocodeResponse) -> Self {
-        SearchResponse {
+impl TryFrom<GoogleGeocodeResponse> for SearchResponse {
+    type Error = everymap_core::error::EveryMapError;
+
+    fn try_from(response: GoogleGeocodeResponse) -> Result<Self, Self::Error> {
+        Ok(SearchResponse {
             items: response
                 .results
                 .into_iter()
-                .map(SearchResult::from)
-                .collect(),
-        }
+                .map(SearchResult::try_from)
+                .collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }

@@ -64,7 +64,7 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 
     async fn batch_geocode(
@@ -82,7 +82,7 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
                 .build_request(everymap_core::http::Method::GET, &url)
                 .query(&params);
             let result: super::domain::search::MapBoxSearchResponse =
-                self.client.request_json(builder).await?;
+                self.client.request_parsed_json(builder).await?;
             results.push(result);
         }
         Ok(results)
@@ -128,6 +128,6 @@ impl MapBoxRouterExt for super::domain::routing::MapBoxRouter {
             .client
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
-        self.client.request_json(builder).await
+        self.client.request_parsed_json(builder).await
     }
 }

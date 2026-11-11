@@ -1,9 +1,11 @@
 pub mod types;
 
 use crate::client::MapBoxClient;
+use crate::error_mapping::invalid_response;
 use async_trait::async_trait;
 use everymap_core::domains::routing::{
-    RouteOptions, RouteResponse, RouteResult, RouteStep, Router, TransportMode,
+    RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult, RouteStep, Router,
+    TransportMode,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Coordinate, Polyline};
@@ -79,52 +81,88 @@ impl TryFrom<MapBoxRoute> for RouteResult {
     type Error = EveryMapError;
 
     fn try_from(route: MapBoxRoute) -> Result<Self, Self::Error> {
+        let distance = route
+            .distance
+            .ok_or_else(|| invalid_response("route lacks a distance"))?;
+        let duration = route
+            .duration
+            .ok_or_else(|| invalid_response("route lacks a duration"))?;
+
         // The Directions API answers `geometries=polyline` with the classic
         // Google encoding, not HERE's flexible polyline; decoding it with the
         // wrong codec would silently report an empty shape.
-        let points: Vec<Coordinate> = match route.geometry.as_deref() {
-            Some(encoded) if !encoded.is_empty() => {
-                everymap_core::types::decode_encoded_polyline(encoded, MAPBOX_POLYLINE_PRECISION)
-                    .map_err(invalid_polyline)?
-            }
-            _ => Vec::new(),
-        };
+        let encoded = route
+            .geometry
+            .as_deref()
+            .filter(|geometry| !geometry.is_empty())
+            .ok_or_else(|| invalid_response("route lacks an encoded polyline"))?;
+        let points =
+            everymap_core::types::decode_encoded_polyline(encoded, MAPBOX_POLYLINE_PRECISION)
+                .map_err(invalid_polyline)?;
 
-        let steps: Vec<RouteStep> = route
+        let legs: Vec<RouteLeg> = route
             .legs
+            .into_iter()
+            .map(RouteLeg::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
+        let steps: Vec<RouteStep> = legs
             .iter()
-            .flat_map(|leg| leg.steps.iter())
-            .map(|step| RouteStep {
-                instruction: step.instruction.clone().or(step.name.clone()),
-                distance: Some(step.distance),
-                duration: Some(step.duration),
-                start_coordinate: step.maneuver.as_ref().and_then(|m| {
-                    m.location.as_ref().and_then(|loc| {
-                        if loc.len() >= 2 {
-                            Some(Coordinate::new(loc[1], loc[0]).unwrap_or(Coordinate::ORIGIN))
-                        } else {
-                            None
-                        }
-                    })
-                }),
-                end_coordinate: None,
-                maneuver_type: None,
-                speech_instruction: None,
-                lane_guidances: Vec::new(),
-                shape: Vec::new(),
-            })
+            .flat_map(|leg| leg.steps.iter().cloned())
             .collect();
 
         Ok(RouteResult {
-            distance: route.distance,
-            duration: route.duration,
+            distance,
+            duration,
             geometry: Polyline::new(points),
             transport_mode: None,
             steps,
             bounding_box: None,
             raw: None,
-            legs: Vec::new(),
+            legs,
         })
+    }
+}
+
+impl TryFrom<MapBoxRouteLeg> for RouteLeg {
+    type Error = EveryMapError;
+
+    fn try_from(leg: MapBoxRouteLeg) -> Result<Self, Self::Error> {
+        let distance = leg
+            .distance
+            .ok_or_else(|| invalid_response("route leg lacks a distance"))?;
+        let duration = leg
+            .duration
+            .ok_or_else(|| invalid_response("route leg lacks a duration"))?;
+        let steps = leg.steps.into_iter().map(route_step_from_mapbox).collect();
+        Ok(Self {
+            distance,
+            duration,
+            steps,
+            shape: Vec::new(),
+        })
+    }
+}
+
+/// Projects one Directions API step onto the contract's route step.
+fn route_step_from_mapbox(step: MapBoxRouteStep) -> RouteStep {
+    RouteStep {
+        instruction: step.instruction.or(step.name),
+        distance: step.distance,
+        duration: step.duration,
+        start_coordinate: step.maneuver.and_then(|maneuver| {
+            maneuver.location.and_then(|location| {
+                if location.len() >= 2 {
+                    Coordinate::new(location[1], location[0]).ok()
+                } else {
+                    None
+                }
+            })
+        }),
+        end_coordinate: None,
+        maneuver_type: None,
+        speech_instruction: None,
+        lane_guidances: Vec::new(),
+        shape: Vec::new(),
     }
 }
 
@@ -199,12 +237,70 @@ impl Router for MapBoxRouter {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: MapBoxRouteResponse = self.client.request_json(builder).await?;
+        let result: MapBoxRouteResponse = self.client.request_parsed_json(builder).await?;
         let routes = result
             .routes
             .into_iter()
             .map(RouteResult::try_from)
             .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
         Ok(RouteResponse { routes })
+    }
+
+    fn route_capabilities(&self) -> RouteCapabilities {
+        RouteCapabilities {
+            supported_transport_modes: vec![
+                TransportMode::Car,
+                TransportMode::Pedestrian,
+                TransportMode::Bicycle,
+            ],
+            // The Directions API ranks paths for travel time; it exposes no
+            // distance-minimizing strategy.
+            supports_shortest_route_strategy: false,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_route_without_a_distance_is_invalid() {
+        let route: MapBoxRoute = serde_json::from_value(json!({
+            "duration": 60.0,
+            "geometry": "_yp_IgdypAfojU~vmbA"
+        }))
+        .expect("the fixture deserializes");
+        match RouteResult::try_from(route) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn route_legs_are_populated_from_the_response() {
+        let route: MapBoxRoute = serde_json::from_value(json!({
+            "distance": 1000.0,
+            "duration": 60.0,
+            "geometry": "_yp_IgdypAfojU~vmbA",
+            "legs": [{
+                "distance": 1000.0,
+                "duration": 60.0,
+                "steps": [{
+                    "distance": 1000.0,
+                    "duration": 60.0,
+                    "instruction": "Head north"
+                }]
+            }]
+        }))
+        .expect("the fixture deserializes");
+        let result = RouteResult::try_from(route).expect("the fixture converts");
+        assert_eq!(result.legs.len(), 1);
+        assert_eq!(result.legs[0].steps.len(), 1);
+        assert_eq!(result.steps.len(), 1);
+        assert!(!result.geometry.points.is_empty());
     }
 }

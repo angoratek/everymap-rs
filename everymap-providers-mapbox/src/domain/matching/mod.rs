@@ -131,7 +131,7 @@ impl RouteMatcher for MapBoxRouteMatcher {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: MapBoxMatchResponse = self.client.request_json(builder).await?;
+        let result: MapBoxMatchResponse = self.client.request_parsed_json(builder).await?;
 
         // Extract matched points from tracepoints
         let matched_points: Vec<MatchedPoint> = result

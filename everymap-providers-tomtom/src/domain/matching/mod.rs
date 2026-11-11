@@ -79,7 +79,7 @@ impl RouteMatcher for TomTomRouteMatcher {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: TomTomSnapResponse = self.client.request_json(builder).await?;
+        let result: TomTomSnapResponse = self.client.request_parsed_json(builder).await?;
 
         let matched_points: Vec<MatchedPoint> = result
             .projected_points

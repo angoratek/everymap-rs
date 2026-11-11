@@ -10,8 +10,9 @@ pub struct RadarMeta {
 /// A metric with value and formatted text.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RadarMetric {
+    /// The measured value, absent when the service omits it.
     #[serde(default)]
-    pub value: f64,
+    pub value: Option<f64>,
     #[serde(default)]
     pub text: String,
 }
@@ -19,10 +20,12 @@ pub struct RadarMetric {
 /// A geographic location.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RadarLocation {
+    /// Latitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub latitude: f64,
+    pub latitude: Option<f64>,
+    /// Longitude in degrees, absent when the service omits it.
     #[serde(default)]
-    pub longitude: f64,
+    pub longitude: Option<f64>,
 }
 
 /// Geometry container (typically a polyline).
@@ -72,14 +75,14 @@ mod tests {
     #[test]
     fn test_radar_location_default() {
         let loc = RadarLocation::default();
-        assert!((loc.latitude - 0.0).abs() < f64::EPSILON);
-        assert!((loc.longitude - 0.0).abs() < f64::EPSILON);
+        assert!(loc.latitude.is_none());
+        assert!(loc.longitude.is_none());
     }
 
     #[test]
     fn test_radar_metric_default() {
         let m = RadarMetric::default();
-        assert!((m.value - 0.0).abs() < f64::EPSILON);
+        assert!(m.value.is_none());
         assert!(m.text.is_empty());
     }
 
@@ -123,7 +126,7 @@ mod tests {
     fn test_radar_location_from_json() {
         let json = r#"{"latitude": 40.7128, "longitude": -74.006}"#;
         let loc: RadarLocation = serde_json::from_str(json).unwrap();
-        assert!((loc.latitude - 40.7128).abs() < f64::EPSILON);
-        assert!((loc.longitude - (-74.006)).abs() < f64::EPSILON);
+        assert_eq!(loc.latitude, Some(40.7128));
+        assert_eq!(loc.longitude, Some(-74.006));
     }
 }

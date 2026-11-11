@@ -1,6 +1,6 @@
 pub mod types;
 
-use crate::client::GoogleClient;
+use crate::client::{endpoint_url, GoogleClient};
 use async_trait::async_trait;
 use everymap_core::domains::attributes::{AttributeOptions, AttributeProvider, AttributeResponse};
 use everymap_core::error::{EveryMapError, EveryMapResult};
@@ -8,7 +8,11 @@ use std::sync::Arc;
 
 pub use types::*;
 
-const ROADS_BASE_URL: &str = "https://roads.googleapis.com/v1";
+/// Service root of the Google Roads API.
+const ROADS_SERVICE_ROOT: &str = "https://roads.googleapis.com";
+
+/// Documented path of the Google Roads API speed limits endpoint.
+const SPEED_LIMITS_PATH: &str = "/v1/speedLimits";
 
 /// Implementation of AttributeProvider for Google Roads API speedLimits.
 ///
@@ -16,19 +20,29 @@ const ROADS_BASE_URL: &str = "https://roads.googleapis.com/v1";
 /// For richer attribute data (road class, lanes, etc.), use HERE or TomTom.
 pub struct GoogleAttributeProvider {
     pub(crate) client: Arc<GoogleClient>,
-    pub(crate) base_url: String,
+    pub(crate) service_root: String,
 }
 
 impl GoogleAttributeProvider {
     pub fn new(client: Arc<GoogleClient>) -> Self {
         Self {
             client,
-            base_url: ROADS_BASE_URL.to_string(),
+            service_root: ROADS_SERVICE_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(client: Arc<GoogleClient>, base_url: String) -> Self {
-        Self { client, base_url }
+    /// Creates an attribute provider against a Google Roads service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Google client.
+    /// - `service_root` — the scheme and host that serve the API, for example
+    ///   `https://roads.googleapis.com` or a test server's origin. The
+    ///   documented path is appended.
+    pub fn with_base_url(client: Arc<GoogleClient>, service_root: String) -> Self {
+        Self {
+            client,
+            service_root,
+        }
     }
 
     /// Get speed limits by place IDs.
@@ -38,7 +52,7 @@ impl GoogleAttributeProvider {
         place_ids: &[String],
         units: Option<&str>,
     ) -> EveryMapResult<GoogleSpeedLimitsResponse> {
-        let url = format!("{}/speedLimits", self.base_url);
+        let url = endpoint_url(&self.service_root, SPEED_LIMITS_PATH);
         let mut params: Vec<(&str, String)> = Vec::new();
 
         for place_id in place_ids {
@@ -54,7 +68,7 @@ impl GoogleAttributeProvider {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: GoogleSpeedLimitsResponse = self.client.request_json(builder).await?;
+        let result: GoogleSpeedLimitsResponse = self.client.request_parsed_json(builder).await?;
         Ok(result)
     }
 
@@ -65,7 +79,7 @@ impl GoogleAttributeProvider {
         path: &str,
         units: Option<&str>,
     ) -> EveryMapResult<GoogleSpeedLimitsResponse> {
-        let url = format!("{}/speedLimits", self.base_url);
+        let url = endpoint_url(&self.service_root, SPEED_LIMITS_PATH);
         let mut params: Vec<(&str, String)> = vec![("path", path.to_string())];
 
         if let Some(u) = units {
@@ -77,7 +91,7 @@ impl GoogleAttributeProvider {
             .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let result: GoogleSpeedLimitsResponse = self.client.request_json(builder).await?;
+        let result: GoogleSpeedLimitsResponse = self.client.request_parsed_json(builder).await?;
         Ok(result)
     }
 }
@@ -151,7 +165,7 @@ impl AttributeProvider for GoogleAttributeProvider {
             ));
         };
 
-        let data = serde_json::to_value(result).unwrap_or(serde_json::json!({}));
+        let data = serde_json::to_value(result)?;
 
         Ok(AttributeResponse { data })
     }

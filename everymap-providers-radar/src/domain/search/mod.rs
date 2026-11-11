@@ -1,80 +1,92 @@
 pub mod types;
 
 use crate::client::RadarClient;
+use crate::endpoints::{
+    endpoint, ADDRESS_VALIDATION_PATH, AUTOCOMPLETE_PATH, FORWARD_GEOCODE_PATH, IP_GEOCODE_PATH,
+    PLACE_SEARCH_PATH, RADAR_API_ROOT, REVERSE_GEOCODE_PATH,
+};
+use crate::error_mapping::{ensure_success, invalid_response};
 use async_trait::async_trait;
 use everymap_core::domains::search::{
-    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchResponse, SearchResult, SearchResultType,
+    GeocodeOptions, Geocoder, ReverseGeocodeOptions, SearchQuality, SearchResponse, SearchResult,
+    SearchResultType,
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::types::{Address, Coordinate};
 pub use types::*;
 
-const GEOCODING_BASE_URL: &str = "https://api.radar.io/v1/geocode/forward";
-const REVERSE_GEOCODING_BASE_URL: &str = "https://api.radar.io/v1/geocode/reverse";
-
 /// Implementation of `Geocoder` for Radar Geocoding API.
 pub struct RadarGeocoder {
     pub(crate) client: std::sync::Arc<RadarClient>,
-    pub(crate) base_url: String,
-    pub(crate) reverse_base_url: String,
-    pub(crate) ip_geocode_url: String,
-    pub(crate) autocomplete_url: String,
-    pub(crate) validate_url: String,
-    pub(crate) places_url: String,
+    pub(crate) service_root: String,
 }
 
 impl RadarGeocoder {
     pub fn new(client: std::sync::Arc<RadarClient>) -> Self {
         Self {
             client,
-            base_url: GEOCODING_BASE_URL.to_string(),
-            reverse_base_url: REVERSE_GEOCODING_BASE_URL.to_string(),
-            ip_geocode_url: "https://api.radar.io/v1/geocode/ip".to_string(),
-            autocomplete_url: "https://api.radar.io/v1/search/autocomplete".to_string(),
-            validate_url: "https://api.radar.io/v1/addresses/validate".to_string(),
-            places_url: "https://api.radar.io/v1/search/places".to_string(),
+            service_root: RADAR_API_ROOT.to_string(),
         }
     }
 
-    pub fn with_base_url(
-        client: std::sync::Arc<RadarClient>,
-        base_url: String,
-        reverse_base_url: String,
-    ) -> Self {
+    /// Creates a geocoder against a Radar service root.
+    ///
+    /// # Parameters
+    /// - `client` — the shared Radar client.
+    /// - `service_root` — the scheme and host serving the API, for example
+    ///   `https://api.radar.io` or a test server's origin. Every Radar
+    ///   endpoint is derived from this one root.
+    pub fn with_base_url(client: std::sync::Arc<RadarClient>, service_root: String) -> Self {
         Self {
             client,
-            base_url,
-            reverse_base_url,
-            ip_geocode_url: "https://api.radar.io/v1/geocode/ip".to_string(),
-            autocomplete_url: "https://api.radar.io/v1/search/autocomplete".to_string(),
-            validate_url: "https://api.radar.io/v1/addresses/validate".to_string(),
-            places_url: "https://api.radar.io/v1/search/places".to_string(),
+            service_root,
         }
     }
 
-    pub fn with_ext_urls(
-        client: std::sync::Arc<RadarClient>,
-        base_url: String,
-        reverse_base_url: String,
-        ip_geocode_url: String,
-        autocomplete_url: String,
-        validate_url: String,
-        places_url: String,
-    ) -> Self {
-        Self {
-            client,
-            base_url,
-            reverse_base_url,
-            ip_geocode_url,
-            autocomplete_url,
-            validate_url,
-            places_url,
-        }
+    /// The forward geocoding endpoint.
+    pub(crate) fn forward_endpoint(&self) -> String {
+        endpoint(&self.service_root, FORWARD_GEOCODE_PATH)
+    }
+
+    /// The reverse geocoding endpoint.
+    pub(crate) fn reverse_endpoint(&self) -> String {
+        endpoint(&self.service_root, REVERSE_GEOCODE_PATH)
+    }
+
+    /// The IP geocoding endpoint.
+    pub(crate) fn ip_geocode_endpoint(&self) -> String {
+        endpoint(&self.service_root, IP_GEOCODE_PATH)
+    }
+
+    /// The autocomplete endpoint.
+    pub(crate) fn autocomplete_endpoint(&self) -> String {
+        endpoint(&self.service_root, AUTOCOMPLETE_PATH)
+    }
+
+    /// The address validation endpoint.
+    pub(crate) fn address_validation_endpoint(&self) -> String {
+        endpoint(&self.service_root, ADDRESS_VALIDATION_PATH)
+    }
+
+    /// The place search endpoint.
+    pub(crate) fn place_search_endpoint(&self) -> String {
+        endpoint(&self.service_root, PLACE_SEARCH_PATH)
     }
 }
 
-impl From<RadarAddress> for SearchResult {
-    fn from(addr: RadarAddress) -> Self {
+impl TryFrom<RadarAddress> for SearchResult {
+    type Error = EveryMapError;
+
+    fn try_from(addr: RadarAddress) -> Result<Self, Self::Error> {
+        let latitude = addr
+            .latitude
+            .ok_or_else(|| invalid_response("geocode result lacks a latitude"))?;
+        let longitude = addr
+            .longitude
+            .ok_or_else(|| invalid_response("geocode result lacks a longitude"))?;
+        let coordinate = Coordinate::new(latitude, longitude)
+            .map_err(|_| invalid_response("geocode result carries an invalid location"))?;
+
         let confidence = addr.confidence.as_ref().map(|c| match c.as_str() {
             "exact" => 1.0,
             "interpolated" => 0.7,
@@ -150,22 +162,36 @@ impl From<RadarAddress> for SearchResult {
             Some(addr.formatted_address.clone())
         };
         let distance = addr.distance;
-        let coordinate =
-            Coordinate::new(addr.latitude, addr.longitude).unwrap_or(Coordinate::ORIGIN);
+        let quality = addr.layer.as_deref().and_then(quality_from_layer);
 
-        Self {
+        Ok(Self {
             id: None,
             title,
             coordinate,
             address,
             result_type,
-            quality: None,
+            quality,
             distance,
             confidence,
             categories: vec![],
             bounding_box: None,
-            raw: Some(serde_json::to_value(addr).unwrap_or_default()),
-        }
+            raw: serde_json::to_value(&addr).ok(),
+        })
+    }
+}
+
+/// Maps a Radar address layer onto the contract's match quality.
+fn quality_from_layer(layer: &str) -> Option<SearchQuality> {
+    match layer.to_ascii_lowercase().as_str() {
+        "venue" | "poi" => Some(SearchQuality::Point),
+        "address" => Some(SearchQuality::StreetAddress),
+        "street" => Some(SearchQuality::Street),
+        "locality" | "city" => Some(SearchQuality::City),
+        "county" => Some(SearchQuality::County),
+        "state" => Some(SearchQuality::State),
+        "country" => Some(SearchQuality::Country),
+        "postalcode" | "postal_code" => Some(SearchQuality::PostalCode),
+        _ => None,
     }
 }
 
@@ -202,29 +228,20 @@ impl Geocoder for RadarGeocoder {
             }
         }
 
+        let url = self.forward_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.base_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let radar_res: RadarGeocodeResponse = self.client.request_json(builder).await?;
-
-        if radar_res.meta.code != 200 {
-            return Err(EveryMapError::provider(
-                "radar",
-                radar_res.meta.code.to_string(),
-                format!(
-                    "Geocoding request failed with status {}",
-                    radar_res.meta.code
-                ),
-            ));
-        }
+        let radar_res: RadarGeocodeResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(radar_res.meta.code)?;
 
         let items: Vec<SearchResult> = radar_res
             .addresses
             .into_iter()
-            .map(SearchResult::from)
-            .collect();
+            .map(SearchResult::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
 
         Ok(SearchResponse { items })
     }
@@ -257,29 +274,20 @@ impl Geocoder for RadarGeocoder {
             }
         }
 
+        let url = self.reverse_endpoint();
         let builder = self
             .client
-            .build_request(everymap_core::http::Method::GET, &self.reverse_base_url)
+            .build_request(everymap_core::http::Method::GET, &url)
             .query(&params);
 
-        let radar_res: RadarGeocodeResponse = self.client.request_json(builder).await?;
-
-        if radar_res.meta.code != 200 {
-            return Err(EveryMapError::provider(
-                "radar",
-                radar_res.meta.code.to_string(),
-                format!(
-                    "Reverse geocoding request failed with status {}",
-                    radar_res.meta.code
-                ),
-            ));
-        }
+        let radar_res: RadarGeocodeResponse = self.client.request_parsed_json(builder).await?;
+        ensure_success(radar_res.meta.code)?;
 
         let items: Vec<SearchResult> = radar_res
             .addresses
             .into_iter()
-            .map(SearchResult::from)
-            .collect();
+            .map(SearchResult::try_from)
+            .collect::<EveryMapResult<Vec<_>>>()?;
 
         Ok(SearchResponse { items })
     }
@@ -292,8 +300,8 @@ mod tests {
 
     fn sample_address() -> RadarAddress {
         RadarAddress {
-            latitude: 40.7128,
-            longitude: -74.0060,
+            latitude: Some(40.7128),
+            longitude: Some(-74.0060),
             geometry: None,
             country: "US".to_string(),
             country_code: "US".to_string(),
@@ -319,7 +327,7 @@ mod tests {
     #[test]
     fn test_radar_address_to_search_result_exact_confidence() {
         let addr = sample_address();
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!((result.confidence.unwrap() - 1.0).abs() < f64::EPSILON);
         assert!(matches!(result.result_type, SearchResultType::ExactMatch));
@@ -347,7 +355,7 @@ mod tests {
     fn test_radar_address_to_search_result_interpolated() {
         let mut addr = sample_address();
         addr.confidence = Some("interpolated".to_string());
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!((result.confidence.unwrap() - 0.7).abs() < f64::EPSILON);
         assert!(matches!(result.result_type, SearchResultType::Interpolated));
@@ -357,7 +365,7 @@ mod tests {
     fn test_radar_address_to_search_result_fallback() {
         let mut addr = sample_address();
         addr.confidence = Some("fallback".to_string());
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!((result.confidence.unwrap() - 0.3).abs() < f64::EPSILON);
         assert!(matches!(result.result_type, SearchResultType::Approximate));
@@ -367,7 +375,7 @@ mod tests {
     fn test_radar_address_to_search_result_unknown_confidence() {
         let mut addr = sample_address();
         addr.confidence = Some("unknown".to_string());
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!((result.confidence.unwrap() - 0.5).abs() < f64::EPSILON);
         assert!(matches!(result.result_type, SearchResultType::Unknown));
@@ -377,7 +385,7 @@ mod tests {
     fn test_radar_address_to_search_result_no_confidence() {
         let mut addr = sample_address();
         addr.confidence = None;
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!(result.confidence.is_none());
         assert!(matches!(result.result_type, SearchResultType::Unknown));
@@ -386,8 +394,8 @@ mod tests {
     #[test]
     fn test_radar_address_empty_fields() {
         let addr = RadarAddress {
-            latitude: 0.0,
-            longitude: 0.0,
+            latitude: Some(0.0),
+            longitude: Some(0.0),
             geometry: None,
             country: String::new(),
             country_code: String::new(),
@@ -408,7 +416,7 @@ mod tests {
             distance: None,
             place_label: None,
         };
-        let result: SearchResult = addr.into();
+        let result = SearchResult::try_from(addr).expect("the address converts");
 
         assert!(result.title.is_none());
         assert!(result.address.label.is_none());
@@ -422,5 +430,25 @@ mod tests {
         assert!(result.address.country_code.is_none());
         assert!(result.address.county.is_none());
         assert!(result.distance.is_none());
+    }
+
+    #[test]
+    fn a_result_without_a_coordinate_is_invalid() {
+        let mut addr = sample_address();
+        addr.latitude = None;
+        match SearchResult::try_from(addr) {
+            Err(EveryMapError::ProviderError { code, .. }) => {
+                assert_eq!(code, crate::error_mapping::INVALID_RESPONSE_CODE);
+            }
+            other => panic!("expected an invalid-response error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn quality_comes_from_the_address_layer() {
+        let mut addr = sample_address();
+        addr.layer = Some("address".to_string());
+        let result = SearchResult::try_from(addr).expect("the address converts");
+        assert_eq!(result.quality, Some(SearchQuality::StreetAddress));
     }
 }

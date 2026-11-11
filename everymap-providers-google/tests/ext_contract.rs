@@ -24,7 +24,7 @@ async fn test_positioner_ext_locate() {
     });
 
     Mock::given(method("POST"))
-        .and(path("/geolocate"))
+        .and(path("/geolocation/v1/geolocate"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -53,8 +53,8 @@ async fn test_positioner_ext_locate() {
         .await
         .unwrap();
 
-    assert_eq!(result.location.lat, 37.4220);
-    assert_eq!(result.location.lng, -122.0841);
+    assert_eq!(result.location.lat, Some(37.4220));
+    assert_eq!(result.location.lng, Some(-122.0841));
     assert_eq!(result.accuracy, 25.0);
 }
 
@@ -80,7 +80,7 @@ async fn test_attribute_ext_get_speed_limits_by_ids() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .and(query_param("placeId", "ChIJext_1"))
         .and(query_param("placeId", "ChIJext_2"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
@@ -128,7 +128,7 @@ async fn test_attribute_ext_get_speed_limits_by_ids_with_units() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .and(query_param("placeId", "ChIJmph_1"))
         .and(query_param("units", "MPH"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
@@ -180,7 +180,7 @@ async fn test_attribute_ext_get_speed_limits_along_path() {
     });
 
     Mock::given(method("GET"))
-        .and(path("/speedLimits"))
+        .and(path("/v1/speedLimits"))
         .and(query_param("path", "52.52,13.405|52.53,13.41"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
