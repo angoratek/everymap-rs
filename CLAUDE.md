@@ -126,13 +126,15 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 
 ## Build & Test Commands
 - `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 939 tests across 97 suites (unit + contract + CLI integration + error cases + bench); the run prints the current count, so never copy this number forward
-- `cargo clippy -p everymap-core -p everymap-providers-here -p everymap-providers-google -p everymap-providers-tomtom -p everymap-providers-mapbox -p everymap-providers-radar -p everymap-providers-mapquest -p everymap-providers-osrm -p everymap-providers-valhalla -p everymap-providers-url-template-raster -p everymap-providers-url-template-vector --target wasm32-unknown-unknown --lib -- -D warnings` — the browser closure
+- `cargo test` — runs 1022 tests across 102 suites (unit + contract + CLI integration + error cases + bench + doctests); 6 live-service tests stay ignored without a key. The run prints the current count, so never copy this number forward
+- `cargo clippy -p everymap-core -p everymap-providers-here -p everymap-providers-google -p everymap-providers-tomtom -p everymap-providers-mapbox -p everymap-providers-radar -p everymap-providers-mapquest -p everymap-providers-photon -p everymap-providers-osrm -p everymap-providers-valhalla -p everymap-providers-url-template-raster -p everymap-providers-url-template-vector --target wasm32-unknown-unknown --lib -- -D warnings` — the browser closure
 - `cargo build` — verify compilation
 - `cargo run -p everymap-cli -- --help` — run CLI
 - See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
 
 ## Provider Domain Coverage
+
+The table covers the five original providers; the full contract × crate matrix is in `README.md`.
 
 | Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
 |--------|-----------|------|--------|--------|--------|-------|
@@ -142,18 +144,19 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 | Matching | `RouteMatcher` | `HereRouteMatcher` | `GoogleRouteMatcher` | `TomTomRouteMatcher` | `MapBoxRouteMatcher` | `RadarRouteMatcher` |
 | Tour | `TourPlanner` | `HereTourPlanner` | stub | `TomTomTourPlanner` | `MapBoxTourPlanner` | `RadarTourPlanner` |
 | Traffic | `TrafficProvider` | `HereTraffic` | stub | `TomTomTraffic` | stub | stub |
-| Tiling | `TileProvider` | `HereTileProvider` | stub | `TomTomTileProvider` | `MapBoxTileProvider` | stub |
+| Raster tiles | `RasterTileProvider` | — | — | `TomTomTileProvider` | — | — |
+| Vector tiles | `VectorTileProvider` | `HereTileProvider` | — | — | `MapBoxTileProvider` | — |
 | Positioning | `NetworkPositioner` | `HerePositioner` | `GooglePositioner` | stub | stub | stub |
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
-**35 real implementations** across 5 providers, plus the newer crates: MapQuest (geocoding, place search, autocomplete, routing, distance matrix, traffic, raster tiles), OSRM and Valhalla (routing), the URL-template raster provider and the URL-template vector provider with the named OSM US and OpenFreeMap sources.
+**49 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic and raster tiles; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
 
 ## Provider crates and the browser
 Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows a direct `reqwest`/`tokio` dependency or reads `std::time` breaks that silently at build time or at runtime in the browser: route the request through `ProviderClient` and read time through `web-time`, and keep the crate in the browser closure in `.github/workflows/ci.yml`.
 
 ## Adding a New Provider
-1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core` only — never `reqwest` or `tokio`, whose native runtimes would break the browser target
+1. Create `everymap-providers-{name}/` crate with `Cargo.toml` depending on `everymap-core`. The provider source must not name `reqwest` or `tokio`; a dependency the generated native constructor needs is scoped to `cfg(not(target_arch = "wasm32"))`, as the keyless crates do
 2. Create `client.rs` — use the `everymap_core::provider_client!` macro (see `GoogleClient` as template; provider-specific methods like Radar's `post_json` stay as inherent impls)
 3. Create `domain/geo.rs` — shared lat/lng type
 4. Implement supported domain traits (start with `Geocoder` + `Router`)
@@ -167,11 +170,11 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 
 ## CLI Usage
 - Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand
-- `--provider here` (default) or `--provider google` or `--provider tomtom` or `--provider mapbox` or `--provider radar`
+- `--provider` is one of `here` (default), `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `osrm` or `valhalla`; Photon and the URL-template crates are library-only
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
-- Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.omv`, `map.png`)
+- Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.png` for raster, `tile.mvt` for vector, `map.png`)
 - `geocode` supports `--limit`, `--language`, `--country` (repeatable), `--bbox`
 - `reverse-geocode` supports `--limit`, `--language`, `--radius`
 - `route` supports `--transport` (car, truck, pedestrian, bicycle, scooter, bus, taxi), `--alternatives`, `--avoid` (repeatable: tolls, ferries, tunnels, highways, dirt-roads), `--departure-time`, `--arrival-time`, `--language`
@@ -179,7 +182,7 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 - `tour` supports `--departure` for ISO 8601 departure time (default: now), `--transport`
 - `isoline` supports `--range-type` (distance, time), `--departure-time`, `--avoid` (repeatable)
 - `traffic` supports `--radius`, `--include-incidents`, `--language`
-- `tile` supports `--layer` (optional; HERE: base/core/hybrid, TomTom: basic/hybrid/labels, MapBox: no layer param), `--format` — HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- `tile` supports `--variant raster|vector`, `--format` (raster: png/jpeg; vector is always MVT) and `--resolution` (standard/retina); with no variant it uses the first tile contract the provider serves. HERE and MapBox serve vector tiles, TomTom and MapQuest raster tiles. HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
 - `attributes` supports `--layer`, `--format`, `--ids`, `--include`, `--language`
 - `map-image` supports `--format`, `--language`, `--width`, `--height`
 - **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)

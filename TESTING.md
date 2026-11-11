@@ -5,7 +5,7 @@
 ```bash
 cargo test                    # Run the full suite (unit + contract + CLI integration + bench; the run prints the count)
 cargo clippy -- -D warnings   # Lint (must pass clean)
-cargo build                   # Build all 8 workspace crates
+cargo build                   # Build all 14 workspace members (13 published)
 ```
 
 ## Test Categories
@@ -81,6 +81,20 @@ Each provider crate has a `tests/` directory with per-domain contract test files
 | Radar | `tests/routing_contract.rs` | route (snake_case step fields) |
 | Radar | `tests/matching_contract.rs` | match-route |
 | Radar | `tests/tour_contract.rs` | optimization |
+| MapQuest | `tests/geocoding_contract.rs` | geocode, reverse-geocode |
+| MapQuest | `tests/place_search_contract.rs` | settled place search |
+| MapQuest | `tests/autocomplete_contract.rs` | type-ahead |
+| MapQuest | `tests/routing_contract.rs` | route with ordered waypoints |
+| MapQuest | `tests/matrix_contract.rs` | distance matrix |
+| MapQuest | `tests/traffic_contract.rs` | flow, incidents |
+| MapQuest | `tests/tiles_contract.rs` | raster tile |
+| MapQuest | `tests/errors_contract.rs` | provider error envelopes |
+| Photon | `tests/photon_contract.rs` | geocode, reverse-geocode, place search, type-ahead |
+| Photon | `tests/option_coverage.rs`, `tests/client_configuration.rs` | option handling and client configuration |
+| OSRM | `tests/routing_contract.rs` | route with ordered waypoints |
+| Valhalla | `tests/routing_contract.rs` | route with ordered waypoints |
+| URL-template raster | `tests/raster_contract.rs` | template expansion, format and resolution validation, pacing |
+| URL-template vector | `tests/vector_contract.rs` | template expansion, encoding sniffing, pacing |
 
 Run per provider:
 ```bash
@@ -89,6 +103,12 @@ cargo test -p everymap-providers-google # ~14 contract tests
 cargo test -p everymap-providers-tomtom  # ~14 contract tests
 cargo test -p everymap-providers-mapbox  # ~14 contract tests
 cargo test -p everymap-providers-radar   # ~8 contract tests
+cargo test -p everymap-providers-mapquest
+cargo test -p everymap-providers-photon
+cargo test -p everymap-providers-osrm
+cargo test -p everymap-providers-valhalla
+cargo test -p everymap-providers-url-template-raster
+cargo test -p everymap-providers-url-template-vector
 ```
 
 ### 3. Error Case Tests
@@ -156,7 +176,7 @@ cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary iso
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary match-route --trace "52.5164,13.3777;52.5170,13.3900;52.5175,13.3950" --transport car
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tour --stops "52.5163,13.3777" "52.5165,13.3810" "52.5200,13.4050"
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary position
-cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --z 14 --x 4494 --y 2832 --layer base
+cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary tile --variant vector --z 14 --x 4494 --y 2832
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary attributes --bbox "52.4,13.2;52.6,13.5" --layer roads
 cargo run -p everymap-cli -- --provider here --api-key $KEY --output summary map-image --lat 52.52 --lng 13.40 --zoom 14
 

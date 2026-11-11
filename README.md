@@ -9,11 +9,13 @@ A modular, type-safe Rust wrapper for geospatial APIs with provider abstraction.
 
 ## Overview
 
-EveryMap-RS provides one trait-based interface over eleven provider crates — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **OSRM**, **Valhalla**, and URL-template sources for any `{z}/{x}/{y}` raster or vector tileset, including the OpenStreetMap US and OpenFreeMap tilesets. Business logic targets the trait, and a provider is a constructor change rather than a rewrite.
+EveryMap-RS provides one trait-based interface over eleven provider crates — **HERE Technologies**, **Google Maps**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **Photon**, **OSRM**, **Valhalla**, and two URL-template crates that serve any `{z}/{x}/{y}` raster or vector tileset, including the named OpenStreetMap US and OpenFreeMap vector sources. Business logic targets the trait, and a provider is a constructor change rather than a rewrite.
 
-**Contracts**: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing (ordered waypoints, legs, maneuver types, instruction and speech text, lane guidance, geometry), distance matrices, isolines, map matching, tour planning, traffic flow and incidents, raster and vector tiles, elevation, geodata attributes, static map images, and offline routing.
+Every network provider has one configurable root: HERE, Google, TomTom and MapBox expose a service root per domain (`with_base_url`); Radar, MapQuest and Photon take a service or deployment root in their client configuration; OSRM and Valhalla take a deployment base URL; and the two tile crates take a source declaration. The tile crates share `everymap_core::tile_source` for template validation and expansion, zoom and index checks, and token-bucket pacing, so the raster and vector contracts agree on what a valid source is.
 
-**Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown` as well as native targets. Each provider reaches the network only through the shared client's transport seam, which is `reqwest` natively and `window.fetch` in a browser; no provider crate names `reqwest` or `tokio` itself. The CLI and the benchmark harness are native applications.
+**Contracts**: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing (ordered waypoints, legs, maneuver types, instruction and speech text, lane guidance, geometry), distance matrices, isolines, map matching, tour planning, traffic flow and incidents, network positioning, raster and vector tiles, elevation, geodata attributes, static map images, and offline routing.
+
+**Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown` as well as native targets. Each provider reaches the network only through the shared client's transport seam, which is `reqwest` natively and `window.fetch` in a browser. No provider crate's source names `reqwest` or `tokio`, and CI enforces that; the four keyless crates (OSRM, Valhalla and the two URL-template crates) keep a native-only `reqwest` dependency for the generated builder constructor, and provider test modules use `tokio` as a dev-dependency. The CLI and the benchmark harness are native applications.
 
 ## Architecture
 
@@ -80,7 +82,7 @@ implement; no provider crate serves them yet. An unsupported capability returns
 
 ### Installation
 
-EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.4.0**):
+EveryMap-RS is published on crates.io — all crates share one version cadence (currently **0.4.3**):
 
 ```bash
 # Add the core + provider crates to your project
@@ -170,7 +172,7 @@ let route = router
 > **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
 > Binary commands (`tile`, `map-image`) save to a file instead of printing to stdout. Use `--output-file` to set the path.
 
-The CLI selects every provider the workspace ships except the URL-template crates, which are library sources: a `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
+The CLI selects eight of the eleven provider crates — HERE, Google, TomTom, MapBox, Radar, MapQuest, OSRM and Valhalla. Photon and the two URL-template crates are library-only. A `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
 
 ```bash
 # HERE provider (default)
@@ -272,9 +274,9 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 - **SOLID**: Core traits have zero knowledge of provider implementations.
 - **Type-safe**: All API parameters and responses are strongly typed with serde.
 - **Dynamic dispatch ready**: Concrete option types enable `Box<dyn Trait>` for runtime provider selection.
-- **One transport seam**: Every provider sends requests through `ProviderClient`, so one crate serves native and browser targets; a provider never names `reqwest` or `tokio`, and CI enforces it.
+- **One transport seam**: Every provider sends requests through `ProviderClient`, so one crate serves native and browser targets. No provider source names `reqwest` or `tokio`, and CI enforces it; four keyless crates carry a native-only `reqwest` dependency for the generated constructor, and test modules use `tokio`.
 - **One clock**: Pacing, retries and token lifetimes read `web-time`, which is the browser's clock on `wasm32` and the system clock elsewhere.
-- **TDD**: 939 tests (unit, contract, CLI integration, error cases, bench) across 97 suites.
+- **TDD**: 1022 tests (unit, contract, CLI integration, error cases, bench, doctests) across 102 suites; six live-service tests stay ignored without a key.
 - **Portable**: Enriched core types with a `raw` escape hatch for provider-specific data.
 - **From conversions**: All providers implement `From<ProviderType> for CoreType`.
 - **Zero duplication**: Shared `ProviderClient`, `unsupported_*!` macros, unified `ProviderRegistry` dispatch.
@@ -282,7 +284,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 ## Build & Test
 
 ```bash
-cargo build                              # Build all 13 workspace crates
+cargo build                              # Build all 14 workspace members (13 published)
 cargo nextest run --all-features         # Run the full suite (install: cargo install cargo-nextest)
 cargo test                               # Alternative: standard test runner
 cargo clippy -- -D warnings              # Lint (must pass clean)

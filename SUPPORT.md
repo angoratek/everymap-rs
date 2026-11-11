@@ -14,3 +14,7 @@ For provider-specific API questions, refer to each provider's official documenta
 - [TomTom Developer Portal](https://developer.tomtom.com/)
 - [MapBox API Docs](https://docs.mapbox.com/api/)
 - [Radar API Docs](https://radar.com/documentation/api)
+- [MapQuest API Docs](https://developer.mapquest.com/documentation/)
+- [Photon](https://github.com/komoot/photon)
+- [OSRM API Docs](https://project-osrm.org/docs/v5.24.0/api/)
+- [Valhalla API Docs](https://valhalla.github.io/valhalla/api/)

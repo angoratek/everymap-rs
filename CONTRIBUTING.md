@@ -29,6 +29,7 @@ everymap-rs/
 ├── everymap-providers-mapbox/ # MapBox
 ├── everymap-providers-radar/  # Radar
 ├── everymap-providers-mapquest/            # MapQuest
+├── everymap-providers-photon/              # Photon
 ├── everymap-providers-osrm/                # OSRM
 ├── everymap-providers-valhalla/            # Valhalla
 ├── everymap-providers-url-template-raster/ # Any {z}/{x}/{y} raster source
@@ -39,9 +40,9 @@ everymap-rs/
 
 ## Adding a New Provider
 
-1. Create `everymap-providers-{name}/` crate depending on `everymap-core` — never `reqwest` or `tokio`, which would break the browser target
+1. Create `everymap-providers-{name}/` crate depending on `everymap-core`. A provider source must not name `reqwest` or `tokio`; a dependency the generated native constructor needs is scoped to `cfg(not(target_arch = "wasm32"))`, as the keyless crates do
 2. Create `client.rs` — thin wrapper around `ProviderClient` (see `GoogleClient` as template)
-3. Define `const PROVIDER_NAME: &str = "name"` in the client module
+3. Define the crate's provider-name constant (for example `GOOGLE_PROVIDER_NAME`) in the client or error-mapping module
 4. Create `domain/geo.rs` — shared lat/lng type
 5. Implement supported domain traits (start with `Geocoder` + `Router`)
 6. Add `From<ProviderX> for CoreType` conversions for all response types
@@ -80,7 +81,7 @@ See [TESTING.md](TESTING.md) for the full testing guide.
 ## Pull Request Process
 
 1. Ensure `cargo clippy -- -D warnings` passes with zero warnings
-2. Ensure `cargo test` passes (all 623 tests)
+2. Ensure `cargo test` passes (all 1022 tests)
 3. Ensure `cargo fmt --all -- --check` passes
 4. Add tests for any new functionality
 5. Update public-facing documentation (README.md, TESTING.md, CHANGELOG.md) as needed

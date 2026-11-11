@@ -1,7 +1,7 @@
 # Project Plan: EveryMap-RS (State-of-the-art Geospatial API Wrapper)
 
 ## Vision
-To build the most robust, type-safe, and modular Rust ecosystem for geospatial services. The architecture allows consumers to switch between providers (HERE, Google, TomTom, MapBox, Radar) with zero changes to business logic, utilizing a domain-driven middleware abstraction.
+To build the most robust, type-safe, and modular Rust ecosystem for geospatial services. The architecture allows consumers to switch between providers (HERE, Google, TomTom, MapBox, Radar, MapQuest, Photon, OSRM, Valhalla and URL-template tile sources) with zero changes to business logic, utilizing a domain-driven middleware abstraction.
 
 ---
 
@@ -24,29 +24,36 @@ To build the most robust, type-safe, and modular Rust ecosystem for geospatial s
 - **`everymap-providers-mapbox`**: MapBox — 7 domains implemented (search, routing, isoline, matching, tour, tiling, imaging).
 - **`everymap-providers-radar`**: Radar — 4 domains (search, routing, matching, tour).
 - **`everymap-providers-mapquest`**: MapQuest — geocoding, place search, autocomplete, navigation-grade routing, distance matrix, traffic, raster tiles.
+- **`everymap-providers-photon`**: Photon — keyless geocoding, reverse geocoding, settled place search and type-ahead over the public instance or a self-hosted deployment.
 - **`everymap-providers-osrm`**, **`everymap-providers-valhalla`**: keyless routing engines over a deployment address.
-- **`everymap-providers-url-template-raster`**, **`-vector`**: any `{z}/{x}/{y}` tileset, with named OSM US and OpenFreeMap vector sources.
-- **`everymap-cli`**: CLI tool with 11 commands, unified `ProviderRegistry` dispatch.
-- **`everymap-bench`**: Cross-provider benchmark framework with typed `ScenarioParams` dispatch.
+- **`everymap-providers-url-template-raster`**, **`-vector`**: any `{z}/{x}/{y}` tileset, with named OSM US and OpenFreeMap vector sources; both share `everymap_core::tile_source` for template validation and expansion, zoom and index checks, and pacing.
+- **`everymap-cli`**: CLI tool with 11 commands and a unified `ProviderRegistry` dispatch over HERE, Google, TomTom, MapBox, Radar, MapQuest, OSRM and Valhalla.
+- **`everymap-bench`**: Cross-provider benchmark framework with typed `ScenarioParams` dispatch over the same eight providers.
 
-Every provider crate builds for `wasm32-unknown-unknown` and reaches the network only through the shared client; the CLI and the bench stay native.
+Every provider crate builds for `wasm32-unknown-unknown` and reaches the network only through the shared client; the CLI and the bench stay native. HERE, Google, TomTom and MapBox expose a service root per domain; Radar, MapQuest and Photon take a service or deployment root in their configuration; OSRM and Valhalla take a deployment base URL; the tile crates take a source declaration.
 
 ### 2. Domain Abstraction
 
-| Domain | Core Trait | HERE | Google | TomTom | MapBox | Radar |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Search** | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Routing** | `Router` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Isolines** | `IsolineProvider` | ✅ | stub | ✅ | ✅ | stub |
-| **Matching** | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Tour** | `TourPlanner` | ✅ | stub | ✅ | ✅ | ✅ |
-| **Traffic** | `TrafficProvider` | ✅ | stub | ✅ | stub | stub |
-| **Tiling** | `TileProvider` | ✅ | stub | ✅ | ✅ | stub |
-| **Positioning** | `NetworkPositioner` | ✅ | ✅ | stub | stub | stub |
-| **Attributes** | `AttributeProvider` | ✅ | ✅ | stub | stub | stub |
-| **Imaging** | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | stub |
+| Contract | Trait | HERE | Google | TomTom | MapBox | Radar | MapQuest | Photon | OSRM | Valhalla | URL raster | URL vector |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Geocoding** | `Geocoder` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| **Place search** | `PlaceSearchProvider` | — | — | — | — | — | ✅ | ✅ | — | — | — | — |
+| **Type-ahead** | `AutocompleteProvider` | — | — | — | — | — | ✅ | ✅ | — | — | — | — |
+| **Routing** | `Router` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | — | — |
+| **Distance matrix** | `DistanceMatrixProvider` | — | — | — | — | — | ✅ | — | — | — | — | — |
+| **Traffic** | `TrafficProvider` | ✅ | — | ✅ | — | — | ✅ | — | — | — | — | — |
+| **Raster tiles** | `RasterTileProvider` | — | — | ✅ | — | — | ✅ | — | — | — | ✅ | — |
+| **Vector tiles** | `VectorTileProvider` | ✅ | — | — | ✅ | — | — | — | — | — | — | ✅ |
+| **Elevation** | `ElevationProvider` | — | — | — | — | — | — | — | — | — | — | — |
+| **Isoline** | `IsolineProvider` | ✅ | — | ✅ | ✅ | — | — | — | — | — | — | — |
+| **Matching** | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — |
+| **Tour** | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ | — | — | — | — | — | — |
+| **Positioning** | `NetworkPositioner` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
+| **Attributes** | `AttributeProvider` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
+| **Imaging** | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| **Offline routing** | `OfflineRoutingProvider` | — | — | — | — | — | — | — | — | — | — | — |
 
-**35 real implementations** across 5 providers.
+**49 real implementations** across eleven provider crates; `ElevationProvider` and `OfflineRoutingProvider` remain host-implementable contracts that no provider serves yet.
 
 ### 3. Key Design Decisions
 
@@ -55,15 +62,16 @@ Every provider crate builds for `wasm32-unknown-unknown` and reaches the network
 - **Extension traits** for provider-specific methods: `HereGeocoderExt::discover()`, etc.
 - **Feature flags** (planned): Gate providers behind compile-time features in CLI to reduce binary size.
 - **Shared workspace version**: All crates version together via `[workspace.package]` (single-cadence releases).
-- **ProviderClient consolidation**: All 5 provider clients delegate to shared `ProviderClient` from core.
-- **Unsupported domain macros**: 7 macros eliminate boilerplate stubs.
-- **Unified CLI dispatch**: `ProviderRegistry` replaces 5 duplicated command handler functions.
+- **ProviderClient consolidation**: Every provider client delegates to the shared `ProviderClient` in core; no provider source names `reqwest` or `tokio`.
+- **Unsupported domain macros**: 8 macros eliminate boilerplate stubs.
+- **Unified CLI dispatch**: `ProviderRegistry` replaces the duplicated per-provider command handlers for the eight selectable providers.
 
 ### 4. Authentication Layer
 - **`AuthProvider` Trait**: `async fn apply(&self, builder: RequestBuilder) -> Result<RequestBuilder>`
-- **`ApiKeyProvider`**: Injects API key as query param (HERE, Google, TomTom, MapBox).
+- **`ApiKeyProvider`**: Injects API key as query param (HERE, Google, TomTom, MapBox, MapQuest).
 - **`HeaderAuthProvider`**: Injects API key as Authorization header (Radar).
 - **`OAuth2Provider`**: Client-credentials flow with cached access tokens (expiry-based refresh) and `Authorization: Bearer` injection.
+- **`NoAuthProvider`**: Keyless clients for OSRM, Valhalla, Photon and the URL-template tile sources.
 
 ---
 
@@ -72,10 +80,10 @@ Every provider crate builds for `wasm32-unknown-unknown` and reaches the network
 The workspace was built across 20 implementation phases (Phases 0–19), all complete:
 
 - **Foundations**: per-domain base URLs, FlexiblePolyline decoder, core trait redesign, concrete Options refactor, `From` conversions, `HttpClient` trait.
-- **Multi-provider architecture**: all 5 provider crates (HERE 10 domains, Google 6, TomTom 8, MapBox 7, Radar 4), shared geo types, enriched errors.
-- **Architecture hardening**: unified CLI `ProviderRegistry` dispatch, `ProviderClient` extraction, 7 unsupported-domain macros, error-body truncation, shared key redaction.
+- **Multi-provider architecture**: eleven provider crates — HERE 10 contracts, Google 6, TomTom 8, MapBox 7, Radar 4, MapQuest 7, Photon 3, OSRM 1, Valhalla 1, URL-template raster 1 and URL-template vector 1 — with shared geo types and enriched errors.
+- **Architecture hardening**: unified CLI `ProviderRegistry` dispatch, `ProviderClient` extraction, 8 unsupported-domain macros, error-body truncation, shared key redaction.
 - **API accuracy**: typed `DepartureTime` enum across all providers, silent-parameter-drop warnings (24 locations), TomTom avoid wiring, HERE parameter wiring (reverse radius, imaging format, traffic language), Radar parameter wiring (search bbox, tour transport mode).
-- **Benchmark expansion**: all 10 domains, typed `ScenarioParams` dispatch, 15 scenarios, table/json/markdown output.
+- **Benchmark expansion**: all 10 benchmarked domains, typed `ScenarioParams` dispatch over 22 scenarios, table/json/markdown output.
 - **OSS readiness**: community files (SECURITY.md, CHANGELOG.md, CODE_OF_CONDUCT.md, SUPPORT.md, CODEOWNERS, FUNDING.yml), CLI validation framework (374 assertions), 9-job CI pipeline, tag-triggered release workflow, MSRV 1.86, cargo-deny audit, reqwest 0.13 migration.
 - **Roadmap completion**: OAuth2 client-credentials provider, Google Routes API v2 migration, `Moderate` severity variant, configurable image size, Radar avoid/alternatives wiring, `provider_client!` macro.
 
@@ -88,15 +96,15 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 | Workspace crates | 14 members, 13 published: core, 11 provider crates and the CLI; the bench is the unpublished member |
 | Contracts | 16: `Geocoder`, `PlaceSearchProvider`, `AutocompleteProvider`, `Router`, `DistanceMatrixProvider`, `TrafficProvider`, `RasterTileProvider`, `VectorTileProvider`, `ElevationProvider`, `IsolineProvider`, `RouteMatcher`, `TourPlanner`, `NetworkPositioner`, `AttributeProvider`, `MapImageProvider`, `OfflineRoutingProvider` |
 | Browser-ready crates | Every crate except the CLI and the bench, which are native applications |
-| Total tests | 100 suites, 935 tests green on 0.4.0 |
+| Total tests | 102 suites, 1022 tests green on 0.4.3 (6 live-service tests ignored without a key) |
 | Clippy warnings | 0 |
 | MSRV | 1.86 |
-| Version | 0.4.0 |
+| Version | 0.4.3 |
 
 ---
 
 ## Verification & Quality Gates
-- **TDD**: 935 tests across 100 suites (unit + contract + CLI integration + error cases + bench), all passing with `cargo test --workspace`
+- **TDD**: 1022 tests across 102 suites (unit + contract + CLI integration + error cases + bench + doctests), all passing with `cargo test --workspace`; 6 live-service tests stay ignored without a key
 - **SOLID**: `everymap-core` has zero knowledge of any provider crate
 - **Clippy**: `cargo clippy -- -D warnings` clean
 - **Tests**: `cargo test` all green
@@ -123,7 +131,7 @@ The workspace was built across 20 implementation phases (Phases 0–19), all com
 
 The 0.2.2-era prose still described five providers, ten traits and eight crates. The workspace now carries fourteen members, sixteen contracts and a browser target, so the documents were the largest remaining source of wrong answers — for people and for agents alike.
 
-- [x] `README.md`: the headline, provider list, workspace tree, domain matrix, crate table, installation snippet, feature list and contribution guide name all thirteen crates and every contract; add the browser transport (and that the five original providers, the CLI and the bench are native-only), the `web-time` clock, the MapQuest/OSRM/Valhalla/URL-template crates, and the 0.3.1 fixes.
+- [x] `README.md`: the headline, provider list, workspace tree, domain matrix, crate table, installation snippet, feature list and contribution guide name all thirteen crates and every contract; add the browser transport (and that the CLI and the bench are native-only), the `web-time` clock, the MapQuest/OSRM/Valhalla/URL-template crates, and the 0.3.1 fixes.
 - [x] `PLAN.md`: refresh the Architectural Blueprint (crate count, contracts, the provider matrix), the Completed Highlights and the metrics from the workspace rather than from memory.
 - [x] `CLAUDE.md`: the repository guide's architecture, commands, wasm closure and release procedure reflect the current workspace.
 - [x] `TESTING.md`, `CONTRIBUTING.md`, `SECURITY.md`, `SUPPORT.md` (round 194): provider lists, live-test instructions (including `EVERYMAP_MAPQUEST_API_KEY`), the browser matrix, and the credential/transport facts a contributor needs.
@@ -161,7 +169,7 @@ The 0.2.2-era prose still described five providers, ten traits and eight crates.
 - [x] CLI and bench (round 201): `tile` takes a raster or vector variant with the typed request's format and resolution; the bench's tile scenario measures the same two contracts.
 - [x] Documentation (round 201): one matrix in `README.md` (contracts × crates, contract vocabulary), per-crate READMEs listing what each does and does not serve, `everymap-core`'s description naming the provider family, `everymap-cli`'s description no longer counting providers, and the "Adding a provider" section stating the contract-first rule.
 - [x] Open-source hygiene (round 201): `scripts/check-open-source-hygiene.sh` scans the tracked tree in CI for credentials, personal paths and restricted terms across every published file, `PLAN.md` included.
-- [ ] Release **0.4.0** with the unified surface (this round's last step).
+- [x] Release **0.4.0** with the unified surface; the 0.4.x patch line is published through 0.4.3.
 
 
 ### M3 — Every provider runs in the browser · *status: open (owner-directed 2026-11-04)*
