@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Changed
+- The URL-template raster provider validates the requested image format and resolution against its source declaration and refuses a mismatch with a typed validation error instead of labelling the bytes with what the caller asked for. The URL template, the tile-index validation and the pacing declaration now live once in `everymap_core::tile_source`, and both URL-template providers use that one implementation.
+- `PhotonClient` gains the pacing, retry and request-timeout setters every other client has; Photon now emits the reverse-geocode language as `lang`, honours the reverse result limit, and refuses the options it cannot honour (`country_codes`, a reverse-geocode radius) with a typed validation error instead of dropping them.
+- Google, Radar, TomTom and MapBox report routing capabilities, error categories, endpoints and search quality honestly: each `route_capabilities()` names the modes and the shortest strategy it actually honours; Google's HTTP-200 `REQUEST_DENIED`/`OVER_QUERY_LIMIT` bodies map to auth and rate-limit failures; Radar status codes do the same; malformed bodies map to the parse category; each provider derives every endpoint from one configurable service root; a required response field that is missing is a typed invalid-response error instead of a substituted `(0,0)`, empty leg or zero total; routes carry legs; `SearchResult.quality` is filled from each vendor's granularity; and `raw` is omitted rather than fabricated when it cannot be serialized.
+
 ### Fixed
 - HERE traffic reads the contract's radius in metres and converts it to degrees, honours a caller-supplied `bounding_box` on both the flow and incident endpoints, propagates an incidents failure instead of returning an empty list, and refuses a query that names neither ground instead of substituting a silent default.
 - HERE routing maps every response section into a leg with its distance, duration, decoded shape and actions-derived steps, requests turn-by-turn actions by default, returns `INVALID_POLYLINE` for a malformed shape instead of a plausible empty route, and reports the seven transport modes and the shortest strategy it honours from `route_capabilities()`.
