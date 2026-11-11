@@ -55,6 +55,7 @@ pub fn default_transport() -> Arc<dyn HttpTransport> {
 #[cfg(not(target_arch = "wasm32"))]
 mod platform {
     use super::*;
+    use crate::error::EveryMapError;
     use crate::http::{HttpHeaders, Method, CONTENT_TYPE_HEADER};
     use reqwest::Method as ReqwestMethod;
 
@@ -80,6 +81,26 @@ mod platform {
     impl Default for ReqwestTransport {
         fn default() -> Self {
             Self::new()
+        }
+    }
+
+    /// One sentence describing a failed request without its URL: `reqwest`'s
+    /// own `Display` prints the URL, and a provider's credential rides in the
+    /// query string. The classification, not the backend's wording, is what a
+    /// caller can act on.
+    fn redacted_request_failure(error: &reqwest::Error) -> String {
+        if error.is_timeout() {
+            "the request timed out".to_string()
+        } else if error.is_connect() {
+            "the connection failed".to_string()
+        } else if error.is_body() {
+            "the response body could not be read".to_string()
+        } else if error.is_decode() {
+            "the response could not be decoded".to_string()
+        } else if error.is_request() {
+            "the request could not be built or sent".to_string()
+        } else {
+            "the request failed".to_string()
         }
     }
 
@@ -116,7 +137,10 @@ mod platform {
                 builder = builder.timeout(timeout);
             }
 
-            let response = builder.send().await?;
+            let response = builder
+                .send()
+                .await
+                .map_err(|error| EveryMapError::TransportError(redacted_request_failure(&error)))?;
             let status = response.status().as_u16();
             let headers = response
                 .headers()
@@ -128,7 +152,11 @@ mod platform {
                         .map(|value| (name.as_str().to_string(), value.to_string()))
                 })
                 .collect::<Vec<_>>();
-            let body = response.bytes().await?.to_vec();
+            let body = response
+                .bytes()
+                .await
+                .map_err(|error| EveryMapError::TransportError(redacted_request_failure(&error)))?
+                .to_vec();
 
             Ok(HttpResponse::new(status, HttpHeaders::new(headers), body))
         }
@@ -324,16 +352,25 @@ mod tests {
 
     #[cfg(not(target_arch = "wasm32"))]
     #[tokio::test]
-    async fn reqwest_transport_reports_connection_failures() {
+    async fn reqwest_transport_reports_connection_failures_without_the_url() {
         let transport = ReqwestTransport::new();
         let error = transport
             .send(
-                HttpRequest::get("http://127.0.0.1:1/")
+                HttpRequest::get("http://127.0.0.1:1/?key=transport-secret")
                     .timeout(std::time::Duration::from_millis(200)),
             )
             .await
             .unwrap_err();
-        assert!(matches!(error, crate::error::EveryMapError::ClientError(_)));
+        assert!(
+            matches!(&error, crate::error::EveryMapError::TransportError(_)),
+            "a transport failure keeps its transport category: {error}"
+        );
+        let text = error.to_string();
+        assert!(!text.contains("127.0.0.1"), "the URL leaked: {text}");
+        assert!(
+            !text.contains("transport-secret"),
+            "the credential leaked: {text}"
+        );
     }
 }
 

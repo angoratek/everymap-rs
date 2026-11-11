@@ -99,7 +99,7 @@ async fn request_timeout_aborts_a_slow_response() {
     let error = client.request(request).await.unwrap_err();
     assert!(matches!(
         error,
-        everymap_core::error::EveryMapError::ClientError(_)
+        everymap_core::error::EveryMapError::TransportError(_)
     ));
 }
 

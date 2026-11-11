@@ -130,6 +130,8 @@ const SENSITIVE_PARAMETER_NAMES: &[&str] = &[
     "sessionid",
     "authorization",
     "proxy-authorization",
+    "x-api-key",
+    "x-goog-api-key",
     "cookie",
     "set-cookie",
 ];
@@ -391,11 +393,18 @@ mod tests {
         let request = HttpRequest::get("https://example.test/api?apikey=url-secret")
             .query(&[("api_key", "query-secret"), ("q", "paris")])
             .header("Authorization", "Bearer header-secret")
+            .header("X-Api-Key", "header-api-key-secret")
             .header("Accept", "application/json")
             .json(&serde_json::json!({ "access_token": "body-secret" }))
             .expect("the test body serializes");
         let debug = format!("{request:?}");
-        for secret in ["url-secret", "query-secret", "header-secret", "body-secret"] {
+        for secret in [
+            "url-secret",
+            "query-secret",
+            "header-secret",
+            "header-api-key-secret",
+            "body-secret",
+        ] {
             assert!(!debug.contains(secret), "{secret} leaked through {debug}");
         }
         assert!(debug.contains("paris"), "ordinary values stay readable");
