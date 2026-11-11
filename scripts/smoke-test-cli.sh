@@ -517,7 +517,7 @@ test_here() {
     run_cli "here_position_verbose" \
         --api-key "$key" --provider here --verbose position
 
-    # Tiles (HERE tiling scheme)
+    # Tiles (HERE vector tile API: its only output segment is omv)
     for tile in "${HERE_TILES[@]}"; do
         local tname tz tx ty
         tname="$(echo "$tile" | cut -d'|' -f1)"
@@ -526,19 +526,10 @@ test_here() {
         ty="$(echo "$tile" | cut -d'|' -f4)"
 
         local tile_file
-        tile_file="$(mktemp /tmp/everymap_smoke_here_tile_${tname}_XXXXX.omv)"
-
-        run_cli_binary "here_tile_${tname}_base" "$tile_file" \
-            --api-key "$key" --provider here tile --z "$tz" --x "$tx" --y "$ty" --layer base --output-file "$tile_file"
+        tile_file="$(mktemp /tmp/everymap_smoke_here_tile_${tname}_XXXXX.mvt)"
+        run_cli_binary "here_tile_${tname}_vector" "$tile_file" \
+            --api-key "$key" --provider here tile --z "$tz" --x "$tx" --y "$ty" --variant vector --output-file "$tile_file"
         rm -f "$tile_file" 2>/dev/null
-
-        # Core layer
-        if [[ "$QUICK_MODE" == false ]]; then
-            tile_file="$(mktemp /tmp/everymap_smoke_here_tile_${tname}_core_XXXXX.omv)"
-            run_cli_binary "here_tile_${tname}_core" "$tile_file" \
-                --api-key "$key" --provider here tile --z "$tz" --x "$tx" --y "$ty" --layer core --output-file "$tile_file"
-            rm -f "$tile_file" 2>/dev/null
-        fi
     done
 
     # Attributes — various bboxes and layers
