@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.4] — 2026-11-10
 
 ### Fixed
 - Google's Routes API requests asked for `routes.travelMode`, which the v2 API does not define; every call failed with `400 INVALID_ARGUMENT` before routing. The field mask now requests only defined fields, and a route's travel mode is taken from the request.
@@ -18,7 +18,6 @@
 - `OAuth2Provider` holds its token lock only to read or replace the cached token, never across the token request, and each request carries a configurable timeout (ten seconds by default). A slow token endpoint can no longer block every capability that shares the credential.
 - Native transport failures answer a classified `TransportError` sentence instead of `reqwest`'s own message, which printed the request URL and therefore a query-string credential. Response-body read failures take the same path.
 
-### Fixed (continued)
 - TomTom honours a caller's traffic `bounding_box` and sends the incident bbox in the documented `minLon,minLat,maxLon,maxLat` order; a radius still works when no box is supplied.
 - Mapbox `permanent_geocode` sends `permanent=true`, and `batch_geocode` posts the v6 batch endpoint with every query in one request instead of issuing sequential forward lookups.
 - `scripts/check-publish-readiness.sh` fails on a crate or inter-crate dependency version that differs from the workspace version.
