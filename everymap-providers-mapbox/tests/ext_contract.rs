@@ -5,7 +5,7 @@ use everymap_providers_mapbox::ext::{MapBoxGeocoderExt, MapBoxRouterExt};
 use everymap_providers_mapbox::MapBoxGeocoder;
 use everymap_providers_mapbox::MapBoxRouter;
 use std::sync::Arc;
-use wiremock::matchers::{method, path, query_param};
+use wiremock::matchers::{body_partial_json, method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -37,6 +37,7 @@ async fn test_permanent_geocode_contract() {
     Mock::given(method("GET"))
         .and(path("/search/geocode/v6/forward"))
         .and(query_param("q", "Brandenburg Gate"))
+        .and(query_param("permanent", "true"))
         .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
         .mount(&server)
         .await;
@@ -108,18 +109,16 @@ async fn test_batch_geocode_contract() {
         ]
     });
 
-    // Since batch_geocode does sequential lookups, mount responses for each query
-    Mock::given(method("GET"))
-        .and(path("/search/geocode/v6/forward"))
-        .and(query_param("q", "Berlin"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response_1))
-        .mount(&server)
-        .await;
-
-    Mock::given(method("GET"))
-        .and(path("/search/geocode/v6/forward"))
-        .and(query_param("q", "Paris"))
-        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response_2))
+    // The batch endpoint takes every query in one POST and answers one
+    // FeatureCollection per query, in request order.
+    Mock::given(method("POST"))
+        .and(path("/search/geocode/v6/batch"))
+        .and(body_partial_json(serde_json::json!({
+            "queries": [{ "q": "Berlin" }, { "q": "Paris" }]
+        })))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "batch": [mock_response_1, mock_response_2]
+        })))
         .mount(&server)
         .await;
 

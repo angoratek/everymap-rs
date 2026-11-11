@@ -52,7 +52,10 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
         language: Option<&str>,
     ) -> EveryMapResult<super::domain::search::MapBoxSearchResponse> {
         let url = format!("{}/search/geocode/v6/forward", self.base_url);
-        let mut params: Vec<(&str, String)> = vec![("q", query.to_string())];
+        // `permanent=true` is how Mapbox v6 records a query for permanent
+        // storage; without it the same endpoint is the transient search.
+        let mut params: Vec<(&str, String)> =
+            vec![("q", query.to_string()), ("permanent", "true".to_string())];
         if let Some(lim) = limit {
             params.push(("limit", lim.to_string()));
         }
@@ -70,22 +73,33 @@ impl MapBoxGeocoderExt for super::domain::search::MapBoxGeocoder {
     async fn batch_geocode(
         &self,
         queries: &[String],
-        _language: Option<&str>,
+        language: Option<&str>,
     ) -> EveryMapResult<Vec<super::domain::search::MapBoxSearchResponse>> {
-        // MapBox batch geocoding is a separate paid API; provide individual lookups as fallback
-        let mut results = Vec::with_capacity(queries.len());
-        for query in queries {
-            let url = format!("{}/search/geocode/v6/forward", self.base_url);
-            let params: Vec<(&str, String)> = vec![("q", query.clone())];
-            let builder = self
-                .client
-                .build_request(everymap_core::http::Method::GET, &url)
-                .query(&params);
-            let result: super::domain::search::MapBoxSearchResponse =
-                self.client.request_parsed_json(builder).await?;
-            results.push(result);
+        /// The Geocoding v6 batch response: one FeatureCollection per query,
+        /// in request order.
+        #[derive(serde::Deserialize)]
+        struct MapBoxBatchGeocodeResponse {
+            #[serde(default)]
+            batch: Vec<super::domain::search::MapBoxSearchResponse>,
         }
-        Ok(results)
+
+        let query_objects: Vec<serde_json::Value> = queries
+            .iter()
+            .map(|query| {
+                let mut query_object = serde_json::json!({ "q": query });
+                if let Some(language) = language {
+                    query_object["language"] = serde_json::Value::from(language);
+                }
+                query_object
+            })
+            .collect();
+        let url = format!("{}/search/geocode/v6/batch", self.base_url);
+        let builder = self
+            .client
+            .build_request(everymap_core::http::Method::POST, &url)
+            .json(&serde_json::json!({ "queries": query_objects }))?;
+        let parsed: MapBoxBatchGeocodeResponse = self.client.request_parsed_json(builder).await?;
+        Ok(parsed.batch)
     }
 }
 
