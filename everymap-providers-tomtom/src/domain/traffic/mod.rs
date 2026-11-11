@@ -13,6 +13,14 @@ pub use types::*;
 
 const TRAFFIC_BASE_URL: &str = "https://api.tomtom.com";
 
+/// Metres per degree of latitude on a spherical Earth, used to turn a search
+/// radius into the incident endpoint's bounding box.
+const METRES_PER_DEGREE_LATITUDE: f64 = 111_000.0;
+
+/// Floor applied to the cosine of the latitude when scaling a radius into
+/// longitude degrees, so a query near a pole cannot divide by zero.
+const MINIMUM_LONGITUDE_SCALE: f64 = 0.01;
+
 /// Implementation of TrafficProvider for TomTom Traffic API.
 pub struct TomTomTraffic {
     pub(crate) client: Arc<TomTomClient>,
@@ -67,17 +75,34 @@ impl TrafficProvider for TomTomTraffic {
 
         // Get incidents if requested
         let incidents: Vec<TrafficIncident> = if options.include_incidents.unwrap_or(false) {
-            if let Some(radius) = options.radius {
-                let inc_url = format!("{}/traffic/services/5/incidentDetails", self.base_url);
-                let lat_offset = radius / 111000.0;
-                let lng_offset = radius / (111000.0 * location.lat.to_radians().cos().max(0.01));
-                let bbox = format!(
+            // TomTom's incident bbox is `minLon,minLat,maxLon,maxLat`. A
+            // caller-supplied box wins over the radius, so a map viewport asks
+            // for exactly the ground it draws.
+            let incident_bounding_box = if let Some(bounding_box) = &options.bounding_box {
+                Some(format!(
                     "{},{},{},{}",
-                    location.lat - lat_offset,
-                    location.lng - lng_offset,
-                    location.lat + lat_offset,
-                    location.lng + lng_offset
-                );
+                    bounding_box.south_west.lng,
+                    bounding_box.south_west.lat,
+                    bounding_box.north_east.lng,
+                    bounding_box.north_east.lat
+                ))
+            } else {
+                options.radius.map(|radius| {
+                    let lat_offset = radius / METRES_PER_DEGREE_LATITUDE;
+                    let lng_offset = radius
+                        / (METRES_PER_DEGREE_LATITUDE
+                            * location.lat.to_radians().cos().max(MINIMUM_LONGITUDE_SCALE));
+                    format!(
+                        "{},{},{},{}",
+                        location.lng - lng_offset,
+                        location.lat - lat_offset,
+                        location.lng + lng_offset,
+                        location.lat + lat_offset
+                    )
+                })
+            };
+            if let Some(bbox) = incident_bounding_box {
+                let inc_url = format!("{}/traffic/services/5/incidentDetails", self.base_url);
                 let inc_params: Vec<(&str, String)> = vec![
                     ("bbox", bbox),
                     ("fields", "{incidents{type,geometry{id,coordinates},severity,description,from,to,startTime,endTime}}".to_string()),

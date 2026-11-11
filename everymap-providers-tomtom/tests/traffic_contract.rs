@@ -1,10 +1,10 @@
 use everymap_core::auth::ApiKeyProvider;
 use everymap_core::domains::traffic::{IncidentSeverity, TrafficOptions, TrafficProvider};
-use everymap_core::types::Coordinate;
+use everymap_core::types::{BoundingBox, Coordinate};
 use everymap_providers_tomtom::client::TomTomClient;
 use everymap_providers_tomtom::TomTomTraffic;
 use std::sync::Arc;
-use wiremock::matchers::{method, path};
+use wiremock::matchers::{method, path, query_param};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 #[tokio::test]
@@ -130,4 +130,59 @@ async fn test_traffic_incidents_contract() {
         response.incidents[0].description,
         Some("Multi-vehicle accident on A100".to_string())
     );
+}
+
+/// A caller-supplied box drives the incident request in TomTom's
+/// `minLon,minLat,maxLon,maxLat` order and wins over a radius.
+#[tokio::test]
+async fn a_bounding_box_drives_the_incident_query_in_tomtom_order() {
+    let server = MockServer::start().await;
+
+    Mock::given(method("GET"))
+        .and(path("/traffic/services/4/flowSegmentData/absolute/10/json"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "flowSegmentData": {
+                "frc": "FRC0",
+                "currentSpeed": 30,
+                "freeFlowSpeed": 80,
+                "confidence": 0.9,
+                "roadName": "A100"
+            }
+        })))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/traffic/services/5/incidentDetails"))
+        .and(query_param("bbox", "13.3,52.4,13.5,52.6"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "incidents": []
+        })))
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "key".to_string(),
+    ));
+    let client = Arc::new(TomTomClient::new(auth));
+    let traffic = TomTomTraffic::with_base_url(client, server.uri());
+    let options = TrafficOptions {
+        bounding_box: Some(BoundingBox::new(
+            Coordinate::new(52.6, 13.5).unwrap(),
+            Coordinate::new(52.4, 13.3).unwrap(),
+        )),
+        // A radius beside a box must not win over the caller's viewport.
+        radius: Some(5_000.0),
+        include_incidents: Some(true),
+        ..TrafficOptions::default()
+    };
+
+    let response = traffic
+        .get_traffic(&Coordinate::new(52.52, 13.405).unwrap(), &options)
+        .await
+        .unwrap();
+    server.verify().await;
+    assert_eq!(response.flows.len(), 1);
+    assert!(response.incidents.is_empty());
 }
