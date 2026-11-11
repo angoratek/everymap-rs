@@ -21,6 +21,10 @@ pub const REDACTED_QUERY_PARAMETERS: &[&str] = &[
     "client_secret",
     "subscription-key",
     "auth",
+    "session",
+    "sessionid",
+    "signature",
+    "sig",
 ];
 
 /// Header names whose values must never be logged.
@@ -55,6 +59,7 @@ pub const REDACTED_RESPONSE_FIELD_NAMES: &[&str] = &[
     "session",
     "sessionid",
     "signature",
+    "sig",
 ];
 
 /// Whether transports capture a bounded response excerpt for observers.
@@ -323,10 +328,11 @@ mod tests {
 
     #[test]
     fn redacts_every_known_credential_parameter() {
-        let url = "https://example.com/route?apiKey=one&key=two&access_token=three&token=four&client_secret=five&api_key=six&subscription-key=seven&auth=eight&q=berlin";
+        let url = "https://example.com/route?apiKey=one&key=two&access_token=three&token=four&client_secret=five&api_key=six&subscription-key=seven&auth=eight&session=nine&sessionId=ten&signature=eleven&sig=twelve&q=berlin";
         let redacted = redact_url(url);
         for secret in [
-            "one", "two", "three", "four", "five", "six", "seven", "eight",
+            "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+            "eleven", "twelve",
         ] {
             assert!(
                 !redacted.contains(secret),
@@ -336,7 +342,7 @@ mod tests {
         assert!(redacted.contains("q=berlin"));
         assert_eq!(
             redacted,
-            "https://example.com/route?apiKey=***&key=***&access_token=***&token=***&client_secret=***&api_key=***&subscription-key=***&auth=***&q=berlin"
+            "https://example.com/route?apiKey=***&key=***&access_token=***&token=***&client_secret=***&api_key=***&subscription-key=***&auth=***&session=***&sessionId=***&signature=***&sig=***&q=berlin"
         );
     }
 

@@ -51,7 +51,7 @@ const USER_AGENT_HEADER_NAME: &str = "user-agent";
 ///   log line.
 /// - `user_agent` — `User-Agent` header sent with every request. An empty
 ///   value suppresses the header.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct MapQuestProviderConfiguration {
     /// Platform root URL without a service path.
     pub base_url: String,
@@ -59,6 +59,19 @@ pub struct MapQuestProviderConfiguration {
     pub api_key: String,
     /// `User-Agent` header value sent with every request.
     pub user_agent: String,
+}
+
+impl std::fmt::Debug for MapQuestProviderConfiguration {
+    /// Prints the connection settings with the consumer key redacted, so a
+    /// configuration handed to a logger never prints a credential.
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("MapQuestProviderConfiguration")
+            .field("base_url", &self.base_url)
+            .field("api_key", &"REDACTED")
+            .field("user_agent", &self.user_agent)
+            .finish()
+    }
 }
 
 impl Default for MapQuestProviderConfiguration {
@@ -376,6 +389,16 @@ mod tests {
     #[test]
     fn the_credential_parameter_name_is_the_documented_key() {
         assert_eq!(MAPQUEST_API_KEY_QUERY_PARAMETER, "key");
+    }
+
+    /// A configuration handed to a logger must not print the consumer key.
+    #[test]
+    fn the_configuration_debug_redacts_the_consumer_key() {
+        let configuration = configuration();
+        let debug = format!("{configuration:?}");
+        assert!(!debug.contains(TEST_API_KEY), "{debug}");
+        assert!(debug.contains("https://mapquest.example.test"), "{debug}");
+        assert!(debug.contains("REDACTED"), "{debug}");
     }
 
     #[tokio::test]

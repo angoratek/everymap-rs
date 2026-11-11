@@ -116,8 +116,57 @@ impl<A: AsRef<str>, B: AsRef<str>> QueryPair for &(A, B) {
     }
 }
 
+/// Query-parameter and header names whose values are credentials or session
+/// material and must never reach a log line through `Debug`.
+const SENSITIVE_PARAMETER_NAMES: &[&str] = &[
+    "key",
+    "apikey",
+    "accesstoken",
+    "token",
+    "subscription-key",
+    "signature",
+    "sig",
+    "session",
+    "sessionid",
+    "authorization",
+    "proxy-authorization",
+    "cookie",
+    "set-cookie",
+];
+
+/// Whether a parameter or header name carries a credential. Spelling variants
+/// (`api_key`, `apiKey`, `access_token`) normalize to the same comparison.
+fn is_sensitive_name(name: &str) -> bool {
+    let normalized = name.to_ascii_lowercase().replace('_', "");
+    SENSITIVE_PARAMETER_NAMES
+        .iter()
+        .any(|sensitive| *sensitive == normalized)
+}
+
+/// Replaces the value of every credential-carrying parameter in a URL's own
+/// query string with `REDACTED`, leaving the rest of the URL intact.
+fn redacted_url(url: &str) -> String {
+    let Some((base, query)) = url.split_once('?') else {
+        return url.to_string();
+    };
+    let redacted_query = query
+        .split('&')
+        .map(|pair| match pair.split_once('=') {
+            Some((name, _value)) if is_sensitive_name(name) => format!("{name}=REDACTED"),
+            Some(_) | None => pair.to_string(),
+        })
+        .collect::<Vec<_>>()
+        .join("&");
+    format!("{base}?{redacted_query}")
+}
+
 /// A single HTTP request, independent of any HTTP backend.
-#[derive(Debug, Clone, PartialEq, Eq)]
+///
+/// `Debug` redacts the values of credential-carrying query parameters and
+/// headers and the whole body, so a request handed to a logger cannot print a
+/// key, token, signature or session and cannot print a form or JSON body that
+/// carries one.
+#[derive(Clone, PartialEq, Eq)]
 pub struct HttpRequest {
     method: Method,
     url: String,
@@ -125,6 +174,47 @@ pub struct HttpRequest {
     headers: Vec<(String, String)>,
     body: Option<HttpBody>,
     timeout: Option<Duration>,
+}
+
+impl std::fmt::Debug for HttpRequest {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let redacted_query = self
+            .query
+            .iter()
+            .map(|(name, value)| {
+                let shown_value = if is_sensitive_name(name) {
+                    "REDACTED".to_string()
+                } else {
+                    value.clone()
+                };
+                (name.clone(), shown_value)
+            })
+            .collect::<Vec<_>>();
+        let redacted_headers = self
+            .headers
+            .iter()
+            .map(|(name, value)| {
+                let shown_value = if is_sensitive_name(name) {
+                    "REDACTED".to_string()
+                } else {
+                    value.clone()
+                };
+                (name.clone(), shown_value)
+            })
+            .collect::<Vec<_>>();
+        formatter
+            .debug_struct("HttpRequest")
+            .field("method", &self.method)
+            .field("url", &redacted_url(&self.url))
+            .field("query", &redacted_query)
+            .field("headers", &redacted_headers)
+            .field(
+                "body",
+                &self.body.as_ref().map(|body| body.content_type.as_str()),
+            )
+            .field("timeout", &self.timeout)
+            .finish()
+    }
 }
 
 impl HttpRequest {
@@ -292,6 +382,27 @@ mod tests {
 
         let without_query = HttpRequest::get("https://example.test/api");
         assert_eq!(without_query.url_with_query(), "https://example.test/api");
+    }
+
+    /// A request's `Debug` form is what a log line would print, so no
+    /// credential, body byte or session value may survive it.
+    #[test]
+    fn debug_redacts_credentials_in_the_url_query_headers_and_body() {
+        let request = HttpRequest::get("https://example.test/api?apikey=url-secret")
+            .query(&[("api_key", "query-secret"), ("q", "paris")])
+            .header("Authorization", "Bearer header-secret")
+            .header("Accept", "application/json")
+            .json(&serde_json::json!({ "access_token": "body-secret" }))
+            .expect("the test body serializes");
+        let debug = format!("{request:?}");
+        for secret in ["url-secret", "query-secret", "header-secret", "body-secret"] {
+            assert!(!debug.contains(secret), "{secret} leaked through {debug}");
+        }
+        assert!(debug.contains("paris"), "ordinary values stay readable");
+        assert!(
+            debug.contains("application/json"),
+            "the body's content type stays visible"
+        );
     }
 
     #[test]
