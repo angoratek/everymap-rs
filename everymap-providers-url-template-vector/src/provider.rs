@@ -13,16 +13,12 @@ use everymap_core::client::TokenBucket;
 use everymap_core::domains::tiling::{
     VectorTileData, VectorTileProvider, VectorTileSourceDescriptor,
 };
-use everymap_core::error::{EveryMapError, EveryMapResult};
+use everymap_core::error::EveryMapResult;
 use everymap_core::http::{HttpTransport, Method};
+use everymap_core::tile_source::{validate_tile_coordinates, validate_tile_source_declaration};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-
-/// Highest zoom level whose full XYZ index range still fits a `u32`
-/// (`2^zoom_level - 1 <= u32::MAX`); at deeper zooms every `u32` tile index
-/// the contract carries is valid, so the index bound check does not apply.
-const MAXIMUM_ZOOM_LEVEL_WITH_BOUNDED_TILE_INDICES: u8 = 32;
 
 /// What one URL-template vector source serves.
 ///
@@ -119,7 +115,13 @@ impl UrlTemplateVectorTileProvider {
         source: UrlTemplateVectorTileSource,
         transport: Option<Arc<dyn HttpTransport>>,
     ) -> EveryMapResult<Self> {
-        validate_source(&source)?;
+        let descriptor = &source.source_descriptor;
+        validate_tile_source_declaration(
+            &descriptor.source_name,
+            descriptor.minimum_zoom_level,
+            descriptor.maximum_zoom_level,
+            source.pacing,
+        )?;
         let url_template = UrlTemplate::new(source.url_template.clone(), &source.subdomains)?;
         let mut client = match transport {
             Some(transport) => UrlTemplateVectorClient::with_transport(transport),
@@ -139,37 +141,6 @@ impl UrlTemplateVectorTileProvider {
             source,
             client: Arc::new(client),
         })
-    }
-
-    /// Rejects tile coordinates the declared tileset cannot serve, before the
-    /// rate limiter or the network is touched.
-    fn validate_tile_coordinates(
-        &self,
-        tile_x: u32,
-        tile_y: u32,
-        zoom_level: u8,
-    ) -> EveryMapResult<()> {
-        let descriptor = &self.source.source_descriptor;
-        if zoom_level < descriptor.minimum_zoom_level || zoom_level > descriptor.maximum_zoom_level
-        {
-            return Err(EveryMapError::ValidationError(format!(
-                "zoom level {zoom_level} is outside the {}..={} range the {} vector tile source \
-                 declares",
-                descriptor.minimum_zoom_level,
-                descriptor.maximum_zoom_level,
-                descriptor.source_name
-            )));
-        }
-        if zoom_level < MAXIMUM_ZOOM_LEVEL_WITH_BOUNDED_TILE_INDICES {
-            let maximum_tile_index = (1u32 << zoom_level) - 1;
-            if tile_x > maximum_tile_index || tile_y > maximum_tile_index {
-                return Err(EveryMapError::ValidationError(format!(
-                    "tile x={tile_x} y={tile_y} exceeds the {maximum_tile_index} maximum at zoom \
-                     {zoom_level}"
-                )));
-            }
-        }
-        Ok(())
     }
 }
 
@@ -204,7 +175,15 @@ impl VectorTileProvider for UrlTemplateVectorTileProvider {
         tile_y: u32,
         zoom_level: u8,
     ) -> EveryMapResult<VectorTileData> {
-        self.validate_tile_coordinates(tile_x, tile_y, zoom_level)?;
+        let descriptor = &self.source.source_descriptor;
+        validate_tile_coordinates(
+            tile_x,
+            tile_y,
+            zoom_level,
+            descriptor.minimum_zoom_level,
+            descriptor.maximum_zoom_level,
+            &descriptor.source_name,
+        )?;
         let url = self.url_template.expand(tile_x, tile_y, zoom_level);
         let mut request = self.client.build_request(Method::Get, &url);
         for (name, value) in &self.source.headers {
@@ -213,27 +192,6 @@ impl VectorTileProvider for UrlTemplateVectorTileProvider {
         let response = self.client.request(request).await?;
         VectorTileData::from_wire_bytes(tile_x, tile_y, zoom_level, response.into_body())
     }
-}
-
-/// Validates the parts of the declaration the template validator cannot see.
-fn validate_source(source: &UrlTemplateVectorTileSource) -> EveryMapResult<()> {
-    if source.source_descriptor.source_name.trim().is_empty() {
-        return Err(EveryMapError::ValidationError(
-            "the vector tile source name must be non-empty".to_string(),
-        ));
-    }
-    if source.source_descriptor.minimum_zoom_level > source.source_descriptor.maximum_zoom_level {
-        return Err(EveryMapError::ValidationError(format!(
-            "the {} vector tile source declares the inverted zoom range {}..={}",
-            source.source_descriptor.source_name,
-            source.source_descriptor.minimum_zoom_level,
-            source.source_descriptor.maximum_zoom_level
-        )));
-    }
-    if let Some(pacing) = source.pacing {
-        pacing.validate(&source.source_descriptor.source_name)?;
-    }
-    Ok(())
 }
 
 #[cfg(test)]

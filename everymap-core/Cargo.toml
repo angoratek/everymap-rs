@@ -30,6 +30,10 @@ zeroize = { workspace = true }
 # import serves both targets.
 web-time = { workspace = true }
 
+# Parses the `{z}/{x}/{y}` tile templates both URL-template providers validate
+# and expand. The crate builds for every target, including WebAssembly.
+url = { workspace = true }
+
 # Native transport: reqwest and the full async runtime.
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 reqwest = { workspace = true }

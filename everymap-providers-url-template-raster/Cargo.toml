@@ -14,10 +14,6 @@ authors.workspace = true
 
 [dependencies]
 everymap-core = { workspace = true }
-# The validated `{z}/{x}/{y}` template and the tile-source pacing vocabulary
-# are defined once for the URL-template family; the raster source reuses them
-# rather than growing a second, drift-prone copy.
-everymap-providers-url-template-vector = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 async-trait = { workspace = true }

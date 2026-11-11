@@ -57,13 +57,13 @@ fn sample_request() -> RasterTileRequest {
         2,
         1,
         3,
-        RasterImageFormat::Jpeg,
-        RasterTileResolution::Retina,
+        RasterImageFormat::Png,
+        RasterTileResolution::Standard,
     )
 }
 
 #[tokio::test]
-async fn a_fetch_expands_the_template_and_echoes_the_requested_format_and_resolution() {
+async fn a_fetch_expands_the_template_and_echoes_the_declared_format_and_resolution() {
     let server = MockServer::start().await;
     let fixture = fixture_bytes();
     Mock::given(method("GET"))
@@ -89,9 +89,61 @@ async fn a_fetch_expands_the_template_and_echoes_the_requested_format_and_resolu
     assert_eq!(tile.tile_x, 2);
     assert_eq!(tile.tile_y, 1);
     assert_eq!(tile.zoom_level, 3);
-    assert_eq!(tile.image_format, RasterImageFormat::Jpeg);
-    assert_eq!(tile.tile_resolution, RasterTileResolution::Retina);
+    assert_eq!(tile.image_format, RasterImageFormat::Png);
+    assert_eq!(tile.tile_resolution, RasterTileResolution::Standard);
     assert_eq!(tile.image_bytes, fixture);
+}
+
+#[tokio::test]
+async fn a_format_the_source_does_not_publish_is_refused_before_any_request() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(fixture_bytes()))
+        .expect(0)
+        .mount(&server)
+        .await;
+
+    let provider = UrlTemplateRasterTileProvider::new(source_with_subdomains(&server))
+        .expect("the declared source is valid");
+    let mismatched = RasterTileRequest::new(
+        2,
+        1,
+        3,
+        RasterImageFormat::Jpeg,
+        RasterTileResolution::Standard,
+    );
+    let error = provider
+        .fetch_raster_tile(&mismatched)
+        .await
+        .expect_err("a format the source does not publish must be refused");
+    server.verify().await;
+    assert!(matches!(error, EveryMapError::ValidationError(_)));
+}
+
+#[tokio::test]
+async fn a_resolution_the_source_does_not_publish_is_refused_before_any_request() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .respond_with(ResponseTemplate::new(200).set_body_bytes(fixture_bytes()))
+        .expect(0)
+        .mount(&server)
+        .await;
+
+    let provider = UrlTemplateRasterTileProvider::new(source_with_subdomains(&server))
+        .expect("the declared source is valid");
+    let mismatched = RasterTileRequest::new(
+        2,
+        1,
+        3,
+        RasterImageFormat::Png,
+        RasterTileResolution::Retina,
+    );
+    let error = provider
+        .fetch_raster_tile(&mismatched)
+        .await
+        .expect_err("a resolution the source does not publish must be refused");
+    server.verify().await;
+    assert!(matches!(error, EveryMapError::ValidationError(_)));
 }
 
 #[tokio::test]

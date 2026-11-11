@@ -14,7 +14,8 @@
 //! with one of the source's declared subdomains or schemes; a tile always maps
 //! to the same value. Any other placeholder is refused at construction with
 //! [`everymap_core::error::EveryMapError::ValidationError`]. The template
-//! validator and the pacing vocabulary are shared with the vector source, so
+//! validator and the pacing vocabulary live in
+//! [`everymap_core::tile_source`] and are shared with the vector source, so
 //! both tile contracts agree on what a valid template is.
 //!
 //! # Requests
@@ -26,6 +27,14 @@
 //! [`everymap_core::error::EveryMapError::HttpError`] and HTTP 429 as
 //! [`everymap_core::error::EveryMapError::RateLimited`]; transient failures
 //! are retried in bounds by the shared client.
+//!
+//! # Renditions
+//!
+//! The source declaration records the image format and pixel resolution the
+//! tileset publishes. A fetch must ask for exactly those values: the provider
+//! refuses a different format or resolution with
+//! [`everymap_core::error::EveryMapError::ValidationError`] instead of
+//! returning bytes under a rendition label they do not carry.
 //!
 //! # Tiles
 //!
@@ -73,5 +82,5 @@ mod client;
 pub mod provider;
 
 pub use client::URL_TEMPLATE_RASTER_PROVIDER_NAME;
-pub use everymap_providers_url_template_vector::TileSourcePacing;
+pub use everymap_core::tile_source::TileSourcePacing;
 pub use provider::{UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource};

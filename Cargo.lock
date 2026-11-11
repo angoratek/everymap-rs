@@ -484,6 +484,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
+ "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -611,7 +612,6 @@ version = "0.4.2"
 dependencies = [
  "async-trait",
  "everymap-core",
- "everymap-providers-url-template-vector",
  "reqwest",
  "serde",
  "serde_json",
@@ -629,7 +629,6 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "url",
  "wiremock",
 ]
 

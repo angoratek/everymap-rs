@@ -14,16 +14,12 @@ use everymap_core::domains::tiling::{
 };
 use everymap_core::error::{EveryMapError, EveryMapResult};
 use everymap_core::http::{HttpTransport, Method};
-use everymap_providers_url_template_vector::url_template::UrlTemplate;
-use everymap_providers_url_template_vector::TileSourcePacing;
+use everymap_core::tile_source::{
+    validate_tile_coordinates, validate_tile_source_declaration, TileSourcePacing, UrlTemplate,
+};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
-
-/// Highest zoom level whose full XYZ index range still fits a `u32`
-/// (`2^zoom_level - 1 <= u32::MAX`); at deeper zooms every `u32` tile index
-/// the contract carries is valid, so the index bound check does not apply.
-const MAXIMUM_ZOOM_LEVEL_WITH_BOUNDED_TILE_INDICES: u8 = 32;
 
 /// What one URL-template raster source serves.
 ///
@@ -130,7 +126,12 @@ impl UrlTemplateRasterTileProvider {
         source: UrlTemplateRasterTileSource,
         transport: Option<Arc<dyn HttpTransport>>,
     ) -> EveryMapResult<Self> {
-        validate_source(&source)?;
+        validate_tile_source_declaration(
+            &source.source_name,
+            source.minimum_zoom_level,
+            source.maximum_zoom_level,
+            source.pacing,
+        )?;
         let url_template = UrlTemplate::new(source.url_template.clone(), &source.subdomains)?;
         let mut client = match transport {
             Some(transport) => UrlTemplateRasterClient::with_transport(transport),
@@ -152,35 +153,34 @@ impl UrlTemplateRasterTileProvider {
         })
     }
 
-    /// Rejects tile coordinates the declared tileset cannot serve, before the
-    /// rate limiter or the network is touched.
-    fn validate_tile_coordinates(
-        &self,
-        tile_x: u32,
-        tile_y: u32,
-        zoom_level: u8,
-    ) -> EveryMapResult<()> {
-        if zoom_level < self.source.minimum_zoom_level
-            || zoom_level > self.source.maximum_zoom_level
-        {
+    /// Rejects a request the declared tileset cannot serve, before the rate
+    /// limiter or the network is touched.
+    ///
+    /// The tileset publishes one image format and one pixel resolution. A
+    /// request for a different rendition is refused rather than answered with
+    /// bytes labelled as something they are not.
+    fn validate_request(&self, request: &RasterTileRequest) -> EveryMapResult<()> {
+        if request.image_format != self.source.image_format {
             return Err(EveryMapError::ValidationError(format!(
-                "zoom level {zoom_level} is outside the {}..={} range the {} raster tile source \
-                 declares",
-                self.source.minimum_zoom_level,
-                self.source.maximum_zoom_level,
-                self.source.source_name
+                "the {} raster tile source publishes {:?} imagery; the request asks for {:?}",
+                self.source.source_name, self.source.image_format, request.image_format
             )));
         }
-        if zoom_level < MAXIMUM_ZOOM_LEVEL_WITH_BOUNDED_TILE_INDICES {
-            let maximum_tile_index = (1u32 << zoom_level) - 1;
-            if tile_x > maximum_tile_index || tile_y > maximum_tile_index {
-                return Err(EveryMapError::ValidationError(format!(
-                    "tile x={tile_x} y={tile_y} exceeds the {maximum_tile_index} maximum at zoom \
-                     {zoom_level}"
-                )));
-            }
+        if request.tile_resolution != self.source.tile_resolution {
+            return Err(EveryMapError::ValidationError(format!(
+                "the {} raster tile source publishes {:?}-resolution tiles; the request asks \
+                 for {:?}",
+                self.source.source_name, self.source.tile_resolution, request.tile_resolution
+            )));
         }
-        Ok(())
+        validate_tile_coordinates(
+            request.tile_x,
+            request.tile_y,
+            request.zoom_level,
+            self.source.minimum_zoom_level,
+            self.source.maximum_zoom_level,
+            &self.source.source_name,
+        )
     }
 }
 
@@ -193,11 +193,13 @@ impl RasterTileProvider for UrlTemplateRasterTileProvider {
     ///
     /// # Returns
     /// The encoded tile bytes together with the format and resolution the
-    /// caller requested, so a cache key or renderer never re-derives them.
+    /// source publishes and the request asked for, so a cache key or renderer
+    /// never re-derives them.
     ///
     /// # Errors
-    /// Returns [`EveryMapError::ValidationError`] when the tile is outside the
-    /// served zoom span or index range. Returns
+    /// Returns [`EveryMapError::ValidationError`] when the request asks for a
+    /// format or resolution the source does not publish, or when the tile is
+    /// outside the served zoom span or index range. Returns
     /// [`EveryMapError::HttpError`] for a non-success status,
     /// [`EveryMapError::RateLimited`] for HTTP 429, and
     /// [`EveryMapError::TransportError`] or [`EveryMapError::ClientError`]
@@ -206,7 +208,7 @@ impl RasterTileProvider for UrlTemplateRasterTileProvider {
         &self,
         request: &RasterTileRequest,
     ) -> EveryMapResult<RasterTileData> {
-        self.validate_tile_coordinates(request.tile_x, request.tile_y, request.zoom_level)?;
+        self.validate_request(request)?;
         let url = self
             .url_template
             .expand(request.tile_x, request.tile_y, request.zoom_level);
@@ -219,25 +221,6 @@ impl RasterTileProvider for UrlTemplateRasterTileProvider {
     }
 }
 
-/// Validates the parts of the declaration the template validator cannot see.
-fn validate_source(source: &UrlTemplateRasterTileSource) -> EveryMapResult<()> {
-    if source.source_name.trim().is_empty() {
-        return Err(EveryMapError::ValidationError(
-            "the raster tile source name must be non-empty".to_string(),
-        ));
-    }
-    if source.minimum_zoom_level > source.maximum_zoom_level {
-        return Err(EveryMapError::ValidationError(format!(
-            "the {} raster tile source declares the inverted zoom range {}..={}",
-            source.source_name, source.minimum_zoom_level, source.maximum_zoom_level
-        )));
-    }
-    if let Some(pacing) = source.pacing {
-        pacing.validate(&source.source_name)?;
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::{UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource};
@@ -247,7 +230,7 @@ mod tests {
     };
     use everymap_core::error::{EveryMapError, EveryMapResult};
     use everymap_core::http::{HttpHeaders, HttpRequest, HttpResponse, HttpTransport};
-    use everymap_providers_url_template_vector::TileSourcePacing;
+    use everymap_core::tile_source::TileSourcePacing;
     use std::sync::{Arc, Mutex};
     use std::time::{Duration, Instant};
 
@@ -324,8 +307,8 @@ mod tests {
             2,
             1,
             3,
-            RasterImageFormat::Jpeg,
-            RasterTileResolution::Retina,
+            RasterImageFormat::Png,
+            RasterTileResolution::Standard,
         )
     }
 
@@ -343,7 +326,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn a_fetch_echoes_the_requested_format_and_resolution() {
+    async fn a_fetch_echoes_the_declared_format_and_resolution() {
         let provider = provider_with_transport(Arc::new(RecordingTransport::new()));
         let tile = provider
             .fetch_raster_tile(&request())
@@ -352,9 +335,55 @@ mod tests {
         assert_eq!(tile.tile_x, 2);
         assert_eq!(tile.tile_y, 1);
         assert_eq!(tile.zoom_level, 3);
-        assert_eq!(tile.image_format, RasterImageFormat::Jpeg);
-        assert_eq!(tile.tile_resolution, RasterTileResolution::Retina);
+        assert_eq!(tile.image_format, RasterImageFormat::Png);
+        assert_eq!(tile.tile_resolution, RasterTileResolution::Standard);
         assert_eq!(tile.image_bytes, SAMPLE_TILE_BYTES.to_vec());
+    }
+
+    #[tokio::test]
+    async fn a_format_the_source_does_not_publish_is_refused_without_a_request() {
+        let transport = Arc::new(RecordingTransport::new());
+        let provider = provider_with_transport(Arc::clone(&transport));
+        let mismatched = RasterTileRequest::new(
+            2,
+            1,
+            3,
+            RasterImageFormat::Jpeg,
+            RasterTileResolution::Standard,
+        );
+        let error = provider
+            .fetch_raster_tile(&mismatched)
+            .await
+            .expect_err("a format the source does not publish must be refused");
+        match error {
+            EveryMapError::ValidationError(detail) => assert!(detail.contains("Png"), "{detail}"),
+            other => panic!("expected a validation error, got {other:?}"),
+        }
+        assert_eq!(transport.requests().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn a_resolution_the_source_does_not_publish_is_refused_without_a_request() {
+        let transport = Arc::new(RecordingTransport::new());
+        let provider = provider_with_transport(Arc::clone(&transport));
+        let mismatched = RasterTileRequest::new(
+            2,
+            1,
+            3,
+            RasterImageFormat::Png,
+            RasterTileResolution::Retina,
+        );
+        let error = provider
+            .fetch_raster_tile(&mismatched)
+            .await
+            .expect_err("a resolution the source does not publish must be refused");
+        match error {
+            EveryMapError::ValidationError(detail) => {
+                assert!(detail.contains("Standard"), "{detail}");
+            }
+            other => panic!("expected a validation error, got {other:?}"),
+        }
+        assert_eq!(transport.requests().len(), 0);
     }
 
     #[tokio::test]
