@@ -116,16 +116,7 @@ impl everymap_core::domains::matching::RouteMatcher for RadarRouteMatcher {
         let mode = options
             .transport_mode
             .as_ref()
-            .map(|transport_mode| match transport_mode {
-                everymap_core::domains::routing::TransportMode::Car => "car",
-                everymap_core::domains::routing::TransportMode::Pedestrian => "foot",
-                everymap_core::domains::routing::TransportMode::Bicycle => "bike",
-                everymap_core::domains::routing::TransportMode::Truck => "truck",
-                everymap_core::domains::routing::TransportMode::Scooter => "scooter",
-                everymap_core::domains::routing::TransportMode::Bus => "bus",
-                everymap_core::domains::routing::TransportMode::Taxi => "taxi",
-                _ => "car",
-            })
+            .map(crate::domain::transport::radar_transport_mode)
             .unwrap_or("car");
 
         let body = serde_json::json!({

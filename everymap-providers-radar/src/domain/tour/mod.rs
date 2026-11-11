@@ -69,11 +69,13 @@ impl everymap_core::domains::tour::TourPlanner for RadarTourPlanner {
             ("geometry", "polyline6".to_string()),
         ];
 
-        // Read transport_mode from core field or provider_extra
+        // Read transport_mode from core field or provider_extra; the core
+        // field maps through the same table routing and matching use, so the
+        // service never receives an enum name such as "pedestrian".
         let mode = options
             .transport_mode
             .as_ref()
-            .map(|m| format!("{:?}", m).to_lowercase())
+            .map(|m| crate::domain::transport::radar_transport_mode(m).to_string())
             .or_else(|| {
                 options
                     .provider_extra

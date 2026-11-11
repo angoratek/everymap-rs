@@ -56,21 +56,7 @@ impl RadarRouter {
     }
 }
 
-fn map_transport_mode(mode: &TransportMode) -> &'static str {
-    match mode {
-        TransportMode::Car => "car",
-        TransportMode::Truck => "truck",
-        TransportMode::Pedestrian | TransportMode::Scooter => "foot",
-        TransportMode::Bicycle => "bike",
-        unsupported => {
-            log::warn!(
-                "Radar Directions API does not support transport mode {:?}, falling back to car",
-                unsupported
-            );
-            "car"
-        }
-    }
-}
+use crate::domain::transport::radar_transport_mode;
 
 /// Map core `AvoidType` values to Radar Directions API avoid features.
 /// Radar supports a comma-separated list of: tolls, highways, ferries, borderCrossings.
@@ -220,7 +206,7 @@ impl everymap_core::domains::routing::Router for RadarRouter {
         let mut params: Vec<(&str, String)> = vec![("locations", locations)];
 
         if let Some(mode) = &options.transport_mode {
-            params.push(("mode", map_transport_mode(mode).to_string()));
+            params.push(("mode", radar_transport_mode(mode).to_string()));
         }
         if let Some(avoid) = map_avoid_types(&options.avoid) {
             params.push(("avoid", avoid));
@@ -315,15 +301,6 @@ mod tests {
     use super::*;
     use crate::domain::types::{RadarGeometry, RadarLocation, RadarMetric};
     use types::{RadarDirectionsLeg, RadarDirectionsRoute, RadarDirectionsStep};
-
-    #[test]
-    fn test_map_transport_mode() {
-        assert_eq!(map_transport_mode(&TransportMode::Car), "car");
-        assert_eq!(map_transport_mode(&TransportMode::Truck), "truck");
-        assert_eq!(map_transport_mode(&TransportMode::Pedestrian), "foot");
-        assert_eq!(map_transport_mode(&TransportMode::Bicycle), "bike");
-        assert_eq!(map_transport_mode(&TransportMode::Scooter), "foot");
-    }
 
     #[test]
     fn test_map_avoid_types() {

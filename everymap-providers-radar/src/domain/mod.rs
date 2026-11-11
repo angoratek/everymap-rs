@@ -3,6 +3,7 @@ pub mod matching;
 pub mod routing;
 pub mod search;
 pub mod tour;
+pub mod transport;
 pub mod types;
 pub mod unsupported;
 
