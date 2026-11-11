@@ -60,6 +60,8 @@ async fn main() {
 
 ## Provider-specific features
 
-Extension traits expose Radar-only capabilities: `RadarSearchExt` (autocomplete, IP geocoding, address validation), `RadarGeocoderExt`, `RadarRouterExt` (distance matrix), and `RadarMatchingExt`, plus `RadarChain` and `RadarPlace` types for place/chain search.
+Extension traits expose Radar-only capabilities beyond the core contracts: `RadarGeocoderExt` (autocomplete, IP geocoding, address validation), `RadarSearchExt` (place and chain search), `RadarRouterExt` (distance and matrix endpoints) and `RadarMatchingExt` (route matching with road attributes), plus the `RadarPlace` and `RadarChain` types. These surfaces are specific to Radar; the core place-search, type-ahead and distance-matrix contracts stay unimplemented.
 
-Field naming quirks are mapped internally (routing steps use `snake_case`, legs use `camelCase`); core `avoid` and `alternatives` fields are currently only usable via the `provider_extra` escape hatch.
+Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to `https://api.radar.io`.
+
+Core `avoid` (tolls, highways and ferries) and `alternatives` are wired to the Directions API; a `provider_extra` value overrides either. The response envelope's `meta.code` maps 401 and 403 to `AuthError`, 429 to `RateLimited`, and every other non-200 code to `ProviderError` carrying the numeric code. A payload that decodes as JSON but lacks a required field is `ProviderError` with code `INVALID_RESPONSE`; a body that does not decode is a serialization error. `raw` is populated on address results and tour responses and left unset on routing and matching results. Field naming quirks are mapped internally (routing steps use `snake_case`, legs use `camelCase`).

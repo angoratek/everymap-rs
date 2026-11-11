@@ -54,4 +54,6 @@ async fn main() {
 
 Extension traits: `TomTomGeocoderExt` (reverse geocoding with rich TomTom result types) and `TomTomTrafficExt` (flow segment data and incident details).
 
-Provider quirks are handled internally so core types just work: reverse geocoding returns `addresses`, isolines use `distanceBudgetInMeters`/`timeBudgetInSec` budgets, match-route uses the `/snapToRoads/1/snap` endpoint with longitude-first coordinates, tour optimization uses the Waypoint Optimization API (`optimizedOrder`), and core `AvoidType` values map to TomTom's `avoid*` parameters.
+Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to TomTom's public host.
+
+Provider quirks are handled internally so core types just work: reverse geocoding returns `addresses`, isolines use `distanceBudgetInMeters`/`timeBudgetInSec` budgets, match-route uses the `/snapToRoads/1/snap` endpoint with longitude-first coordinates, tour optimization uses the Waypoint Optimization API (`optimizedOrder`), and core `AvoidType` values become the service's `avoid` values (`tollRoads`, `ferries`, `tunnels`, `motorways`, `unpavedRoads`).

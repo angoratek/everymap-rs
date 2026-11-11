@@ -31,7 +31,9 @@ cargo add everymap-providers-url-template-raster everymap-core
 ## Quick start
 
 ```rust
-use everymap_core::domains::tiling::{RasterImageFormat, RasterTileProvider, RasterTileResolution};
+use everymap_core::domains::tiling::{
+    RasterImageFormat, RasterTileProvider, RasterTileRequest, RasterTileResolution,
+};
 use everymap_providers_url_template_raster::{
     UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource,
 };
@@ -53,8 +55,17 @@ async fn main() {
         pacing: None,
     })
     .expect("the source declaration is valid");
-    let tile = provider.fetch_raster_tile(1, 2, 3).await.expect("the tile is served");
-    println!("{} bytes", tile.tile_bytes.len());
+    let tile = provider
+        .fetch_raster_tile(&RasterTileRequest::new(
+            1,
+            2,
+            3,
+            RasterImageFormat::Png,
+            RasterTileResolution::Standard,
+        ))
+        .await
+        .expect("the tile is served");
+    println!("{} bytes", tile.image_bytes.len());
 }
 ```
 

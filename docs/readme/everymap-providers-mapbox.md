@@ -53,4 +53,6 @@ async fn main() {
 
 Extension traits: `MapBoxGeocoderExt` (Search Box v6 with `properties`-based results: `full_address`, `name`, `coordinates`, `bbox`, `context`) and `MapBoxRouterExt`.
 
+Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to MapBox's public host.
+
 The tour planner selects the Optimization API profile (`driving`/`walking`/`cycling`) from `TourOptions::transport_mode`. Static images use the default `streets-v12` style with no file extension in the URL, and vector tiles use the Vector Tiles API's MVT form.

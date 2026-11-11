@@ -64,4 +64,6 @@ async fn main() {
 
 Extension traits: `GoogleAttributeExt` (Roads API speed limits) and `GooglePositionerExt` (Geolocation API with cell-tower and Wi-Fi inputs).
 
-Routing uses the legacy Directions API (the recommended Routes API v2 upgrade is on the roadmap). Unsupported option fields are never silently dropped — unsupported combinations emit `log::warn!` or are handled post-response (e.g. geocode `limit`).
+Routing uses the Routes API v2 (`computeRoutes`). Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to the vendor's public host for that API.
+
+Google's in-body `status` maps `REQUEST_DENIED` to `AuthError`, `OVER_QUERY_LIMIT` and `OVER_DAILY_LIMIT` to `RateLimited`, and every other non-success status to `ProviderError` carrying the status verbatim. A payload that decodes as JSON but lacks a required field is `ProviderError` with code `INVALID_RESPONSE`. `raw` is populated on geocode results and left unset on routing, matching and positioning results. Unsupported option fields are never silently dropped — unsupported combinations emit `log::warn!` or are handled post-response (e.g. geocode `limit`).

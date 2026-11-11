@@ -39,14 +39,22 @@ let response = geocoder.geocode("Brandenburg Gate, Berlin", &GeocodeOptions::def
 | Contract | Trait | Implementation |
 |---|---|---|
 | Geocoding | `Geocoder` | `PhotonGeocoder`, forward and reverse queries over `/api` and `/reverse` |
-| Place search | `PlaceSearchProvider` | `PhotonPlaceSearchProvider`, settled search with a ten-result cap |
-| Type-ahead | `AutocompleteProvider` | `PhotonAutocompleteProvider`, type-ahead with a five-result cap |
+| Place search | `PlaceSearchProvider` | `PhotonPlaceSearchProvider`, settled search defaulting to ten results |
+| Type-ahead | `AutocompleteProvider` | `PhotonAutocompleteProvider`, type-ahead defaulting to five results |
 
 Not served: routing, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
-Feature classes map onto the core's `SearchQuality` scale (`house` →
-street address, `street`, `locality`/`city`, `county`, `state`, `country`,
-`postcode`), and each feature's address parts fill the core `Address` record.
+Feature classes map onto the core's `SearchQuality` scale (`house`/`building` →
+street address, `street`, `locality`/`district`/`city`/`town`/`village`,
+`county`, `state`, `country`, `postcode`; any other class is a point), and
+each feature's address parts fill the core `Address` record.
+
+`PhotonClient` carries the shared pipeline setters — `set_observer`,
+`set_rate_limiter`, `set_retry_policy`, `set_request_timeout` and
+`with_transport` — so a deployment's budget and diagnostics match every other
+provider. The geocoder sends a reverse language as `lang`, honours the reverse
+result limit, and refuses `country_codes` and a reverse-geocode radius with a
+validation error instead of dropping them.
 
 ## Targets
 

@@ -12,7 +12,7 @@ Contracts: geocoding and reverse geocoding, settled place search, type-ahead com
 
 # everymap-cli
 
-Unified command-line interface for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — one binary and 11 geospatial commands. It selects **HERE**, **Google**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **OSRM** and **Valhalla**; the URL-template raster and vector crates are available through the library. A provider answers a command it cannot serve with the documented unsupported-domain error.
+Unified command-line interface for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — one binary and 11 geospatial commands. It selects **HERE**, **Google**, **TomTom**, **MapBox**, **Radar**, **MapQuest**, **OSRM** and **Valhalla**; **Photon** and the URL-template raster and vector crates are available through the library. A provider answers a command it cannot serve with the documented unsupported-domain error.
 
 ## Installation
 
@@ -37,6 +37,28 @@ Prebuilt binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silicon, 
 | `tile` | Download a raster or vector map tile to a file (`--variant raster\|vector`) |
 | `attributes` | Geodata attributes (e.g. HERE roads, buildings, landmarks) |
 | `map-image` | Save a static map image to a file |
+
+## Provider support by command
+
+A command a provider cannot serve answers with the documented unsupported-domain error instead of an invented result.
+
+| Command | HERE | Google | TomTom | MapBox | Radar | MapQuest | OSRM | Valhalla |
+|---|---|---|---|---|---|---|---|---|
+| `geocode` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| `reverse-geocode` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | — | — |
+| `route` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| `traffic` | ✅ | — | ✅ | — | — | ✅ | — | — |
+| `position` | ✅ | ✅ | — | — | — | — | — | — |
+| `isoline` | ✅ | — | ✅ | ✅ | — | — | — | — |
+| `match-route` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — |
+| `tour` | ✅ | — | ✅ | ✅ | ✅ | — | — | — |
+| `tile` | ✅ vector | — | ✅ raster | ✅ vector | — | ✅ raster | — | — |
+| `attributes` | ✅ | ✅ | — | — | — | — | — | — |
+| `map-image` | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+
+`tile` takes `--variant raster|vector`; with no variant it uses the first tile contract the provider serves. A raster request also takes `--format png|jpeg` and `--resolution standard|retina`, while a vector request is always MVT; a provider that does not publish the requested rendition refuses it with a validation error. Photon and the two URL-template crates are library-only and are not selectable with `--provider`.
+
+OSRM and Valhalla are keyless: the `--api-key` slot carries the deployment base URL, and an empty value reaches the crate's documented local default. HERE, Google, TomTom, MapBox and MapQuest authenticate with an API key, and Radar uses an `Authorization` header.
 
 ## Usage
 

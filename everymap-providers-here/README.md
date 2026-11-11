@@ -66,7 +66,7 @@ async fn main() {
 
 ## Provider-specific features
 
-Every contract HERE serves has an implementation, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes).
+Every contract HERE serves has an implementation, and each domain module carries HERE-specific rich types (e.g. `HereRouteOptions` with EV, fuel, truck, and driver parameters; `HereMatchedRoute` for Route Matching v8 with compound `fastest;car;traffic:disabled` modes). Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to HERE's public host for that API.
 
 Extension traits expose HERE-only capabilities beyond the core traits: `HereGeocoderExt` (rich Search API discovery, e.g. `discover()`), `HereTrafficExt`, `HerePositionerExt`, `HereTourPlannerExt`, and `HereAttributeExt`.
 
