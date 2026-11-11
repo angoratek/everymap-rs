@@ -76,10 +76,10 @@ impl UrlTemplateVectorTileProvider {
     /// A provider ready to fetch tiles.
     ///
     /// # Errors
-    /// Returns [`EveryMapError::ValidationError`] when the descriptor names no
-    /// source, declares an inverted zoom range or an unusable pacing, or when
-    /// the template is malformed. See [`UrlTemplate::new`] for the template
-    /// rules.
+    /// Returns [`EveryMapError::ValidationError`](everymap_core::error::EveryMapError::ValidationError)
+    /// when the descriptor names no source, declares an inverted zoom range or
+    /// an unusable pacing, or when the template is malformed. See
+    /// [`UrlTemplate::new`] for the template rules.
     pub fn new(source: UrlTemplateVectorTileSource) -> EveryMapResult<Self> {
         Self::build(source, None)
     }
@@ -163,11 +163,15 @@ impl VectorTileProvider for UrlTemplateVectorTileProvider {
     /// payloads from their magic bytes.
     ///
     /// # Errors
-    /// Returns [`EveryMapError::ValidationError`] when the tile is outside the
-    /// served zoom span or index range, or when the payload is empty.
-    /// Returns [`EveryMapError::HttpError`] for a non-success status,
-    /// [`EveryMapError::RateLimited`] for HTTP 429, and
-    /// [`EveryMapError::TransportError`] or [`EveryMapError::ClientError`]
+    /// Returns [`EveryMapError::ValidationError`](everymap_core::error::EveryMapError::ValidationError)
+    /// when the tile is outside the served zoom span or index range, or when
+    /// the payload is empty. Returns
+    /// [`EveryMapError::HttpError`](everymap_core::error::EveryMapError::HttpError)
+    /// for a non-success status,
+    /// [`EveryMapError::RateLimited`](everymap_core::error::EveryMapError::RateLimited)
+    /// for HTTP 429, and
+    /// [`EveryMapError::TransportError`](everymap_core::error::EveryMapError::TransportError)
+    /// or [`EveryMapError::ClientError`](everymap_core::error::EveryMapError::ClientError)
     /// when no response arrives.
     async fn fetch_vector_tile(
         &self,
