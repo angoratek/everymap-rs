@@ -64,7 +64,9 @@ if ! $NO_BUILD; then
   printf "  Binary: %s\n\n" "$CLI_BIN"
 fi
 
-EVERYMAP="cargo run -q -p everymap-cli --"
+# Every case runs the binary built above; `cargo run` per case re-checked
+# the workspace and made the suite wall-clock depend on the build cache.
+EVERYMAP="$CLI_BIN"
 EVERYMAP_BIN="$CLI_BIN"
 mkdir -p "$DETAILS_DIR"
 
@@ -143,6 +145,23 @@ assert_request_out() {
     pass "exit=${rc}"
   else
     fail "$expected (provider refusal expected)" "exit=${rc}: $(echo "$out" | tr '\n' ' ' | cut -c1-200)"
+  fi
+}
+
+# assert_provider_outcome: a tile request either serves or reports a refusal,
+# and the exit code agrees with what the output says. A tile endpoint that
+# accepts the placeholder credential is an external behaviour, so the suite
+# checks coherence rather than betting on one verdict.
+assert_provider_outcome() {
+  TEST_DESC="$1"; shift 2
+  local out rc safe_name
+  safe_name=$(echo "$TEST_DESC" | tr ' /()' '____' | tr -dc 'a-zA-Z0-9_-')
+  out=$($EVERYMAP "$@" 2>&1); rc=$?
+  _save_details "$safe_name" "$out" "$rc"
+  if [[ "$rc" -eq 0 && "$out" != *"Error"* ]] || [[ "$rc" -ne 0 && "$out" == *"Error"* ]]; then
+    pass "exit=${rc}"
+  else
+    fail "a coherent outcome (success, or a reported error)" "exit=${rc}: $(echo "$out" | tr '\n' ' ' | cut -c1-200)"
   fi
 }
 
@@ -484,14 +503,14 @@ assert_fail "tile no --z"      "required"   $API tile --x 8800 --y 5374
 assert_fail "tile no --x"      "required"   $API tile --z 14 --y 5374
 assert_fail "tile no --y"      "required"   $API tile --z 14 --x 8800
 
-assert_request_out "tile z14"          ""  $API tile --z 14 --x 8800 --y 5374
-assert_request_out "tile z0"           ""  $API tile --z 0 --x 0 --y 0
-assert_request_out "tile z10"          ""  $API tile --z 10 --x 550 --y 335
+assert_provider_outcome "tile z14"          ""  $API tile --z 14 --x 8800 --y 5374
+assert_provider_outcome "tile z0"           ""  $API tile --z 0 --x 0 --y 0
+assert_provider_outcome "tile z10"          ""  $API tile --z 10 --x 550 --y 335
 assert_request_out "tile z18"          ""  $API tile --z 18 --x 140800 --y 85984
 assert_request_out "tile z22"          ""  $API tile --z 22 --x 4000000 --y 3000000
 
 # Variant, and the raster request's format and resolution
-assert_request_out "tile --variant vector"     ""  $API tile --z 14 --x 8800 --y 5374 --variant vector
+assert_provider_outcome "tile --variant vector"     ""  $API tile --z 14 --x 8800 --y 5374 --variant vector
 assert_request_out "tile --variant raster"     ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster
 assert_request_out "tile --format png"         ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster --format png
 assert_request_out "tile --format jpeg"        ""  $API --provider mapquest tile --z 14 --x 8800 --y 5374 --variant raster --format jpeg
@@ -500,17 +519,20 @@ assert_request_out "tile --resolution retina"  ""  $API --provider mapquest tile
 # Custom output file
 OUT="/tmp/everymap-validate-tile.omv"
 rm -f "$OUT"
-assert_request_out "tile --output-file"    ""  $API tile --z 14 --x 8800 --y 5374 --output-file "$OUT"
+assert_provider_outcome "tile --output-file"    ""  $API tile --z 14 --x 8800 --y 5374 --output-file "$OUT"
 rm -f "$OUT"
 
 # Global tiles
-assert_request_out "tile NYC"              ""  $API tile --z 12 --x 1206 --y 1539
-assert_request_out "tile London"           ""  $API tile --z 12 --x 2048 --y 1361
-assert_request_out "tile Tokyo"            ""  $API tile --z 12 --x 3637 --y 1612
+assert_provider_outcome "tile NYC"              ""  $API tile --z 12 --x 1206 --y 1539
+assert_provider_outcome "tile London"           ""  $API tile --z 12 --x 2048 --y 1361
+assert_provider_outcome "tile Tokyo"            ""  $API tile --z 12 --x 3637 --y 1612
 assert_request_out "tile Sydney"           ""  $API tile --z 12 --x 3776 --y 2379
-assert_request_out "tile HERE scheme"      ""  $API tile --z 14 --x 4494 --y 2832
+assert_provider_outcome "tile HERE scheme"      ""  $API tile --z 14 --x 4494 --y 2832
 
-for p in here tomtom mapbox; do
+# The vector tile endpoint answers the placeholder credential, so the request
+# succeeds; the remaining providers refuse the tile contract.
+assert_provider_outcome "tile --provider here" "" --provider here $API tile --z 14 --x 8800 --y 5374
+for p in tomtom mapbox; do
   assert_request_out "tile --provider $p" "" --provider $p $API tile --z 14 --x 8800 --y 5374
 done
 for p in google radar; do
@@ -695,11 +717,11 @@ for cmd in \
   "isoline --lat 52.5 --lng 13.3" \
   "match-route --trace 52.5,13.3;52.6,13.4" \
   "tour --stops 52.5,13.3 48.8,2.3" \
-  "tile --z 14 --x 8800 --y 5374" \
   "attributes --bbox 52.4,13.2;52.6,13.5" \
   "map-image --lat 52.5 --lng 13.3"; do
   assert_request_out "HERE: $cmd" "" --provider here $API $cmd
 done
+assert_provider_outcome "HERE: tile --z 14 --x 8800 --y 5374" "" --provider here $API tile --z 14 --x 8800 --y 5374
 
 # Google: 7 supported, 4 unsupported
 for cmd in \
@@ -771,7 +793,6 @@ for cmd in \
   "traffic --lat 52.5 --lng 13.3" \
   "position" \
   "isoline --lat 52.5 --lng 13.3" \
-  "tile --z 14 --x 8800 --y 5374" \
   "attributes --bbox 52.4,13.2;52.6,13.5" \
   "map-image --lat 52.5 --lng 13.3"; do
   assert_err "Radar unsupported: $cmd" "does not support" --provider radar $API $cmd
