@@ -1,5 +1,12 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- HERE traffic reads the contract's radius in metres and converts it to degrees, honours a caller-supplied `bounding_box` on both the flow and incident endpoints, propagates an incidents failure instead of returning an empty list, and refuses a query that names neither ground instead of substituting a silent default.
+- HERE routing maps every response section into a leg with its distance, duration, decoded shape and actions-derived steps, requests turn-by-turn actions by default, returns `INVALID_POLYLINE` for a malformed shape instead of a plausible empty route, and reports the seven transport modes and the shortest strategy it honours from `route_capabilities()`.
+- HERE matching and isoline responses require their documented fields instead of applying `serde(default)`; a missing response, position coordinate, isoline or range is a typed `DESERIALIZATION_ERROR`.
+
 ## [0.4.2] — 2026-11-06
 
 ### Added

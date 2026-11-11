@@ -205,6 +205,10 @@ fn live_here_route_pedestrian() {
         .stdout(predicate::str::contains("\"routes\""));
 }
 
+/// The radius the traffic commands ask for. HERE Traffic has no default
+/// area, so the command names the ground it wants.
+const HERE_TRAFFIC_RADIUS_METRES: &str = "5000";
+
 #[test]
 fn live_here_traffic() {
     let api_key = match get_here_api_key() {
@@ -221,6 +225,8 @@ fn live_here_traffic() {
             BERLIN_LAT,
             "--lng",
             BERLIN_LNG,
+            "--radius",
+            HERE_TRAFFIC_RADIUS_METRES,
         ])
         .assert()
         .success()
@@ -498,6 +504,8 @@ fn live_here_traffic_summary() {
             BERLIN_LAT,
             "--lng",
             BERLIN_LNG,
+            "--radius",
+            HERE_TRAFFIC_RADIUS_METRES,
         ])
         .assert()
         .success()
