@@ -425,7 +425,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-bench"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "chrono",
  "clap",
@@ -445,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-cli"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "assert_cmd",
  "async-trait",
@@ -469,7 +469,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-core"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-providers-google",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-google"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -510,7 +510,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-here"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -526,7 +526,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-mapbox"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -540,7 +540,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-mapquest"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -553,7 +553,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-osrm"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -567,7 +567,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-photon"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -580,7 +580,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-radar"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-tomtom"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-url-template-raster"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -621,7 +621,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-url-template-vector"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",
@@ -634,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "everymap-providers-valhalla"
-version = "0.4.4"
+version = "0.4.5"
 dependencies = [
  "async-trait",
  "everymap-core",

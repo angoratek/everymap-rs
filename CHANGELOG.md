@@ -1,8 +1,9 @@
 # Changelog
 
-## [0.4.4] — 2026-11-10
+## [0.4.5] — 2026-11-10
 
 ### Fixed
+- The CLI validation suite expects the provider refusal its placeholder key causes, so a refused request counts as the expected structural outcome instead of a failure.
 - Google's Routes API requests asked for `routes.travelMode`, which the v2 API does not define; every call failed with `400 INVALID_ARGUMENT` before routing. The field mask now requests only defined fields, and a route's travel mode is taken from the request.
 - Radar sent `pedestrian`, `scooter` or an enum name as the travel mode on tour planning and other values on matching, because three endpoints carried three tables. One shared mapping now serves routing, matching and tour planning, mapping every Radar-served mode and warning on the rest.
 - `HttpRequest`'s derived `Debug` printed authorization headers, credential-bearing query parameters and request bodies. Its `Debug` now redacts those values and the whole body, so a request handed to a logger cannot print a key, token, signature or session.
