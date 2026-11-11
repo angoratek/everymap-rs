@@ -3,7 +3,9 @@ use serde::{Deserialize, Serialize};
 /// Full response from the HERE Isoline Routing API v8.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HereIsolineApiResponse {
-    #[serde(default)]
+    /// The reachability polygons the service computed. The service always
+    /// reports them, so a payload without this field is not an isoline
+    /// response.
     pub isolines: Vec<HereIsoline>,
     #[serde(default)]
     pub departures: Vec<HereDeparture>,
@@ -12,7 +14,7 @@ pub struct HereIsolineApiResponse {
 /// A single isoline (reachability polygon).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HereIsoline {
-    #[serde(default)]
+    /// The range this polygon covers. Every isoline carries one.
     pub range: HereIsolineRange,
     #[serde(default)]
     pub polygons: Vec<HerePolygon>,
@@ -21,19 +23,18 @@ pub struct HereIsoline {
 }
 
 /// Range for an isoline.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HereIsolineRange {
-    #[serde(default, rename = "type")]
-    pub range_type: Option<String>,
-    #[serde(default)]
-    pub value: Option<f64>,
+    #[serde(rename = "type")]
+    pub range_type: String,
+    pub value: f64,
 }
 
 /// A polygon within an isoline.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HerePolygon {
-    #[serde(default)]
-    pub outer: Option<String>,
+    /// The encoded outer ring. A polygon without a ring is not usable.
+    pub outer: String,
     #[serde(default)]
     pub holes: Option<Vec<String>>,
 }

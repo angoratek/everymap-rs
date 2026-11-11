@@ -110,17 +110,16 @@ impl HereIsoline {
 /// Wire format: `{"isolines": [{"range": {"type": "...", "value": N}, "polygons": [{"outer": "BFPol..."}]}]}`
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacyResponse {
-    #[serde(default)]
     isolines: Vec<HereIsolineLegacy>,
 }
 
 #[derive(Debug, Deserialize)]
 struct HereIsolineLegacy {
-    #[serde(default)]
-    range: Option<HereApiIsolineRange>,
+    range: HereApiIsolineRange,
+    // The v8 format reports polygon rings; the older `polyline` field stays as
+    // an alternative shape, so neither is required on its own.
     #[serde(default)]
     polygons: Vec<HereIsolinePolygon>,
-    // Also support the old "polyline" field for backward compatibility
     #[serde(default)]
     polyline: Option<HereIsolinePolyline>,
 }
@@ -128,34 +127,33 @@ struct HereIsolineLegacy {
 #[derive(Debug, Deserialize)]
 #[allow(dead_code)] // Deserialize-only struct; fields only accessed via serde derive
 struct HereApiIsolineRange {
-    #[serde(default)]
     #[serde(rename = "type")]
-    type_: Option<String>,
-    #[serde(default)]
-    value: Option<f64>,
+    type_: String,
+    value: f64,
 }
 
 #[derive(Debug, Deserialize)]
 struct HereIsolinePolygon {
-    #[serde(default)]
-    outer: Option<String>,
+    outer: String,
 }
 
 #[derive(Debug, Deserialize)]
 struct HereIsolinePolyline {
-    #[serde(default)]
-    outer: Option<String>,
+    outer: String,
 }
 
 impl From<HereIsolineLegacy> for IsolineResult {
     fn from(iso: HereIsolineLegacy) -> Self {
+        let HereIsolineLegacy {
+            range,
+            polygons,
+            polyline,
+        } = iso;
         // Try "polygons[].outer" first (v8 format), fall back to "polyline.outer"
-        let encoded = iso
-            .polygons
-            .iter()
-            .filter_map(|p| p.outer.as_ref())
-            .next()
-            .or_else(|| iso.polyline.as_ref().and_then(|p| p.outer.as_ref()));
+        let encoded = polygons
+            .first()
+            .map(|polygon| &polygon.outer)
+            .or_else(|| polyline.as_ref().map(|polyline| &polyline.outer));
 
         let polygon = encoded
             .map(|enc| {
@@ -163,9 +161,10 @@ impl From<HereIsolineLegacy> for IsolineResult {
             })
             .unwrap_or_default();
 
-        let range = iso.range.and_then(|r| r.value);
-
-        Self { range, polygon }
+        Self {
+            range: Some(range.value),
+            polygon,
+        }
     }
 }
 

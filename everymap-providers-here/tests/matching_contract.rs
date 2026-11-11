@@ -1,5 +1,6 @@
 use everymap_core::auth::ApiKeyProvider;
 use everymap_core::domains::matching::{MatchingOptions, RouteMatcher};
+use everymap_core::error::EveryMapError;
 use everymap_core::types::Coordinate;
 use everymap_providers_here::client::HereClient;
 use everymap_providers_here::domain::matching::HereRouteMatcher;
@@ -124,4 +125,80 @@ async fn test_matching_with_options() {
 
     assert_eq!(response.distance, 250.0);
     assert_eq!(response.matched_points.len(), 2);
+}
+
+#[tokio::test]
+async fn a_response_without_the_required_body_is_a_deserialization_error() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/match/routelinks"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({})))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
+    let client = Arc::new(HereClient::new(auth));
+    let matcher = HereRouteMatcher::with_base_url(client, server.uri());
+
+    let points = vec![
+        Coordinate::new(52.52, 13.405).unwrap(),
+        Coordinate::new(52.53, 13.41).unwrap(),
+    ];
+    let error = matcher
+        .match_route(&points, &MatchingOptions::default())
+        .await
+        .expect_err("a payload without a response must not project");
+
+    match error {
+        EveryMapError::ProviderError { provider, code, .. } => {
+            assert_eq!(provider, "here");
+            assert_eq!(code, "DESERIALIZATION_ERROR");
+        }
+        other => panic!("expected the deserialization provider error, got {other}"),
+    }
+}
+
+#[tokio::test]
+async fn a_waypoint_without_a_position_is_a_deserialization_error() {
+    let server = MockServer::start().await;
+    let mock_response = serde_json::json!({
+        "response": {
+            "route": [{
+                "waypoint": [{ "mappedPosition": {} }],
+                "leg": [{ "length": 120.0, "travelTime": 15.0 }]
+            }]
+        }
+    });
+    Mock::given(method("GET"))
+        .and(path("/match/routelinks"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(mock_response))
+        .mount(&server)
+        .await;
+
+    let auth = Arc::new(ApiKeyProvider::new(
+        "test-key".to_string(),
+        "apiKey".to_string(),
+    ));
+    let client = Arc::new(HereClient::new(auth));
+    let matcher = HereRouteMatcher::with_base_url(client, server.uri());
+
+    let points = vec![
+        Coordinate::new(52.52, 13.405).unwrap(),
+        Coordinate::new(52.53, 13.41).unwrap(),
+    ];
+    let error = matcher
+        .match_route(&points, &MatchingOptions::default())
+        .await
+        .expect_err("a position without coordinates must not become zero");
+
+    match error {
+        EveryMapError::ProviderError { provider, code, .. } => {
+            assert_eq!(provider, "here");
+            assert_eq!(code, "DESERIALIZATION_ERROR");
+        }
+        other => panic!("expected the deserialization provider error, got {other}"),
+    }
 }

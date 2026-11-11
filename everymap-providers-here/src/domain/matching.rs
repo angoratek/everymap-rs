@@ -137,25 +137,21 @@ impl HereRouteMatcher {
 /// Wire format: `{"response": {"route": [{"waypoint": [...], "leg": [...], "mode": {...}}]}}`
 #[derive(Debug, Deserialize)]
 struct HereMatchApiResponseWrapper {
-    #[serde(default)]
     response: HereMatchApiResponseInner,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct HereMatchApiResponseInner {
-    #[serde(default)]
     route: Vec<HereMatchApiRoute>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct HereMatchApiRoute {
-    #[serde(default)]
     waypoint: Vec<HereMatchApiWaypoint>,
-    #[serde(default)]
     leg: Vec<HereMatchApiLeg>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[allow(dead_code)] // Deserialize-only struct; fields only accessed via serde derive
 struct HereMatchApiWaypoint {
     #[serde(default, rename = "mappedPosition")]
@@ -168,19 +164,16 @@ struct HereMatchApiWaypoint {
     match_distance: Option<f64>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct HereMatchApiPosition {
-    #[serde(default)]
     latitude: f64,
-    #[serde(default)]
     longitude: f64,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Deserialize)]
 struct HereMatchApiLeg {
-    #[serde(default)]
     length: f64,
-    #[serde(default, rename = "travelTime")]
+    #[serde(rename = "travelTime")]
     travel_time: f64,
 }
 

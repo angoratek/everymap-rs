@@ -95,11 +95,9 @@ pub struct HereMatchedLink {
 }
 
 /// Lat/lng for matching responses.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HereMatchLatLng {
-    #[serde(default)]
     pub lat: f64,
-    #[serde(default)]
     pub lng: f64,
 }
 
