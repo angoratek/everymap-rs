@@ -698,7 +698,7 @@ for cmd in \
   "tile --z 14 --x 8800 --y 5374" \
   "attributes --bbox 52.4,13.2;52.6,13.5" \
   "map-image --lat 52.5 --lng 13.3"; do
-  assert_out "HERE: $cmd" "" --provider here $API $cmd
+  assert_request_out "HERE: $cmd" "" --provider here $API $cmd
 done
 
 # Google: 7 supported, 4 unsupported
@@ -710,7 +710,7 @@ for cmd in \
   "match-route --trace 52.5,13.3;52.6,13.4" \
   "attributes --bbox 52.4,13.2;52.6,13.5" \
   "map-image --lat 52.5 --lng 13.3"; do
-  assert_out "Google: $cmd" "" --provider google $API $cmd
+  assert_request_out "Google: $cmd" "" --provider google $API $cmd
 done
 for cmd in \
   "traffic --lat 52.5 --lng 13.3" \
@@ -731,7 +731,7 @@ for cmd in \
   "tour --stops 52.5,13.3 48.8,2.3" \
   "tile --z 14 --x 8800 --y 5374" \
   "map-image --lat 52.5 --lng 13.3"; do
-  assert_out "TomTom: $cmd" "" --provider tomtom $API $cmd
+  assert_request_out "TomTom: $cmd" "" --provider tomtom $API $cmd
 done
 for cmd in \
   "position" \
@@ -749,7 +749,7 @@ for cmd in \
   "tour --stops 52.5,13.3 48.8,2.3" \
   "tile --z 14 --x 8800 --y 5374" \
   "map-image --lat 52.5 --lng 13.3"; do
-  assert_out "MapBox: $cmd" "" --provider mapbox $API $cmd
+  assert_request_out "MapBox: $cmd" "" --provider mapbox $API $cmd
 done
 for cmd in \
   "traffic --lat 52.5 --lng 13.3" \
@@ -765,7 +765,7 @@ for cmd in \
   "route --origin 52.5,13.3 --destination 48.8,2.3" \
   "match-route --trace 52.5,13.3;52.6,13.4" \
   "tour --stops 52.5,13.3 48.8,2.3"; do
-  assert_out "Radar: $cmd" "" --provider radar $API $cmd
+  assert_request_out "Radar: $cmd" "" --provider radar $API $cmd
 done
 for cmd in \
   "traffic --lat 52.5 --lng 13.3" \
