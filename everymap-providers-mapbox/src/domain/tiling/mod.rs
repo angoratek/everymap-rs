@@ -22,6 +22,9 @@ pub const MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL: u8 = 22;
 pub struct MapBoxTileProvider {
     pub(crate) client: Arc<MapBoxClient>,
     pub(crate) base_url: String,
+    /// The tileset the provider serves; [`DEFAULT_MAPBOX_TILESET_ID`] unless a
+    /// caller selects another with [`Self::with_tileset_id`].
+    pub(crate) tileset_id: String,
 }
 
 impl MapBoxTileProvider {
@@ -29,21 +32,34 @@ impl MapBoxTileProvider {
         Self {
             client,
             base_url: MAP_BASE_URL.to_string(),
+            tileset_id: DEFAULT_MAPBOX_TILESET_ID.to_string(),
         }
     }
 
     pub fn with_base_url(client: Arc<MapBoxClient>, base_url: String) -> Self {
-        Self { client, base_url }
+        Self {
+            client,
+            base_url,
+            tileset_id: DEFAULT_MAPBOX_TILESET_ID.to_string(),
+        }
+    }
+
+    /// Selects the tileset this provider serves, replacing the default
+    /// Streets v8 set. The tileset id is the MapBox Tiles API account and
+    /// tileset pair, for example `mapbox.mapbox-streets-v8`.
+    pub fn with_tileset_id(mut self, tileset_id: impl Into<String>) -> Self {
+        self.tileset_id = tileset_id.into();
+        self
     }
 }
 
 #[async_trait]
 impl VectorTileProvider for MapBoxTileProvider {
     /// Describes the served tileset: the default Streets v8 set, or the one
-    /// the caller named when the provider was built.
+    /// the caller selected with [`MapBoxTileProvider::with_tileset_id`].
     fn source_descriptor(&self) -> VectorTileSourceDescriptor {
         VectorTileSourceDescriptor {
-            source_name: format!("mapbox/{DEFAULT_MAPBOX_TILESET_ID}"),
+            source_name: format!("mapbox/{}", self.tileset_id),
             attribution_text: MAPBOX_VECTOR_ATTRIBUTION.to_string(),
             minimum_zoom_level: 0,
             maximum_zoom_level: MAPBOX_VECTOR_MAXIMUM_ZOOM_LEVEL,
@@ -79,7 +95,7 @@ impl VectorTileProvider for MapBoxTileProvider {
         }
         let url = format!(
             "{}/v4/{}/{}/{}/{}.mvt",
-            self.base_url, DEFAULT_MAPBOX_TILESET_ID, zoom_level, tile_x, tile_y
+            self.base_url, self.tileset_id, zoom_level, tile_x, tile_y
         );
         let request = self
             .client

@@ -93,3 +93,30 @@ async fn a_zoom_or_index_past_the_served_range_is_refused_before_any_request() {
         Err(EveryMapError::ValidationError(_))
     ));
 }
+
+/// A caller-selected tileset replaces the default in both the descriptor and
+/// the requested path.
+#[tokio::test]
+async fn a_selected_tileset_replaces_the_streets_default() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/v4/acme.acme-terrain/10/523/335.mvt"))
+        .respond_with(
+            ResponseTemplate::new(200)
+                .set_body_raw(SAMPLE_TILE_BYTES.to_vec(), "application/x-protobuf"),
+        )
+        .expect(1)
+        .mount(&server)
+        .await;
+
+    let provider = provider_for(&server).with_tileset_id("acme.acme-terrain");
+    assert_eq!(
+        provider.source_descriptor().source_name,
+        "mapbox/acme.acme-terrain"
+    );
+    provider
+        .fetch_vector_tile(523, 335, 10)
+        .await
+        .expect("the selected tileset answers");
+    server.verify().await;
+}
