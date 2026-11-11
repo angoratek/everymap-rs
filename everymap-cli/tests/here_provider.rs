@@ -12,46 +12,19 @@ use common::*;
 
 use predicates::prelude::*;
 
-/// Get the real HERE API key from the environment or config file.
+/// Get a live HERE API key from the environment, or `None` when the developer
+/// has not opted in.
 ///
-/// Resolution order:
-/// 1. `EVERYMAP_HERE_API_KEY` env var (non-empty)
-/// 2. `EVERYMAP_API_KEY` env var (non-empty)
-/// 3. `~/.everymap/config.toml` → `[providers.here] api_key`
+/// The suite deliberately does not read the runtime credential store
+/// (`~/.everymap/config.toml`): a machine configured for the CLI would
+/// otherwise make an ordinary `cargo test` reach the provider. Only an
+/// explicitly exported `EVERYMAP_HERE_API_KEY` (or `EVERYMAP_API_KEY`) enables
+/// the live cases.
 fn get_here_api_key() -> Option<String> {
     std::env::var("EVERYMAP_HERE_API_KEY")
         .ok()
         .or_else(|| std::env::var("EVERYMAP_API_KEY").ok())
-        .filter(|s| !s.is_empty())
-        .or_else(read_here_key_from_config)
-}
-
-/// Read the HERE API key from `~/.everymap/config.toml`.
-fn read_here_key_from_config() -> Option<String> {
-    let home = std::env::var("HOME").ok()?;
-    let config_path = std::path::PathBuf::from(home)
-        .join(".everymap")
-        .join("config.toml");
-    let contents = std::fs::read_to_string(&config_path).ok()?;
-    let mut in_here_section = false;
-    for line in contents.lines() {
-        let trimmed = line.trim();
-        if trimmed == "[providers.here]" {
-            in_here_section = true;
-            continue;
-        }
-        if trimmed.starts_with('[') {
-            in_here_section = false;
-            continue;
-        }
-        if in_here_section && trimmed.starts_with("api_key") {
-            if let Some(eq_pos) = trimmed.find('=') {
-                let value = trimmed[eq_pos + 1..].trim();
-                return Some(value.trim_matches('"').to_string());
-            }
-        }
-    }
-    None
+        .filter(|key| !key.is_empty())
 }
 
 // ============================================================
@@ -69,22 +42,43 @@ fn test_missing_api_key_shows_error() {
         .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED));
 }
 
+/// An invalid coordinate makes the command fail during input validation,
+/// after the key gate and before any request, so the test proves the key was
+/// accepted without touching the network.
 #[test]
 fn test_api_key_from_env_var() {
     let mut cmd = cli();
     cmd.env("EVERYMAP_API_KEY", TEST_API_KEY)
-        .args(["geocode", QUERY_BERLIN])
+        .args([
+            "route",
+            "--origin",
+            "not-a-coordinate",
+            "--destination",
+            "52.52,13.405",
+        ])
         .assert()
-        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
+        .failure()
+        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not())
+        .stderr(predicate::str::contains("Invalid origin"));
 }
 
 #[test]
 fn test_cli_flag_overrides_env() {
     let mut cmd = cli();
     cmd.env("EVERYMAP_API_KEY", "wrong_key")
-        .args(["--api-key", TEST_API_KEY, "geocode", QUERY_BERLIN])
+        .args([
+            "--api-key",
+            TEST_API_KEY,
+            "route",
+            "--origin",
+            "not-a-coordinate",
+            "--destination",
+            "52.52,13.405",
+        ])
         .assert()
-        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not());
+        .failure()
+        .stderr(predicate::str::contains(ERR_API_KEY_REQUIRED).not())
+        .stderr(predicate::str::contains("Invalid origin"));
 }
 
 // ============================================================

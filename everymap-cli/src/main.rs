@@ -422,7 +422,7 @@ async fn run_commands(
                     }).collect();
                     print_output(&serde_json::json!({ "results": output }), output_format);
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::ReverseGeocode {
@@ -454,7 +454,7 @@ async fn run_commands(
                     }).collect();
                     print_output(&serde_json::json!({ "results": output }), output_format);
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Route {
@@ -500,7 +500,7 @@ async fn run_commands(
                         .collect();
                     print_output(&serde_json::json!({ "routes": routes }), output_format);
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Traffic {
@@ -538,7 +538,7 @@ async fn run_commands(
                         output_format,
                     );
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Position => {
@@ -555,7 +555,7 @@ async fn run_commands(
                         output_format,
                     );
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Isoline {
@@ -592,7 +592,7 @@ async fn run_commands(
                     }).collect();
                     print_output(&serde_json::json!({ "isolines": isolines }), output_format);
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::MatchRoute {
@@ -634,7 +634,7 @@ async fn run_commands(
                         output_format,
                     );
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Tour {
@@ -682,7 +682,7 @@ async fn run_commands(
                         output_format,
                     );
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::Tile {
@@ -738,7 +738,7 @@ async fn run_commands(
                                 Err(e) => eprintln!("Error writing file {}: {}", path, e),
                             }
                         }
-                        Err(e) => eprintln!("Error: {}", e),
+                        Err(e) => exit_with_error(&e.to_string()),
                     }
                 }
                 "vector" => {
@@ -760,7 +760,7 @@ async fn run_commands(
                                 Err(e) => eprintln!("Error writing file {}: {}", path, e),
                             }
                         }
-                        Err(e) => eprintln!("Error: {}", e),
+                        Err(e) => exit_with_error(&e.to_string()),
                     }
                 }
                 other => exit_with_error(&format!(
@@ -797,7 +797,7 @@ async fn run_commands(
                 Ok(result) => {
                     print_output(&result.data, output_format);
                 }
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
         Commands::MapImage {
@@ -833,7 +833,7 @@ async fn run_commands(
                     ),
                     Err(e) => eprintln!("Error writing file {}: {}", output_file, e),
                 },
-                Err(e) => eprintln!("Error: {}", e),
+                Err(e) => exit_with_error(&e.to_string()),
             }
         }
     }
