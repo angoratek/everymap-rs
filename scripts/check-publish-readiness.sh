@@ -11,6 +11,22 @@ VERBOSE=false
 [[ "${1:-}" == "--verbose" ]] && VERBOSE=true
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# The version every publishable crate and inter-crate dependency must carry.
+WORKSPACE_VERSION=$(awk '
+    /^\[workspace\.package\]/ { in_section = 1; next }
+    /^\[/ { in_section = 0 }
+    in_section && /^version = "/ {
+        line = $0
+        sub(/^version = "/, "", line)
+        sub(/".*$/, "", line)
+        print line
+        exit
+    }
+' "$REPO_ROOT/Cargo.toml")
+if [[ -z "$WORKSPACE_VERSION" ]]; then
+    echo "Error: the workspace version could not be read from $REPO_ROOT/Cargo.toml" >&2
+    exit 1
+fi
 FAILED=0
 TOTAL=0
 SKIPPED=0
@@ -31,6 +47,19 @@ check_crate() {
 
     TOTAL=$((TOTAL + 1))
     local errors=()
+
+    # The crate's own version must match the workspace version, whether it is
+    # inherited or written out: a stale explicit version publishes a crate
+    # whose dependency versions point somewhere else.
+    if grep -q '^version\.workspace = true' "$crate_dir/Cargo.toml"; then
+        : # inherited from [workspace.package], checked above for other fields
+    else
+        local declared_version
+        declared_version=$(grep -E '^version = "' "$crate_dir/Cargo.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
+        if [[ "$declared_version" != "$WORKSPACE_VERSION" ]]; then
+            errors+=("crate version $declared_version differs from the workspace version $WORKSPACE_VERSION")
+        fi
+    fi
 
     # Check required fields (accepts `field = "..."` and workspace-inherited
     # `field.workspace = true`, which must be defined in [workspace.package])
@@ -71,6 +100,12 @@ check_crate() {
         elif $in_deps_section && [[ "$line" =~ ^everymap-.*path ]]; then
             if ! [[ "$line" =~ version ]]; then
                 errors+=("inter-crate dependency has path without version (need path+version for crates.io)")
+            else
+                local dependency_version
+                dependency_version=$(sed -E 's/.*version *= *"([^"]*)".*/\1/' <<<"$line")
+                if [[ "$dependency_version" != "$WORKSPACE_VERSION" ]]; then
+                    errors+=("inter-crate dependency version $dependency_version differs from the workspace version $WORKSPACE_VERSION")
+                fi
             fi
         fi
     done < "$crate_dir/Cargo.toml"

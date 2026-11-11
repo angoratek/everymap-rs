@@ -24,6 +24,10 @@ jobs:
         with:
           tool: nextest
       - run: cargo nextest run --all-features
+      - run: chmod +x scripts/check-open-source-hygiene.sh
+      - run: ./scripts/check-open-source-hygiene.sh
+      - run: chmod +x scripts/validate-cli.sh
+      - run: ./scripts/validate-cli.sh --quiet --json
       - run: chmod +x scripts/check-publish-readiness.sh
       - run: ./scripts/check-publish-readiness.sh --verbose
 

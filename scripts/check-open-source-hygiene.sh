@@ -45,6 +45,25 @@ for pattern in "${forbidden_patterns[@]}"; do
     fi
 done
 
+# The tracked tree above skips binary files. A recorded payload or an
+# artifact can embed the same values, so scan every tracked file as text.
+for pattern in "${forbidden_patterns[@]}"; do
+    if matches=$(git grep -aE "$pattern" -- . ':!Cargo.lock' ':!scripts/check-open-source-hygiene.sh' 2>/dev/null); then
+        printf '%s\n' "$matches" >&2
+        printf 'open-source-hygiene: the pattern /%s/ appears in a binary file above.\n' "$pattern" >&2
+        violations=1
+    fi
+done
+
+# Commit metadata is published too, and a message can carry a path or a key.
+for pattern in "${forbidden_patterns[@]}"; do
+    if matches=$(git log --format='%H %B' | grep -E "$pattern"); then
+        printf '%s\n' "$matches" >&2
+        printf 'open-source-hygiene: the pattern /%s/ appears in commit metadata above.\n' "$pattern" >&2
+        violations=1
+    fi
+done
+
 if [ "$violations" -ne 0 ]; then
     printf '%s\n' \
         'open-source-hygiene: a published file carries a path, a key shape or a secret marker.' \
