@@ -113,8 +113,6 @@ pub struct GoogleRoute {
     pub legs: Vec<GoogleRouteLeg>,
     #[serde(default)]
     pub viewport: Option<GoogleViewport>,
-    #[serde(default, rename = "travelMode")]
-    pub travel_mode: Option<GoogleTravelMode>,
     #[serde(default, rename = "routeLabels")]
     pub route_labels: Vec<String>,
 }

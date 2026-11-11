@@ -18,7 +18,7 @@ const ROUTES_SERVICE_ROOT: &str = "https://routes.googleapis.com";
 const ROUTES_PATH: &str = "/directions/v2:computeRoutes";
 
 /// Required field mask header for Routes API v2 — requests without it fail.
-const ROUTES_FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.travelMode,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
+const ROUTES_FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
 
 /// Implementation of `Router` for Google Maps Routes API v2.
 pub struct GoogleRouter {
@@ -203,7 +203,9 @@ impl TryFrom<GoogleRoute> for RouteResult {
             distance,
             duration,
             geometry,
-            transport_mode: route.travel_mode.map(transport_mode_from_google),
+            // Filled from the request after conversion: the Routes API route
+            // carries no `travelMode` field, and the mask cannot request one.
+            transport_mode: None,
             steps,
             bounding_box,
             raw: None,
@@ -388,10 +390,16 @@ impl Router for GoogleRouter {
         let google_response: GoogleRoutesResponse =
             self.client.request_parsed_json(builder).await?;
 
+        // The Routes API route carries no `travelMode` and the field mask
+        // cannot request one, so the response echoes the requested mode.
         let routes = google_response
             .routes
             .into_iter()
-            .map(RouteResult::try_from)
+            .map(|route| {
+                let mut result = RouteResult::try_from(route)?;
+                result.transport_mode = Some(transport_mode_from_google(travel_mode));
+                Ok(result)
+            })
             .collect::<everymap_core::error::EveryMapResult<Vec<_>>>()?;
 
         Ok(RouteResponse { routes })

@@ -9,7 +9,7 @@ use std::sync::Arc;
 use wiremock::matchers::{body_partial_json, method};
 use wiremock::{Match, Mock, MockServer, Request, ResponseTemplate};
 
-const FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.travelMode,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
+const FIELD_MASK: &str = "routes.distanceMeters,routes.duration,routes.polyline.encodedPolyline,routes.viewport,routes.legs";
 
 /// The Routes API's classic encoded polyline: three points across California
 /// and Nevada.
@@ -37,7 +37,6 @@ fn mock_route_response() -> serde_json::Value {
                 "distanceMeters": 1052000,
                 "duration": "36720s",
                 "staticDuration": "36000s",
-                "travelMode": "DRIVE",
                 "polyline": { "encodedPolyline": ENCODED_POLYLINE },
                 "viewport": {
                     "high": { "latitude": 52.5170, "longitude": 13.3780 },
