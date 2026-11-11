@@ -19,6 +19,20 @@
 //! `User-Agent` the service sees. The public Photon instance asks clients to
 //! identify themselves, so the default is a provider-versioned agent.
 //!
+//! [`PhotonClient`] also exposes the shared request pipeline's pacing, retry,
+//! timeout and observer setters, so a host can bound and observe Photon
+//! traffic exactly as it does every other provider's.
+//!
+//! # Contract coverage
+//!
+//! Photon's API carries a free-text query, a result cap, a language, a result
+//! bias point and a bounding box. The provider maps every option it can serve:
+//! `limit`, `language` and `bounding_box` on forward queries, and `limit` and
+//! `language` on reverse queries. An option the Photon API cannot express —
+//! a `country_codes` filter or a reverse-geocode `radius` — is refused with
+//! [`everymap_core::error::EveryMapError::ValidationError`] rather than
+//! silently dropped, so a caller never believes a constraint was applied.
+//!
 //! ```no_run
 //! use std::sync::Arc;
 //! use everymap_providers_photon::{PhotonClient, PhotonGeocoder, PhotonProviderConfiguration};
@@ -72,6 +86,10 @@ pub const AUTOCOMPLETE_RESULT_LIMIT: u32 = 5;
 
 /// Candidates a settled search asks for: a longer list than the type-ahead.
 pub const SEARCH_RESULT_LIMIT: u32 = 10;
+
+/// Result cap a reverse query asks for when the caller names none: a reverse
+/// geocode answers with the nearest feature.
+pub const REVERSE_RESULT_LIMIT: u32 = 1;
 
 /// Header carrying the configured user agent.
 const USER_AGENT_HEADER_NAME: &str = "user-agent";
@@ -131,6 +149,30 @@ impl PhotonClient {
     /// - `observer` — receives every request attempt and its outcome.
     pub fn set_observer(&mut self, observer: Arc<dyn everymap_core::client::RequestObserver>) {
         self.inner.set_observer(observer);
+    }
+
+    /// Installs a token bucket that paces every request this client sends.
+    ///
+    /// # Parameters
+    /// - `rate_limiter` — the bucket shared by the client's requests.
+    pub fn set_rate_limiter(&mut self, rate_limiter: Arc<everymap_core::client::TokenBucket>) {
+        self.inner.set_rate_limiter(rate_limiter);
+    }
+
+    /// Replaces the retry policy applied to idempotent requests.
+    ///
+    /// # Parameters
+    /// - `retry_policy` — the attempt budget and backoff.
+    pub fn set_retry_policy(&mut self, retry_policy: everymap_core::client::RetryPolicy) {
+        self.inner.set_retry_policy(retry_policy);
+    }
+
+    /// Sets the per-request timeout, or removes it.
+    ///
+    /// # Parameters
+    /// - `timeout` — the deadline, or `None` to wait without one.
+    pub fn set_request_timeout(&mut self, timeout: Option<std::time::Duration>) {
+        self.inner.set_request_timeout(timeout);
     }
 
     /// Builds a client that executes requests through an explicit transport.
@@ -194,6 +236,7 @@ impl Geocoder for PhotonGeocoder {
         query: &str,
         options: &GeocodeOptions,
     ) -> EveryMapResult<SearchResponse> {
+        refuse_country_codes(&options.country_codes)?;
         let limit = options.limit.unwrap_or(SEARCH_RESULT_LIMIT);
         run_search(
             &self.client,
@@ -208,13 +251,24 @@ impl Geocoder for PhotonGeocoder {
     async fn reverse_geocode(
         &self,
         coordinate: &Coordinate,
-        _options: &ReverseGeocodeOptions,
+        options: &ReverseGeocodeOptions,
     ) -> EveryMapResult<SearchResponse> {
-        let query_parameters = vec![
+        if options.radius.is_some() {
+            return Err(EveryMapError::ValidationError(
+                "the photon reverse geocoder does not accept a search radius; the Photon \
+                 reverse endpoint returns the nearest feature"
+                    .to_string(),
+            ));
+        }
+        let limit = options.limit.unwrap_or(REVERSE_RESULT_LIMIT);
+        let mut query_parameters = vec![
             ("lon".to_string(), coordinate.lng.to_string()),
             ("lat".to_string(), coordinate.lat.to_string()),
-            ("limit".to_string(), 1.to_string()),
+            ("limit".to_string(), limit.to_string()),
         ];
+        if let Some(language) = options.language.as_deref() {
+            query_parameters.push(("lang".to_string(), language.to_string()));
+        }
         let payload = self
             .client
             .get_json(REVERSE_ENDPOINT_PATH, query_parameters)
@@ -279,6 +333,7 @@ impl AutocompleteProvider for PhotonAutocompleteProvider {
         query: &str,
         options: &AutocompleteOptions,
     ) -> EveryMapResult<AutocompleteResponse> {
+        refuse_country_codes(&options.country_codes)?;
         let limit = options.limit.unwrap_or(AUTOCOMPLETE_RESULT_LIMIT);
         let response = run_search(
             &self.client,
@@ -296,6 +351,22 @@ impl AutocompleteProvider for PhotonAutocompleteProvider {
                 .collect(),
         })
     }
+}
+
+/// Refuses a country-code filter the Photon API cannot express.
+///
+/// Photon ranks and filters by tags and layers, not by ISO country codes, so a
+/// caller that asks for a country restriction must hear that it was not
+/// applied instead of receiving worldwide results.
+fn refuse_country_codes(country_codes: &[String]) -> EveryMapResult<()> {
+    if country_codes.is_empty() {
+        return Ok(());
+    }
+    Err(EveryMapError::ValidationError(format!(
+        "the photon provider cannot restrict results to the country codes {}: the Photon API \
+         has no country filter",
+        country_codes.join(", ")
+    )))
 }
 
 /// Runs one forward query and maps its features onto search results.
