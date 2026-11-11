@@ -2,117 +2,132 @@ pub mod types;
 
 use crate::client::HereClient;
 use async_trait::async_trait;
-use everymap_core::domains::routing::{RouteOptions, RouteResponse, RouteResult, Router};
-use everymap_core::error::EveryMapResult;
-use everymap_core::types::Polyline;
+use everymap_core::domains::routing::{
+    RouteCapabilities, RouteLeg, RouteOptions, RouteResponse, RouteResult, RouteStep,
+    RouteStrategy, Router,
+};
+use everymap_core::error::{EveryMapError, EveryMapResult};
+use everymap_core::types::{Coordinate, Polyline};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 pub use types::*;
 
-use everymap_core::domains::routing::RouteStep;
-
 const ROUTING_BASE_URL: &str = "https://router.hereapi.com/v8";
 
-impl From<HereRoute> for RouteResult {
-    fn from(route: HereRoute) -> Self {
-        let section = route.sections.into_iter().next();
-        let (distance, duration, geometry, steps) = match &section {
-            Some(s) => {
-                let total_distance = s.summary.as_ref().and_then(|sum| sum.length).unwrap_or(0.0);
-                let total_duration = s
-                    .summary
-                    .as_ref()
-                    .and_then(|sum| sum.duration)
-                    .unwrap_or(0.0);
-                let geom = s
-                    .polyline
-                    .clone()
-                    .and_then(|p| p.into_polyline_string())
-                    .map(|encoded| {
-                        everymap_core::types::FlexiblePolyline::decode(&encoded)
-                            .map(Polyline::new)
-                            .unwrap_or_else(|_| Polyline::new(vec![]))
-                    })
-                    .unwrap_or_else(|| Polyline::new(vec![]));
-                let route_steps: Vec<RouteStep> = s
-                    .turn_by_turn_actions
-                    .iter()
-                    .map(|a| RouteStep {
-                        instruction: a.instruction.clone(),
-                        distance: a.length,
-                        duration: a.duration,
-                        start_coordinate: None,
-                        end_coordinate: None,
-                        maneuver_type: None,
-                        speech_instruction: None,
-                        lane_guidances: Vec::new(),
-                        shape: Vec::new(),
-                    })
-                    .collect();
-                (total_distance, total_duration, geom, route_steps)
-            }
-            None => (0.0, 0.0, Polyline::new(vec![]), vec![]),
-        };
-        Self {
+/// The route fields requested when the caller names none: the shape, the
+/// section summary and the maneuver actions that carry instruction text.
+const DEFAULT_RETURN_FIELDS: &str = "polyline,summary,actions";
+
+/// Provider error code reported when a section's flexible polyline cannot be
+/// decoded.
+const INVALID_POLYLINE_CODE: &str = "INVALID_POLYLINE";
+
+/// Builds the failure a route carries when its encoded shape is malformed.
+fn invalid_polyline(detail: String) -> EveryMapError {
+    EveryMapError::provider("here", INVALID_POLYLINE_CODE, detail)
+}
+
+/// Projects one HERE maneuver into the contract's route step.
+fn route_step(
+    instruction: Option<String>,
+    distance: Option<f64>,
+    duration: Option<f64>,
+) -> RouteStep {
+    RouteStep {
+        instruction,
+        distance,
+        duration,
+        start_coordinate: None,
+        end_coordinate: None,
+        maneuver_type: None,
+        speech_instruction: None,
+        lane_guidances: Vec::new(),
+        shape: Vec::new(),
+    }
+}
+
+impl TryFrom<HereRoute> for RouteResult {
+    type Error = EveryMapError;
+
+    fn try_from(route: HereRoute) -> Result<Self, Self::Error> {
+        let mut legs = Vec::with_capacity(route.sections.len());
+        for section in route.sections {
+            legs.push(RouteLeg::try_from(section)?);
+        }
+
+        let distance = legs.iter().map(|leg| leg.distance).sum();
+        let duration = legs.iter().map(|leg| leg.duration).sum();
+        let steps = legs
+            .iter()
+            .flat_map(|leg| leg.steps.iter().cloned())
+            .collect();
+        let geometry = legs
+            .iter()
+            .flat_map(|leg| leg.shape.iter().copied())
+            .collect::<Vec<Coordinate>>();
+
+        Ok(Self {
             distance,
             duration,
-            geometry,
+            geometry: Polyline::new(geometry),
             transport_mode: None,
             steps,
             bounding_box: None,
             raw: None,
-            legs: Vec::new(),
-        }
+            legs,
+        })
     }
 }
 
-impl From<HereRouteSection> for RouteResult {
-    fn from(section: HereRouteSection) -> Self {
+impl TryFrom<HereRouteSection> for RouteLeg {
+    type Error = EveryMapError;
+
+    fn try_from(section: HereRouteSection) -> Result<Self, Self::Error> {
         let distance = section
             .summary
             .as_ref()
-            .and_then(|s| s.length)
+            .and_then(|summary| summary.length)
             .unwrap_or(0.0);
         let duration = section
             .summary
             .as_ref()
-            .and_then(|s| s.duration)
+            .and_then(|summary| summary.duration)
             .unwrap_or(0.0);
-        let geometry = section
+        let shape: Vec<Coordinate> = match section
             .polyline
-            .and_then(|p| p.into_polyline_string())
-            .map(|encoded| {
+            .and_then(HerePolylineField::into_polyline_string)
+        {
+            Some(encoded) if !encoded.is_empty() => {
                 everymap_core::types::FlexiblePolyline::decode(&encoded)
-                    .map(Polyline::new)
-                    .unwrap_or_else(|_| Polyline::new(vec![]))
-            })
-            .unwrap_or_else(|| Polyline::new(vec![]));
-        let steps: Vec<RouteStep> = section
-            .turn_by_turn_actions
-            .iter()
-            .map(|a| RouteStep {
-                instruction: a.instruction.clone(),
-                distance: a.length,
-                duration: a.duration,
-                start_coordinate: None,
-                end_coordinate: None,
-                maneuver_type: None,
-                speech_instruction: None,
-                lane_guidances: Vec::new(),
-                shape: Vec::new(),
-            })
-            .collect();
-        Self {
+                    .map_err(invalid_polyline)?
+            }
+            _ => Vec::new(),
+        };
+        let steps = if section.actions.is_empty() {
+            section
+                .turn_by_turn_actions
+                .iter()
+                .map(|action| {
+                    route_step(action.instruction.clone(), action.length, action.duration)
+                })
+                .collect()
+        } else {
+            section
+                .actions
+                .iter()
+                .map(|action| {
+                    route_step(action.instruction.clone(), action.length, action.duration)
+                })
+                .collect()
+        };
+
+        Ok(Self {
             distance,
             duration,
-            geometry,
-            transport_mode: None,
             steps,
-            bounding_box: None,
-            raw: None,
-            legs: Vec::new(),
-        }
+            shape,
+        })
     }
 }
 
@@ -352,6 +367,13 @@ fn route_options_from_core(options: &RouteOptions) -> HereRouteOptions {
         ..Default::default()
     };
 
+    if let Some(route_strategy) = options.route_strategy {
+        here_options.routing_mode = match route_strategy {
+            RouteStrategy::Fastest => RoutingMode::Fast,
+            RouteStrategy::Shortest => RoutingMode::Short,
+        };
+    }
+
     // Convert avoid types
     if !options.avoid.is_empty() {
         here_options.avoid = Some(
@@ -525,7 +547,7 @@ impl Router for HereRouter {
                     .join(","),
             ));
         } else {
-            params.push(("return".to_string(), "polyline,summary".to_string()));
+            params.push(("return".to_string(), DEFAULT_RETURN_FIELDS.to_string()));
         }
 
         if let Some(alternatives) = here_options.alternatives {
@@ -733,8 +755,29 @@ impl Router for HereRouter {
 
         let here_res: HereRouteApiResponse = self.client.request_json(builder).await?;
 
-        let routes: Vec<RouteResult> = here_res.routes.into_iter().map(RouteResult::from).collect();
+        let routes = here_res
+            .routes
+            .into_iter()
+            .map(RouteResult::try_from)
+            .collect::<EveryMapResult<Vec<RouteResult>>>()?;
 
         Ok(RouteResponse { routes })
+    }
+
+    fn route_capabilities(&self) -> RouteCapabilities {
+        use everymap_core::domains::routing::TransportMode as CoreTransportMode;
+
+        RouteCapabilities {
+            supported_transport_modes: vec![
+                CoreTransportMode::Car,
+                CoreTransportMode::Truck,
+                CoreTransportMode::Pedestrian,
+                CoreTransportMode::Bicycle,
+                CoreTransportMode::Scooter,
+                CoreTransportMode::Bus,
+                CoreTransportMode::Taxi,
+            ],
+            supports_shortest_route_strategy: true,
+        }
     }
 }
