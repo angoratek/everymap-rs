@@ -24,6 +24,7 @@
 - `scripts/check-publish-readiness.sh` fails on a crate or inter-crate dependency version that differs from the workspace version.
 - The release workflow runs the full CI set: formatting, clippy, the whole nextest suite, the open-source hygiene gate, the CLI validation suite and publish readiness.
 - The open-source hygiene gate also scans binary files and commit metadata.
+- `everymap-providers-mapquest` 0.3.0, 0.3.1, 0.3.2 and 0.4.0 were yanked from crates.io because their recorded payload predates the history rewrite; new dependents resolve 0.4.1 and later, and existing lockfiles keep working.
 
 ## [0.4.3] — 2026-11-10
 
