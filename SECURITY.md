@@ -34,7 +34,20 @@ We aim to acknowledge reports within 48 hours and provide an initial assessment 
   session or signature token. Versions 0.4.1, 0.4.2 and 0.4.3 are published and
   carry the corrected payload. The 0.3.0–0.4.0 `everymap-providers-mapquest`
   tarballs on crates.io predate the rewrite and cannot be changed; they are
-  superseded by 0.4.1 and later. The owner approved yanking them on 2026-11-10,
-  and all four versions were yanked on 2026-11-12: crates.io no longer resolves
-  `everymap-providers-mapquest` 0.3.0, 0.3.1, 0.3.2 or 0.4.0 for new dependents,
-  and Cargo.lock files that already pin them keep working.
+  superseded by 0.4.1 and later. All four versions were yanked on 2026-11-12:
+  crates.io no longer resolves `everymap-providers-mapquest` 0.3.0, 0.3.1, 0.3.2
+  or 0.4.0 for new dependents, and Cargo.lock files that already pin them keep
+  working.
+
+  **Accepted risk (recorded 2026-11-17).** crates.io does not delete individual
+  versions: a published version is permanent, and yanking only removes it from
+  resolution, so the four `.crate` tarballs remain downloadable from the static
+  host. The value is a routing **session** identifier, not an API key. Sessions
+  are short-lived; this one was recorded during fixture capture in October 2026
+  and is treated as expired. The credential used for that capture was rotated on
+  2026-11-17, so no current secret depends on the session, and the identifier
+  cannot be exchanged for other credentials or account access. Anyone may still
+  download those tarballs and read the expired identifier; because it is invalid
+  and unrelated to any current credential, this is recorded as an accepted risk
+  rather than pursued as a purge. If it is ever demonstrated to be live, this
+  note is superseded by a security advisory.

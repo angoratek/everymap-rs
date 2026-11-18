@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- `SECURITY.md` records the accepted risk for the yanked 0.3.0–0.4.0
+  `everymap-providers-mapquest` tarballs: the captured value is an expired
+  routing session identifier rather than an API key, the credential used for
+  that capture was rotated on 2026-11-17, and the identifier cannot be
+  exchanged for other credentials or account access. Yanking removes the
+  versions from resolution but cannot delete a published version, so the
+  residual is stated rather than pursued as a purge.
+
 ## [0.4.7] — 2026-11-11
 
 ### Fixed
