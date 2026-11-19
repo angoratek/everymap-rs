@@ -9,6 +9,12 @@ on:
   # publish; binaries and the GitHub Release are produced only for a tag push.
   workflow_dispatch:
 
+concurrency:
+  # A publish is never cancelled halfway: a second run queues behind the first
+  # and the publish script skips versions already on crates.io.
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -30,6 +36,12 @@ jobs:
       - run: ./scripts/validate-cli.sh --quiet --json
       - run: chmod +x scripts/check-publish-readiness.sh
       - run: ./scripts/check-publish-readiness.sh --verbose
+      # An advisory-red tree cannot produce a release: the same cargo-deny
+      # configuration the CI audit job runs is a publish gate too.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny
+      - run: cargo deny check
 
   build-binaries:
     needs: check

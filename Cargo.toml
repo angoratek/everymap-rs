@@ -52,7 +52,13 @@ flexpolyline = "1.0"
 wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
 web-time = "1"
-chrono = "0.4"
+# RFC 3339 formatting only; the maintenance-recommended replacement for
+# chrono, whose release line carries RUSTSEC-2026-0543. `time` is not an
+# option: every release that fixes its own advisory (RUSTSEC-2026-0009,
+# patched in 0.3.47) requires rustc 1.88, above the 1.86 workspace MSRV, and
+# every older release carries the advisory. Only `std` is enabled: the
+# workspace formats instants and never needs a time-zone database.
+jiff = { version = "1.0", default-features = false, features = ["std"] }
 log = "0.4"
 url = "2"
 everymap-core = { path = "everymap-core", version = "0.4.7" }

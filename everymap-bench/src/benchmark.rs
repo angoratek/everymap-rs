@@ -919,7 +919,7 @@ pub fn build_report(
     };
 
     BenchmarkReport {
-        timestamp: chrono::Utc::now().to_rfc3339(),
+        timestamp: jiff::Timestamp::now().to_string(),
         domain: domain.to_string(),
         scenario: scenario.to_string(),
         results,
