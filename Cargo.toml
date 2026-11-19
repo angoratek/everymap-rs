@@ -52,7 +52,9 @@ flexpolyline = "1.0"
 wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
 web-time = "1"
-chrono = "0.4"
+# RFC 3339 formatting only; the maintenance-recommended replacement for
+# chrono, which has no maintained release (RUSTSEC-2026-0543).
+time = { version = "0.3", features = ["formatting"] }
 log = "0.4"
 url = "2"
 everymap-core = { path = "everymap-core", version = "0.4.7" }

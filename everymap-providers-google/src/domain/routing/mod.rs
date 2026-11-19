@@ -103,8 +103,15 @@ fn waypoint_from_coordinate(coordinate: &Coordinate) -> GoogleWaypoint {
 fn departure_time_string(departure_time: &DepartureTime) -> Option<String> {
     match departure_time {
         DepartureTime::Now => None,
-        DepartureTime::Timestamp(timestamp) => chrono::DateTime::from_timestamp(*timestamp, 0)
-            .map(|datetime| datetime.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
+        DepartureTime::Timestamp(timestamp) => {
+            time::OffsetDateTime::from_unix_timestamp(*timestamp)
+                .ok()
+                .and_then(|datetime| {
+                    datetime
+                        .format(&time::format_description::well_known::Rfc3339)
+                        .ok()
+                })
+        }
         DepartureTime::Iso8601(value) => Some(value.clone()),
     }
 }

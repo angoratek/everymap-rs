@@ -2,7 +2,18 @@
 
 ## [Unreleased]
 
+### Fixed
+- `chrono` is gone. The crate carries an unmaintained advisory
+  (RUSTSEC-2026-0543) with no safe upgrade, which turned the `audit` job red
+  on every push and every pull request. The three timestamps the workspace
+  formats — the HERE tour departure time, the Google Routes departure time and
+  the benchmark report's stamp — now use the maintained `time` crate with the
+  same RFC 3339 UTC output.
+
 ### Changed
+- The CI workflow cancels a superseded run on the same branch, and the release
+  `check` job runs `cargo deny check`, so an advisory-red tree can no longer
+  produce a release.
 - `SECURITY.md` records the accepted risk for the yanked 0.3.0–0.4.0
   `everymap-providers-mapquest` tarballs: the captured value is an expired
   routing session identifier rather than an API key, the credential used for

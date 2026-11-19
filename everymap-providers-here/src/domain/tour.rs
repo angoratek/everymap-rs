@@ -14,6 +14,17 @@ use everymap_core::types::Coordinate;
 
 const TOUR_BASE_URL: &str = "https://tourplanning.hereapi.com/v3";
 
+/// Format a Unix timestamp as an RFC 3339 UTC string with second precision.
+///
+/// The tour API accepts only whole seconds, and an unrepresentable timestamp
+/// falls back to the Unix epoch rather than failing the request.
+fn format_rfc3339_seconds(timestamp: i64) -> String {
+    time::OffsetDateTime::from_unix_timestamp(timestamp)
+        .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
+        .format(&time::format_description::well_known::Rfc3339)
+        .unwrap_or_default()
+}
+
 impl From<TourSolution> for TourResponse {
     fn from(solution: TourSolution) -> Self {
         let tour_stops: Vec<CoreTourStop> = solution
@@ -218,12 +229,7 @@ impl TourPlanner for HereTourPlanner {
                     let elapsed = web_time::SystemTime::now()
                         .duration_since(web_time::UNIX_EPOCH)
                         .unwrap_or_default();
-                    let now = chrono::DateTime::<chrono::Utc>::from_timestamp(
-                        i64::try_from(elapsed.as_secs()).unwrap_or_default(),
-                        elapsed.subsec_nanos(),
-                    )
-                    .unwrap_or_default();
-                    now.format("%Y-%m-%dT%H:%M:%SZ").to_string()
+                    format_rfc3339_seconds(i64::try_from(elapsed.as_secs()).unwrap_or_default())
                 });
             problem.fleet.types = vec![VehicleType {
                 id: "vehicle_1".to_string(),
