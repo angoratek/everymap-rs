@@ -919,9 +919,7 @@ pub fn build_report(
     };
 
     BenchmarkReport {
-        timestamp: time::OffsetDateTime::now_utc()
-            .format(&time::format_description::well_known::Rfc3339)
-            .unwrap_or_default(),
+        timestamp: jiff::Timestamp::now().to_string(),
         domain: domain.to_string(),
         scenario: scenario.to_string(),
         results,

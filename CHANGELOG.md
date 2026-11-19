@@ -7,9 +7,11 @@
   (RUSTSEC-2026-0543) with no safe upgrade, which turned the `audit` job red
   on every push and every pull request. The three timestamps the workspace
   formats — the HERE tour departure time, the Google Routes departure time and
-  the benchmark report's stamp — now use the maintained `time` crate with the
-  same RFC 3339 UTC output. The workspace pins `time` to 0.3.44, the newest
-  release the 1.86 MSRV accepts; later releases require rustc 1.88.
+  the benchmark report's stamp — now use `jiff` with the same RFC 3339 UTC
+  output and no time-zone database. `time` was the first replacement, but
+  every release that fixes its own parsing advisory (RUSTSEC-2026-0009,
+  patched in 0.3.47) requires rustc 1.88, and every older release carries the
+  advisory; `jiff` supports the 1.86 workspace MSRV.
 
 ### Changed
 - The CI workflow cancels a superseded run on the same branch, and the release

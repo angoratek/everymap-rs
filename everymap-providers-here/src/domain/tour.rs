@@ -19,10 +19,9 @@ const TOUR_BASE_URL: &str = "https://tourplanning.hereapi.com/v3";
 /// The tour API accepts only whole seconds, and an unrepresentable timestamp
 /// falls back to the Unix epoch rather than failing the request.
 fn format_rfc3339_seconds(timestamp: i64) -> String {
-    time::OffsetDateTime::from_unix_timestamp(timestamp)
-        .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
-        .format(&time::format_description::well_known::Rfc3339)
-        .unwrap_or_default()
+    jiff::Timestamp::from_second(timestamp)
+        .unwrap_or(jiff::Timestamp::UNIX_EPOCH)
+        .to_string()
 }
 
 impl From<TourSolution> for TourResponse {
