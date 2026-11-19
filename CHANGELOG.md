@@ -8,7 +8,8 @@
   on every push and every pull request. The three timestamps the workspace
   formats — the HERE tour departure time, the Google Routes departure time and
   the benchmark report's stamp — now use the maintained `time` crate with the
-  same RFC 3339 UTC output.
+  same RFC 3339 UTC output. The workspace pins `time` to 0.3.44, the newest
+  release the 1.86 MSRV accepts; later releases require rustc 1.88.
 
 ### Changed
 - The CI workflow cancels a superseded run on the same branch, and the release

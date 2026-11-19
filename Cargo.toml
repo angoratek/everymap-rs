@@ -53,8 +53,10 @@ wiremock = "0.6"
 zeroize = { version = "1", features = ["derive"] }
 web-time = "1"
 # RFC 3339 formatting only; the maintenance-recommended replacement for
-# chrono, which has no maintained release (RUSTSEC-2026-0543).
-time = { version = "0.3", features = ["formatting"] }
+# chrono, which has no maintained release (RUSTSEC-2026-0543). Pinned exactly
+# because releases after 0.3.44 require rustc 1.88 and the workspace MSRV is
+# 1.86; the pin and the MSRV move together.
+time = { version = "=0.3.44", features = ["formatting"] }
 log = "0.4"
 url = "2"
 everymap-core = { path = "everymap-core", version = "0.4.7" }
