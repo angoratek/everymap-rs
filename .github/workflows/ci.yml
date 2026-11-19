@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  # A newer push supersedes the run it replaced. A pull request and a push to
+  # its branch share one group, so only the latest commit is checked.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   fmt:
     runs-on: ubuntu-latest
