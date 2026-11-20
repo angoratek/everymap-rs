@@ -70,3 +70,5 @@ Elevation samples each point through the Elevation API and returns one sample pe
 Routing uses the Routes API v2 (`computeRoutes`). Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to the vendor's public host for that API.
 
 Google's in-body `status` maps `REQUEST_DENIED` to `AuthError`, `OVER_QUERY_LIMIT` and `OVER_DAILY_LIMIT` to `RateLimited`, and every other non-success status to `ProviderError` carrying the status verbatim. A payload that decodes as JSON but lacks a required field is `ProviderError` with code `INVALID_RESPONSE`. `raw` is populated on geocode results and left unset on routing, matching and positioning results. Unsupported option fields are never silently dropped — unsupported combinations emit `log::warn!` or are handled post-response (e.g. geocode `limit`).
+
+Matching calls the Roads API `snapToRoads` method, which accepts `path` and `interpolate` only. A `transport_mode`, `heading`, `departure_time`, `avoid` or a `provider_extra` `snapping` key is therefore reported by a warning and not sent, because the method has no counterpart for it.

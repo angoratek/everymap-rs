@@ -70,8 +70,8 @@ fn matching_options_from_core(options: &MatchingOptions) -> GoogleMatchOptions {
             if let Some(v) = obj.get("interpolate").and_then(|v| v.as_bool()) {
                 google_opts.interpolate = v;
             }
-            if let Some(v) = obj.get("snapping").and_then(|v| v.as_str()) {
-                google_opts.snapping = Some(v.to_string());
+            if obj.contains_key("snapping") {
+                log::warn!("Google Roads API snapToRoads does not support snapping; ignoring");
             }
         }
     }
