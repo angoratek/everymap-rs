@@ -226,6 +226,12 @@ assert_request_out  "valid provider 'tomtom'"           ""      --provider tomto
 assert_request_out  "valid provider 'mapbox'"           ""      --provider mapbox $API geocode Berlin
 assert_request_out  "valid provider 'radar'"            ""      --provider radar  $API geocode Berlin
 
+# Keyless providers: Photon reaches its public instance; the URL-template
+# crates serve only tiles, so geocoding is the documented unsupported error.
+assert_provider_outcome "valid provider 'photon'" "" --provider photon geocode Berlin
+assert_fail "geocode unsupported url-template-raster" "does not support geocoding" --provider url-template-raster $API geocode Berlin
+assert_fail "geocode unsupported url-template-vector" "does not support geocoding" --provider url-template-vector $API geocode Berlin
+
 # Missing API key
 out=$(HOME=/tmp/everymap-test-no-config $EVERYMAP_BIN --provider here geocode Berlin 2>&1) && rc=0 || rc=$?
 TEST_DESC="missing api key"
@@ -502,6 +508,14 @@ assert_fail "tile no args"     "required"   $API tile
 assert_fail "tile no --z"      "required"   $API tile --x 8800 --y 5374
 assert_fail "tile no --x"      "required"   $API tile --z 14 --y 5374
 assert_fail "tile no --y"      "required"   $API tile --z 14 --x 8800
+
+# URL-template sources: the template is required, is validated before the
+# network, and the provider key chooses the tile contract.
+assert_fail "url-template raster needs --url-template" "requires --url-template" --provider url-template-raster $API tile --z 14 --x 8800 --y 5374
+assert_fail "url-template vector needs --url-template" "requires --url-template" --provider url-template-vector $API tile --z 14 --x 8800 --y 5374
+assert_fail "malformed url template" "tile URL template" --provider url-template-raster $API tile --z 14 --x 8800 --y 5374 --url-template "https://tiles.example.com/plain.png"
+assert_fail "url-template raster rejects vector" "cannot serve the 'vector' variant" --provider url-template-raster $API tile --z 14 --x 8800 --y 5374 --url-template "https://tiles.example.com/{z}/{x}/{y}.png" --variant vector
+assert_fail "url-template vector rejects raster" "cannot serve the 'raster' variant" --provider url-template-vector $API tile --z 14 --x 8800 --y 5374 --url-template "https://tiles.example.com/{z}/{x}/{y}.mvt" --variant raster
 
 assert_provider_outcome "tile z14"          ""  $API tile --z 14 --x 8800 --y 5374
 assert_provider_outcome "tile z0"           ""  $API tile --z 0 --x 0 --y 0

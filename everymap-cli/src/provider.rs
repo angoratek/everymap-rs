@@ -16,6 +16,7 @@ use everymap_providers_mapquest::{
     MapQuestRouter, MapQuestTrafficProvider,
 };
 use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
+use everymap_providers_photon::{PhotonClient, PhotonGeocoder, PhotonProviderConfiguration};
 use everymap_providers_valhalla::{ValhallaProviderConfiguration, ValhallaRouter};
 use std::sync::Arc;
 
@@ -43,15 +44,18 @@ pub struct ProviderRegistry {
 ///
 /// Each entry is the provider crate's own descriptor, so the keys, credential
 /// names and service roots are stated once per crate rather than in the CLI.
-pub static SUPPORTED_PROVIDER_DESCRIPTORS: [ProviderDescriptor; 8] = [
+pub static SUPPORTED_PROVIDER_DESCRIPTORS: [ProviderDescriptor; 11] = [
     everymap_providers_here::PROVIDER_DESCRIPTOR,
     everymap_providers_google::PROVIDER_DESCRIPTOR,
     everymap_providers_tomtom::PROVIDER_DESCRIPTOR,
     everymap_providers_mapbox::PROVIDER_DESCRIPTOR,
     everymap_providers_radar::PROVIDER_DESCRIPTOR,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR,
 ];
 
 /// The descriptor for `provider`, when this binary can construct it.
@@ -79,8 +83,11 @@ enum ProviderKind {
     MapBox,
     Radar,
     MapQuest,
+    Photon,
     Osrm,
     Valhalla,
+    UrlTemplateRaster,
+    UrlTemplateVector,
 }
 
 /// Resolve a provider key to its constructor without repeating the key.
@@ -97,10 +104,16 @@ fn provider_kind(provider: &str) -> Option<ProviderKind> {
         Some(ProviderKind::Radar)
     } else if provider == everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key {
         Some(ProviderKind::MapQuest)
+    } else if provider == everymap_providers_photon::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Photon)
     } else if provider == everymap_providers_osrm::PROVIDER_DESCRIPTOR.key {
         Some(ProviderKind::Osrm)
     } else if provider == everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key {
         Some(ProviderKind::Valhalla)
+    } else if provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::UrlTemplateRaster)
+    } else if provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::UrlTemplateVector)
     } else {
         None
     }
@@ -207,6 +220,118 @@ everymap_core::unsupported_image!(
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
 
+// Photon serves geocoding, place search and type-ahead; the CLI's registry
+// exposes only the geocoder, so every other contract answers unsupported.
+everymap_core::unsupported_router!(
+    PhotonUnsupportedRouter,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_traffic!(
+    PhotonUnsupportedTraffic,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_isoline!(
+    PhotonUnsupportedIsoline,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    PhotonUnsupportedRouteMatcher,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    PhotonUnsupportedTour,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    PhotonUnsupportedPositioner,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    PhotonUnsupportedAttributes,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    PhotonUnsupportedImage,
+    everymap_providers_photon::PROVIDER_DESCRIPTOR.key
+);
+
+// The URL-template crates serve one tile contract each. The tile command
+// builds their provider from the source declaration, so the registry carries
+// only the unsupported stubs for every other contract.
+everymap_core::unsupported_geocoder!(
+    UrlTemplateRasterUnsupportedGeocoder,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_router!(
+    UrlTemplateRasterUnsupportedRouter,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_traffic!(
+    UrlTemplateRasterUnsupportedTraffic,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_isoline!(
+    UrlTemplateRasterUnsupportedIsoline,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    UrlTemplateRasterUnsupportedRouteMatcher,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    UrlTemplateRasterUnsupportedTour,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    UrlTemplateRasterUnsupportedPositioner,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    UrlTemplateRasterUnsupportedAttributes,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    UrlTemplateRasterUnsupportedImage,
+    everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+);
+
+everymap_core::unsupported_geocoder!(
+    UrlTemplateVectorUnsupportedGeocoder,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_router!(
+    UrlTemplateVectorUnsupportedRouter,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_traffic!(
+    UrlTemplateVectorUnsupportedTraffic,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_isoline!(
+    UrlTemplateVectorUnsupportedIsoline,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    UrlTemplateVectorUnsupportedRouteMatcher,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    UrlTemplateVectorUnsupportedTour,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    UrlTemplateVectorUnsupportedPositioner,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    UrlTemplateVectorUnsupportedAttributes,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    UrlTemplateVectorUnsupportedImage,
+    everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+);
+
 impl ProviderRegistry {
     /// Builds the provider set for one provider key. An unknown key answers a
     /// validation error naming it, so a caller that skips the CLI's own
@@ -224,8 +349,11 @@ impl ProviderRegistry {
             Some(ProviderKind::MapBox) => Ok(Self::new_mapbox(api_key, key_param, verbose)),
             Some(ProviderKind::Radar) => Ok(Self::new_radar(api_key, verbose)),
             Some(ProviderKind::MapQuest) => Ok(Self::new_mapquest(api_key, verbose)),
+            Some(ProviderKind::Photon) => Ok(Self::new_photon(api_key)),
             Some(ProviderKind::Osrm) => Ok(Self::new_osrm(api_key)),
             Some(ProviderKind::Valhalla) => Ok(Self::new_valhalla(api_key)),
+            Some(ProviderKind::UrlTemplateRaster) => Ok(Self::new_url_template_raster()),
+            Some(ProviderKind::UrlTemplateVector) => Ok(Self::new_url_template_vector()),
             None => Err(everymap_core::error::EveryMapError::ValidationError(
                 format!("unsupported provider {provider:?}"),
             )),
@@ -472,6 +600,66 @@ impl ProviderRegistry {
             vector_tile_provider: None,
             attribute_provider: Box::new(ValhallaUnsupportedAttributes),
             image_provider: Box::new(ValhallaUnsupportedImage),
+        }
+    }
+
+    /// Photon: geocoding and reverse geocoding over a deployment root; an
+    /// empty credential reaches the public instance.
+    fn new_photon(base_url: String) -> Self {
+        let client = Arc::new(PhotonClient::new(PhotonProviderConfiguration {
+            base_url: deployment_base_url_or_default(
+                base_url,
+                everymap_providers_photon::DEFAULT_PHOTON_BASE_URL,
+            ),
+            ..Default::default()
+        }));
+        Self {
+            geocoder: Box::new(PhotonGeocoder::new(client)),
+            router: Box::new(PhotonUnsupportedRouter),
+            traffic: Box::new(PhotonUnsupportedTraffic),
+            positioner: Box::new(PhotonUnsupportedPositioner),
+            isoline: Box::new(PhotonUnsupportedIsoline),
+            route_matcher: Box::new(PhotonUnsupportedRouteMatcher),
+            tour_planner: Box::new(PhotonUnsupportedTour),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
+            attribute_provider: Box::new(PhotonUnsupportedAttributes),
+            image_provider: Box::new(PhotonUnsupportedImage),
+        }
+    }
+
+    /// A URL-template raster registry: only the tile command serves, and it
+    /// builds the provider from the source declaration it is given.
+    fn new_url_template_raster() -> Self {
+        Self {
+            geocoder: Box::new(UrlTemplateRasterUnsupportedGeocoder),
+            router: Box::new(UrlTemplateRasterUnsupportedRouter),
+            traffic: Box::new(UrlTemplateRasterUnsupportedTraffic),
+            positioner: Box::new(UrlTemplateRasterUnsupportedPositioner),
+            isoline: Box::new(UrlTemplateRasterUnsupportedIsoline),
+            route_matcher: Box::new(UrlTemplateRasterUnsupportedRouteMatcher),
+            tour_planner: Box::new(UrlTemplateRasterUnsupportedTour),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
+            attribute_provider: Box::new(UrlTemplateRasterUnsupportedAttributes),
+            image_provider: Box::new(UrlTemplateRasterUnsupportedImage),
+        }
+    }
+
+    /// A URL-template vector registry, addressed like the raster one.
+    fn new_url_template_vector() -> Self {
+        Self {
+            geocoder: Box::new(UrlTemplateVectorUnsupportedGeocoder),
+            router: Box::new(UrlTemplateVectorUnsupportedRouter),
+            traffic: Box::new(UrlTemplateVectorUnsupportedTraffic),
+            positioner: Box::new(UrlTemplateVectorUnsupportedPositioner),
+            isoline: Box::new(UrlTemplateVectorUnsupportedIsoline),
+            route_matcher: Box::new(UrlTemplateVectorUnsupportedRouteMatcher),
+            tour_planner: Box::new(UrlTemplateVectorUnsupportedTour),
+            raster_tile_provider: None,
+            vector_tile_provider: None,
+            attribute_provider: Box::new(UrlTemplateVectorUnsupportedAttributes),
+            image_provider: Box::new(UrlTemplateVectorUnsupportedImage),
         }
     }
 

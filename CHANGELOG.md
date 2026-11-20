@@ -18,6 +18,25 @@
 - MapQuest's remaining contract gaps are recorded as intentional: the platform
   publishes no matching, waypoint-optimization, positioning, attribute or
   vector-tile service.
+- The CLI and the benchmark select every provider the workspace publishes:
+  `--provider photon` for geocoding and reverse geocoding (keyless, with the
+  deployment URL in the credential slot and the public instance as the
+  default), and `--provider url-template-raster|url-template-vector` for
+  `tile` with `--url-template` and `--attribution`. The benchmark gains
+  Photon and both tile-source constructors, selecting the named OpenStreetMap
+  US source for vector tiles when no template is given. The CLI validation and
+  smoke scripts, the crate READMEs and the root README follow.
+- Every credentialed provider crate exports the name its credential travels
+  under: `HERE_API_KEY_QUERY_PARAMETER`, `GOOGLE_API_KEY_QUERY_PARAMETER`,
+  `TOMTOM_API_KEY_QUERY_PARAMETER`, `MAPBOX_API_KEY_QUERY_PARAMETER` and
+  `RADAR_AUTHORIZATION_HEADER_NAME`, beside MapQuest's existing
+  `MAPQUEST_API_KEY_QUERY_PARAMETER`. Each descriptor reports its constant, and
+  a test in each crate proves the two agree.
+- Google's Elevation API as `GoogleElevationProvider` (`ElevationProvider`):
+  one sample per point in the caller's order, ordered batches above the
+  documented 512-location limit, Google's in-body status mapped onto the shared
+  error model, and wiremock contract tests. Google's descriptor now lists
+  `Elevation`, and the README matrix and crate docs match.
 - Provider parity is tracked in the repository: a `provider-parity` issue
   template with an acceptance criterion, and a contribution rule that every
   contract a provider does not serve is either implemented with

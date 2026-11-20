@@ -167,6 +167,87 @@ impl BenchProviders {
         })
     }
 
+    /// Builds Photon's benchmark set from its deployment base URL.
+    pub fn new_photon(base_url: String) -> EveryMapResult<Self> {
+        let base_url = if base_url.trim().is_empty() {
+            everymap_providers_photon::DEFAULT_PHOTON_BASE_URL.to_string()
+        } else {
+            base_url
+        };
+        let client = Arc::new(everymap_providers_photon::PhotonClient::new(
+            everymap_providers_photon::PhotonProviderConfiguration {
+                base_url,
+                ..Default::default()
+            },
+        ));
+        Ok(Self {
+            provider_name: everymap_providers_photon::PROVIDER_DESCRIPTOR
+                .key
+                .to_string(),
+            geocoder: Some(Box::new(everymap_providers_photon::PhotonGeocoder::new(
+                client,
+            ))),
+            router: None,
+            isoline: None,
+            route_matcher: None,
+            tour_planner: None,
+            traffic: None,
+            raster_tile: None,
+            vector_tile: None,
+            positioner: None,
+            attributes: None,
+            image: None,
+        })
+    }
+
+    /// Builds a URL-template raster tileset's benchmark set.
+    pub fn new_url_template_raster(
+        source: everymap_providers_url_template_raster::UrlTemplateRasterTileSource,
+    ) -> EveryMapResult<Self> {
+        let provider =
+            everymap_providers_url_template_raster::UrlTemplateRasterTileProvider::new(source)?;
+        Ok(Self {
+            provider_name: everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR
+                .key
+                .to_string(),
+            geocoder: None,
+            router: None,
+            isoline: None,
+            route_matcher: None,
+            tour_planner: None,
+            traffic: None,
+            raster_tile: Some(Box::new(provider)),
+            vector_tile: None,
+            positioner: None,
+            attributes: None,
+            image: None,
+        })
+    }
+
+    /// Builds a URL-template vector tileset's benchmark set.
+    pub fn new_url_template_vector(
+        source: everymap_providers_url_template_vector::UrlTemplateVectorTileSource,
+    ) -> EveryMapResult<Self> {
+        let provider =
+            everymap_providers_url_template_vector::UrlTemplateVectorTileProvider::new(source)?;
+        Ok(Self {
+            provider_name: everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR
+                .key
+                .to_string(),
+            geocoder: None,
+            router: None,
+            isoline: None,
+            route_matcher: None,
+            tour_planner: None,
+            traffic: None,
+            raster_tile: None,
+            vector_tile: Some(Box::new(provider)),
+            positioner: None,
+            attributes: None,
+            image: None,
+        })
+    }
+
     pub fn new(provider: &str, auth: Arc<dyn AuthProvider>) -> EveryMapResult<Self> {
         match provider {
             "here" => {

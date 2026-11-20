@@ -1006,6 +1006,36 @@ test_mapbox() {
 
 # ===================== RADAR ================================================
 
+# ===================== Photon (keyless) ====================================
+
+test_photon() {
+    printf "\n${YELLOW}─── Photon Provider ───${NC}\n"
+
+    local photon_locations=(
+        "berlin|Berlin|52.52|13.405"
+        "paris|Paris|48.8566|2.3522"
+        "london|London|51.5074|-0.1278"
+    )
+
+    local loc_count=0
+    for loc in "${photon_locations[@]}"; do
+        loc_count=$((loc_count + 1))
+        if [[ "$QUICK_MODE" == true ]] && [[ "$loc_count" -gt 1 ]]; then break; fi
+
+        local name query lat lng
+        name="$(loc_name "$loc")"
+        query="$(loc_query "$loc")"
+        lat="$(loc_lat "$loc")"
+        lng="$(loc_lng "$loc")"
+
+        run_cli "photon_geocode_${name}" \
+            --provider photon geocode "$query"
+
+        run_cli "photon_reverse_${name}" \
+            --provider photon reverse-geocode --lat "$lat" $(lng_flag "$lng")
+    done
+}
+
 test_radar() {
     printf "\n${YELLOW}─── Radar Provider ───${NC}\n"
     local key="$RADAR_KEY"
@@ -1161,6 +1191,10 @@ elif should_run_provider "mapbox"; then
     printf "  ${YELLOW}SKIP${NC} MapBox (no API key)\n"
 fi
 
+if should_run_provider "photon"; then
+    test_photon
+fi
+
 if should_run_provider "radar" && has_key "radar"; then
     test_radar
 elif should_run_provider "radar"; then
@@ -1220,7 +1254,7 @@ EOF
 EOF
 
     # Count per provider
-    for provider in here google tomtom mapbox radar error; do
+    for provider in here google tomtom mapbox radar photon error; do
         local count
         count="$(find "${OUTPUT_DIR}" -name "${provider}_*" -name '*.code' 2>/dev/null | wc -l | tr -d ' ')"
         local provider_fail
