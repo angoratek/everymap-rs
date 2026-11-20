@@ -51,6 +51,16 @@ everymap-rs/
 9. Add provider section in `everymap-cli/src/config.rs`
 10. Add workspace member in root `Cargo.toml`
 11. Add provider to `everymap-bench/src/benchmark.rs`
+12. Declare the served contracts in the crate's `PROVIDER_DESCRIPTOR`; file a `provider-parity` issue for every contract it does not serve
+
+## Provider parity
+
+Every provider crate declares the contracts it serves in `PROVIDER_DESCRIPTOR.contracts`, and the crate README's "Not served" line and the root README matrix must agree with it. A contract a provider does not serve is one of two things:
+
+- an implementation, with committed-fixture contract tests, or
+- a `provider-parity` issue carrying an acceptance criterion.
+
+A pull request that adds a provider without one of those is not ready to merge. Use the "Provider parity gap" issue template so the gap and its acceptance criterion are recorded in one place.
 
 ## Coding Conventions
 
