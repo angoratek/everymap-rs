@@ -18,6 +18,11 @@
 - MapQuest's remaining contract gaps are recorded as intentional: the platform
   publishes no matching, waypoint-optimization, positioning, attribute or
   vector-tile service.
+- Provider parity is tracked in the repository: a `provider-parity` issue
+  template with an acceptance criterion, and a contribution rule that every
+  contract a provider does not serve is either implemented with
+  committed-fixture contract tests or recorded as an issue and in the crate
+  README and matrix.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no
