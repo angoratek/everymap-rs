@@ -66,6 +66,9 @@
 - `CLAUDE.md` is trimmed to project-specific guidance: the fixed-issue history
   lives in this changelog, the per-command flag lists live in `--help`, and the
   test count is no longer copied into prose.
+- Radar's README states which avoid types its Directions API cannot express,
+  and a contract test proves that a request naming only `tunnels` or
+  `dirt_roads` is sent without an `avoid` parameter instead of a mangled one.
 
 ### Fixed
 - Google matching read a `snapping` key out of `provider_extra` and never sent
