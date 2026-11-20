@@ -5,7 +5,7 @@
 ```bash
 cargo test                    # Run the full suite (unit + contract + CLI integration + bench; the run prints the count)
 cargo clippy -- -D warnings   # Lint (must pass clean)
-cargo build                   # Build all 14 workspace members (13 published)
+cargo build                   # Build all 15 workspace members (13 published)
 ```
 
 ## Test Categories
@@ -56,6 +56,7 @@ Each provider crate has a `tests/` directory with per-domain contract test files
 | Google | `tests/positioning_contract.rs` | geolocate |
 | Google | `tests/attributes_contract.rs` | snapped speed limits |
 | Google | `tests/imaging_contract.rs` | static map image |
+| Google | `tests/elevation_contract.rs` | elevation samples and batch limits |
 | Google | `tests/ext_contract.rs` | extension traits |
 | Google | `tests/http_errors.rs` | HTTP 401/403/429/500 |
 | TomTom | `tests/search_contract.rs` | geocode, reverse-geocode (v6 format) |
@@ -88,6 +89,7 @@ Each provider crate has a `tests/` directory with per-domain contract test files
 | MapQuest | `tests/matrix_contract.rs` | distance matrix |
 | MapQuest | `tests/traffic_contract.rs` | flow, incidents |
 | MapQuest | `tests/tiles_contract.rs` | raster tile |
+| MapQuest | `tests/imaging_contract.rs` | static map image |
 | MapQuest | `tests/errors_contract.rs` | provider error envelopes |
 | Photon | `tests/photon_contract.rs` | geocode, reverse-geocode, place search, type-ahead |
 | Photon | `tests/option_coverage.rs`, `tests/client_configuration.rs` | option handling and client configuration |
@@ -303,7 +305,7 @@ The CI runs 12 jobs (`.github/workflows/ci.yml`):
 9. **test**: `cargo nextest run --all-features --profile ci` (JUnit XML uploaded on failure)
 10. **build**: `cargo build --release -p everymap-cli`, plus the zero-provider and HERE-only feature sets
 11. **check-publish**: `./scripts/check-publish-readiness.sh --verbose`
-12. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (374 CLI assertions)
+12. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (384 CLI assertions)
 
 ## Browser smoke
 

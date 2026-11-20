@@ -101,9 +101,7 @@ The table covers the five original providers; the full contract × crate matrix 
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
-MapQuest also serves imaging through `MapQuestMapImageProvider`.
-
-**49 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic and raster tiles; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
+**51 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic, raster tiles and static map images; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
 
 ## Provider crates and the browser
 Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows a direct `reqwest`/`tokio` dependency or reads `std::time` breaks that silently at build time or at runtime in the browser: route the request through `ProviderClient` and read time through `web-time`, and keep the crate in the browser closure in `.github/workflows/ci.yml`.
