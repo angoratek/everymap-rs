@@ -5,17 +5,21 @@ pub mod ext;
 
 use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
 
+/// The query parameter that carries the Google Maps API key.
+pub const GOOGLE_API_KEY_QUERY_PARAMETER: &str = "key";
+
 /// This crate's cross-domain provider description.
 pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     key: error_mapping::GOOGLE_PROVIDER_NAME,
     display_name: "Google Maps",
-    credential: CredentialScheme::QueryParameter("key"),
+    credential: CredentialScheme::QueryParameter(GOOGLE_API_KEY_QUERY_PARAMETER),
     root: ServiceRoot::PerDomain,
     attribution: None,
     terms: None,
     contracts: &[
         ServedContract::Geocoding,
         ServedContract::Routing,
+        ServedContract::Elevation,
         ServedContract::Matching,
         ServedContract::Positioning,
         ServedContract::Attributes,
@@ -27,6 +31,12 @@ pub use client::GoogleClient;
 
 // Shared types
 pub use domain::geo::{GoogleBounds, GoogleLatLng};
+
+// Elevation (Elevation API)
+pub use domain::elevation::{
+    GoogleElevationProvider, GoogleElevationResponse, GoogleElevationResult,
+    MAX_ELEVATION_LOCATIONS_PER_REQUEST,
+};
 
 // Search (Geocoding API)
 pub use domain::search::{
@@ -66,3 +76,16 @@ pub use domain::unsupported::{GoogleIsoline, GoogleTourPlanner, GoogleTraffic};
 
 // Extension traits
 pub use ext::{GoogleAttributeExt, GooglePositionerExt};
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{GOOGLE_API_KEY_QUERY_PARAMETER, PROVIDER_DESCRIPTOR};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_query_parameter_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential.query_parameter_name(),
+            Some(GOOGLE_API_KEY_QUERY_PARAMETER)
+        );
+    }
+}

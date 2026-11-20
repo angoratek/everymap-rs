@@ -12,7 +12,7 @@ Core traits, types, and error handling for [EveryMap-RS](https://github.com/ango
 - **Auth**: `AuthProvider` trait with `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` and `NoAuthProvider` — API keys, client secrets and cached tokens are zeroized on drop
 - **HTTP**: backend-neutral `ProviderClient` on the `HttpTransport` seam — `reqwest` natively, `window.fetch` on WebAssembly, with token-bucket rate limiting, idempotent-GET retries, timeouts, and credential redaction
 - **Errors**: structured `EveryMapError` (`HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, and more)
-- **Stub macros**: 8 `unsupported_*!` macros so provider crates stub out unsupported contracts cleanly
+- **Stub macros**: 9 `unsupported_*!` macros so provider crates stub out unsupported contracts cleanly
 
 Every options struct carries a `provider_extra: Option<serde_json::Value>` escape hatch for provider-specific parameters.
 

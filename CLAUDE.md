@@ -48,7 +48,7 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - **Pattern**: Each domain trait uses concrete `Options` and `Response` types (not associated types). Provider implementations define their own rich types and map to core via `From` conversions.
 - **Dynamic dispatch**: Traits use concrete types enabling `Box<dyn Geocoder>` for runtime provider selection.
 - **ProviderClient** in `everymap-core/src/client/` consolidates all HTTP client logic (request, request_json, post_json, redact_api_key, truncate_str). Provider crates wrap it with thin structs.
-- **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (7 macros): `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`
+- **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (9 macros): `unsupported_geocoder!`, `unsupported_router!`, `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_matcher!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`
 - **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 11 commands.
 - **Each domain module** has its own `types.rs` submodule with provider-specific request/response types.
 - **Core response types** are rich enough for most use cases, with an optional `raw: Option<serde_json::Value>` escape hatch for provider-specific data.
@@ -91,6 +91,7 @@ The table covers the five original providers; the full contract × crate matrix 
 | Search | `Geocoder` | `HereGeocoder` | `GoogleGeocoder` | `TomTomGeocoder` | `MapBoxGeocoder` | `RadarGeocoder` |
 | Routing | `Router` | `HereRouter` | `GoogleRouter` | `TomTomRouter` | `MapBoxRouter` | `RadarRouter` |
 | Isoline | `IsolineProvider` | `HereIsoline` | stub | `TomTomIsoline` | `MapBoxIsoline` | stub |
+| Elevation | `ElevationProvider` | — | `GoogleElevationProvider` | — | — | — |
 | Matching | `RouteMatcher` | `HereRouteMatcher` | `GoogleRouteMatcher` | `TomTomRouteMatcher` | `MapBoxRouteMatcher` | `RadarRouteMatcher` |
 | Tour | `TourPlanner` | `HereTourPlanner` | stub | `TomTomTourPlanner` | `MapBoxTourPlanner` | `RadarTourPlanner` |
 | Traffic | `TrafficProvider` | `HereTraffic` | stub | `TomTomTraffic` | stub | stub |
@@ -99,6 +100,8 @@ The table covers the five original providers; the full contract × crate matrix 
 | Positioning | `NetworkPositioner` | `HerePositioner` | `GooglePositioner` | stub | stub | stub |
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
+
+MapQuest also serves imaging through `MapQuestMapImageProvider`.
 
 **49 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic and raster tiles; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
 
@@ -120,13 +123,13 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 
 ## CLI Usage
 - Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand
-- `--provider` is one of `here` (default), `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `osrm` or `valhalla`; Photon and the URL-template crates are library-only
+- `--provider` is one of `here` (default), `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `photon`, `osrm`, `valhalla`, `url-template-raster` or `url-template-vector`
 - Each provider is a cargo feature in `everymap-cli`; the default carries all of them, and `--no-default-features --features here` builds a HERE-only binary
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
 - Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.png` for raster, `tile.mvt` for vector, `map.png`)
-- `tile` takes `--variant raster|vector`; with no variant it uses the first tile contract the provider serves. HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- `tile` takes `--variant raster|vector`; with no variant it uses the first tile contract the provider serves. The URL-template providers take `--url-template` plus `--attribution`. HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
 - **TomTom coordinate order**: the static image uses `lng,lat` for `center` (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
