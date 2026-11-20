@@ -3,6 +3,30 @@ pub mod domain;
 pub mod ext;
 pub mod util;
 
+use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
+
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
+    key: "here",
+    display_name: "HERE Technologies",
+    credential: CredentialScheme::QueryParameter("apiKey"),
+    root: ServiceRoot::PerDomain,
+    attribution: Some(domain::tiling::HERE_VECTOR_ATTRIBUTION),
+    terms: None,
+    contracts: &[
+        ServedContract::Geocoding,
+        ServedContract::Routing,
+        ServedContract::Traffic,
+        ServedContract::VectorTiles,
+        ServedContract::Isoline,
+        ServedContract::Matching,
+        ServedContract::Tour,
+        ServedContract::Positioning,
+        ServedContract::Attributes,
+        ServedContract::Imaging,
+    ],
+};
+
 pub use client::HereClient;
 pub use domain::attributes::{
     AttributeFormat, AttributeLayer, DirectionalSpeedLimit, HereAdminAreaAttributeFeature,

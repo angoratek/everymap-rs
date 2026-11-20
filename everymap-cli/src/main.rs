@@ -16,12 +16,7 @@ use everymap_core::domains::tiling::{RasterImageFormat, RasterTileRequest, Raste
 use everymap_core::domains::tour::TourOptions;
 use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
-use provider::ProviderRegistry;
-
-/// The providers this binary can construct.
-const SUPPORTED_PROVIDERS: [&str; 8] = [
-    "here", "google", "tomtom", "mapbox", "radar", "mapquest", "osrm", "valhalla",
-];
+use provider::{supported_provider_descriptor, supported_provider_keys, ProviderRegistry};
 
 #[derive(Parser)]
 #[command(
@@ -30,15 +25,15 @@ const SUPPORTED_PROVIDERS: [&str; 8] = [
     about = "Geospatial API CLI - unified interface for map providers"
 )]
 struct Cli {
-    /// Provider to use (here, google, tomtom, mapbox, radar, mapquest, osrm, valhalla)
-    #[arg(long, default_value = "here")]
+    /// Provider to use
+    #[arg(long, default_value_t = everymap_providers_here::PROVIDER_DESCRIPTOR.key.to_string())]
     provider: String,
 
     /// API key for authentication
     #[arg(long, env = "EVERYMAP_API_KEY")]
     api_key: Option<String>,
 
-    /// API key parameter name (default: key for Google, apiKey for HERE)
+    /// API key query parameter name (default: the provider's documented name)
     #[arg(long)]
     api_key_param: Option<String>,
 
@@ -343,19 +338,18 @@ fn exit_with_error(message: &str) -> ! {
 async fn main() {
     let cli = Cli::parse();
 
-    if !SUPPORTED_PROVIDERS.contains(&cli.provider.as_str()) {
+    let Some(descriptor) = supported_provider_descriptor(&cli.provider) else {
         eprintln!(
             "Error: Unsupported provider '{}'. Supported providers: {}",
             cli.provider,
-            SUPPORTED_PROVIDERS.join(", ")
+            supported_provider_keys().join(", ")
         );
         std::process::exit(1);
-    }
+    };
 
-    // OSRM and Valhalla are keyless engines: the credential slot carries their
-    // deployment base URL, and leaving it empty reaches the crate's documented
-    // local default.
-    let provider_requires_credential = !matches!(cli.provider.as_str(), "osrm" | "valhalla");
+    // A keyless provider stores its deployment base URL or source declaration
+    // in the credential slot; leaving it empty reaches the crate's default.
+    let provider_requires_credential = descriptor.credential.requires_credential();
     let config = config::Config::load();
     let api_key = cli
         .api_key
@@ -370,14 +364,13 @@ async fn main() {
         std::process::exit(1);
     }
 
-    let key_param = cli
-        .api_key_param
-        .clone()
-        .unwrap_or_else(|| match cli.provider.as_str() {
-            "google" | "tomtom" => "key".to_string(),
-            "mapbox" => "access_token".to_string(),
-            _ => "apiKey".to_string(),
-        });
+    let key_param = cli.api_key_param.clone().unwrap_or_else(|| {
+        descriptor
+            .credential
+            .query_parameter_name()
+            .unwrap_or_default()
+            .to_string()
+    });
 
     let output_format = output::OutputFormat::from_str(&cli.output);
     let registry = match ProviderRegistry::try_new(&cli.provider, api_key, key_param, cli.verbose) {

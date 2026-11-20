@@ -3,6 +3,26 @@ pub mod domain;
 mod error_mapping;
 pub mod ext;
 
+use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
+
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
+    key: error_mapping::GOOGLE_PROVIDER_NAME,
+    display_name: "Google Maps",
+    credential: CredentialScheme::QueryParameter("key"),
+    root: ServiceRoot::PerDomain,
+    attribution: None,
+    terms: None,
+    contracts: &[
+        ServedContract::Geocoding,
+        ServedContract::Routing,
+        ServedContract::Matching,
+        ServedContract::Positioning,
+        ServedContract::Attributes,
+        ServedContract::Imaging,
+    ],
+};
+
 pub use client::GoogleClient;
 
 // Shared types

@@ -43,6 +43,18 @@ mod client;
 mod error_mapping;
 pub mod route;
 
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: everymap_core::provider::ProviderDescriptor =
+    everymap_core::provider::ProviderDescriptor {
+        key: client::OSRM_PROVIDER_NAME,
+        display_name: "OSRM",
+        credential: everymap_core::provider::CredentialScheme::DeploymentUrl,
+        root: everymap_core::provider::ServiceRoot::Single(client::DEFAULT_OSRM_BASE_URL),
+        attribution: None,
+        terms: None,
+        contracts: &[everymap_core::provider::ServedContract::Routing],
+    };
+
 pub use client::{
     OsrmProviderConfiguration, DEFAULT_OSRM_BASE_URL, DEFAULT_OSRM_USER_AGENT, OSRM_PROVIDER_NAME,
 };

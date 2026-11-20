@@ -16,6 +16,7 @@
 //! | [`auth`] | `AuthProvider`, `ApiKeyProvider`, `HeaderAuthProvider`, `OAuth2Provider` |
 //! | [`client`] | Shared `ProviderClient` HTTP logic, rate limiting, retries, observers |
 //! | [`http`] | Backend-neutral `HttpRequest`, `HttpResponse`, `HttpTransport` |
+//! | [`provider`] | `ProviderDescriptor`: what a provider crate serves and how a host reaches it |
 //! | [`tile_source`] | Shared `{z}/{x}/{y}` template, pacing and tile-coordinate validation |
 //! | [`types`] | `Coordinate`, `BoundingBox`, `Address`, `Polyline` |
 //! | [`error`] | Structured `EveryMapError` with 10 variants |
@@ -41,6 +42,7 @@ pub mod client;
 pub mod domains;
 pub mod error;
 pub mod http;
+pub mod provider;
 pub mod tile_source;
 pub mod types;
 pub mod unsupported;
@@ -48,5 +50,6 @@ pub mod unsupported;
 pub use auth::*;
 pub use domains::*;
 pub use error::*;
+pub use provider::*;
 pub use tile_source::*;
 pub use types::*;

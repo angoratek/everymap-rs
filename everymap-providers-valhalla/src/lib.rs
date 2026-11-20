@@ -45,6 +45,18 @@ mod maneuver_mapping;
 mod polyline;
 mod routing;
 
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: everymap_core::provider::ProviderDescriptor =
+    everymap_core::provider::ProviderDescriptor {
+        key: client::VALHALLA_PROVIDER_NAME,
+        display_name: "Valhalla",
+        credential: everymap_core::provider::CredentialScheme::DeploymentUrl,
+        root: everymap_core::provider::ServiceRoot::Single(client::DEFAULT_VALHALLA_BASE_URL),
+        attribution: None,
+        terms: None,
+        contracts: &[everymap_core::provider::ServedContract::Routing],
+    };
+
 pub use client::{
     ValhallaProviderConfiguration, DEFAULT_VALHALLA_BASE_URL, DEFAULT_VALHALLA_USER_AGENT,
     VALHALLA_PROVIDER_NAME,

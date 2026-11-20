@@ -71,6 +71,27 @@ pub mod routing;
 pub mod tiles;
 pub mod traffic;
 
+use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
+
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
+    key: client::MAPQUEST_PROVIDER_NAME,
+    display_name: "MapQuest",
+    credential: CredentialScheme::QueryParameter(client::MAPQUEST_API_KEY_QUERY_PARAMETER),
+    root: ServiceRoot::Single(client::DEFAULT_MAPQUEST_BASE_URL),
+    attribution: None,
+    terms: None,
+    contracts: &[
+        ServedContract::Geocoding,
+        ServedContract::PlaceSearch,
+        ServedContract::Autocomplete,
+        ServedContract::Routing,
+        ServedContract::DistanceMatrix,
+        ServedContract::Traffic,
+        ServedContract::RasterTiles,
+    ],
+};
+
 pub use autocomplete::MapQuestAutocompleteProvider;
 pub use client::{
     MapQuestClient, MapQuestProviderConfiguration, DEFAULT_MAPQUEST_BASE_URL,

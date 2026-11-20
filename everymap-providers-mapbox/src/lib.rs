@@ -3,6 +3,27 @@ pub mod domain;
 mod error_mapping;
 pub mod ext;
 
+use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
+
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
+    key: error_mapping::MAPBOX_PROVIDER_NAME,
+    display_name: "MapBox",
+    credential: CredentialScheme::QueryParameter("access_token"),
+    root: ServiceRoot::PerDomain,
+    attribution: Some(domain::tiling::MAPBOX_VECTOR_ATTRIBUTION),
+    terms: None,
+    contracts: &[
+        ServedContract::Geocoding,
+        ServedContract::Routing,
+        ServedContract::VectorTiles,
+        ServedContract::Isoline,
+        ServedContract::Matching,
+        ServedContract::Tour,
+        ServedContract::Imaging,
+    ],
+};
+
 pub use client::MapBoxClient;
 
 // Extension traits
