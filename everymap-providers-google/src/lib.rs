@@ -19,6 +19,7 @@ pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     contracts: &[
         ServedContract::Geocoding,
         ServedContract::Routing,
+        ServedContract::Elevation,
         ServedContract::Matching,
         ServedContract::Positioning,
         ServedContract::Attributes,
@@ -30,6 +31,12 @@ pub use client::GoogleClient;
 
 // Shared types
 pub use domain::geo::{GoogleBounds, GoogleLatLng};
+
+// Elevation (Elevation API)
+pub use domain::elevation::{
+    GoogleElevationProvider, GoogleElevationResponse, GoogleElevationResult,
+    MAX_ELEVATION_LOCATIONS_PER_REQUEST,
+};
 
 // Search (Geocoding API)
 pub use domain::search::{
