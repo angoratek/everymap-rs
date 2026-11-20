@@ -1,6 +1,6 @@
 # everymap-providers-google
 
-[Google Maps](https://mapsplatform.google.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, map matching, positioning, attributes, and static maps.
+[Google Maps](https://mapsplatform.google.com) provider for [EveryMap-RS](https://github.com/angoratek/everymap-rs) — geocoding, routing, elevation, map matching, positioning, attributes, and static maps.
 
 ## Contracts
 
@@ -8,12 +8,13 @@
 |---|---|---|
 | Geocoding | `Geocoder` | `GoogleGeocoder` |
 | Routing | `Router` | `GoogleRouter` ¹ |
+| Elevation | `ElevationProvider` | `GoogleElevationProvider` |
 | Matching | `RouteMatcher` | `GoogleRouteMatcher` |
 | Positioning | `NetworkPositioner` | `GooglePositioner` |
 | Attributes | `AttributeProvider` | `GoogleAttributeProvider` |
 | Imaging | `MapImageProvider` | `GoogleMapImageProvider` |
 
-Not served: place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, elevation, isoline, tour and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+Not served: place search, type-ahead, distance matrix, traffic, raster tiles, vector tiles, isoline, tour and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
 
 ¹ Routes two endpoints. A request with more waypoints is refused with `EveryMapError::UnsupportedDomain` rather than silently dropping the stops.
 
@@ -51,6 +52,8 @@ async fn main() {
 ## Provider-specific features
 
 Extension traits: `GoogleAttributeExt` (Roads API speed limits) and `GooglePositionerExt` (Geolocation API with cell-tower and Wi-Fi inputs).
+
+Elevation samples each point through the Elevation API and returns one sample per point in the caller's order; a list longer than the documented 512-location batch limit is split into ordered batches.
 
 Routing uses the Routes API v2 (`computeRoutes`). Each domain derives its endpoint from one configurable service root (`with_base_url`), defaulting to the vendor's public host for that API.
 

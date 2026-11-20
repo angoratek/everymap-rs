@@ -9,6 +9,11 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Google's Elevation API as `GoogleElevationProvider` (`ElevationProvider`):
+  one sample per point in the caller's order, ordered batches above the
+  documented 512-location limit, Google's in-body status mapped onto the shared
+  error model, and wiremock contract tests. Google's descriptor now lists
+  `Elevation`, and the README matrix and crate docs match.
 - Provider parity is tracked in the repository: a `provider-parity` issue
   template with an acceptance criterion, and a contribution rule that every
   contract a provider does not serve is either implemented with
