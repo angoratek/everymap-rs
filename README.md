@@ -180,6 +180,8 @@ let route = router
 
 The CLI selects eight of the eleven provider crates — HERE, Google, TomTom, MapBox, Radar, MapQuest, OSRM and Valhalla. Photon and the two URL-template crates are library-only. A `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
 
+Each provider is also a cargo feature: the default build carries every provider, and `cargo install everymap-cli --no-default-features --features here` builds a HERE-only binary. The feature set is `here`, `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `osrm` and `valhalla`. Measured unstripped release size on macOS arm64: 11.7 MB with every provider, 9.3 MB HERE only, 2.3 MB with no provider.
+
 ```bash
 # HERE provider (default)
 everymap --api-key $HERE_KEY geocode "Brandenburg Gate, Berlin"

@@ -16,16 +16,36 @@ authors.workspace = true
 name = "everymap"
 path = "src/main.rs"
 
+[features]
+default = [
+    "here",
+    "google",
+    "tomtom",
+    "mapbox",
+    "radar",
+    "mapquest",
+    "osrm",
+    "valhalla",
+]
+here = ["dep:everymap-providers-here"]
+google = ["dep:everymap-providers-google"]
+tomtom = ["dep:everymap-providers-tomtom"]
+mapbox = ["dep:everymap-providers-mapbox"]
+radar = ["dep:everymap-providers-radar"]
+mapquest = ["dep:everymap-providers-mapquest"]
+osrm = ["dep:everymap-providers-osrm"]
+valhalla = ["dep:everymap-providers-valhalla"]
+
 [dependencies]
 everymap-core = { workspace = true }
-everymap-providers-here = { workspace = true }
-everymap-providers-google = { workspace = true }
-everymap-providers-tomtom = { workspace = true }
-everymap-providers-mapbox = { workspace = true }
-everymap-providers-radar = { workspace = true }
-everymap-providers-mapquest = { workspace = true }
-everymap-providers-osrm = { workspace = true }
-everymap-providers-valhalla = { workspace = true }
+everymap-providers-here = { workspace = true, optional = true }
+everymap-providers-google = { workspace = true, optional = true }
+everymap-providers-tomtom = { workspace = true, optional = true }
+everymap-providers-mapbox = { workspace = true, optional = true }
+everymap-providers-radar = { workspace = true, optional = true }
+everymap-providers-mapquest = { workspace = true, optional = true }
+everymap-providers-osrm = { workspace = true, optional = true }
+everymap-providers-valhalla = { workspace = true, optional = true }
 # The unsupported-domain macros expand to an `async_trait` attribute.
 async-trait = { workspace = true }
 clap = { version = "4", features = ["derive", "env"] }

@@ -9,6 +9,11 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Every provider is a cargo feature in `everymap-cli`: the default carries all
+  of them, `--no-default-features --features here` builds a HERE-only binary,
+  and `--no-default-features` builds the command surface with no provider. CI
+  builds the default, the zero-provider and the HERE-only configurations and
+  runs the minimal binary's `--help`.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no

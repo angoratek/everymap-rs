@@ -18,6 +18,14 @@ use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
 use provider::{supported_provider_descriptor, supported_provider_keys, ProviderRegistry};
 
+/// The first provider this binary carries, or an empty default when none is.
+fn default_provider_key() -> &'static str {
+    supported_provider_keys()
+        .first()
+        .copied()
+        .unwrap_or_default()
+}
+
 #[derive(Parser)]
 #[command(
     name = "everymap",
@@ -26,7 +34,7 @@ use provider::{supported_provider_descriptor, supported_provider_keys, ProviderR
 )]
 struct Cli {
     /// Provider to use
-    #[arg(long, default_value_t = everymap_providers_here::PROVIDER_DESCRIPTOR.key.to_string())]
+    #[arg(long, default_value_t = default_provider_key().to_string())]
     provider: String,
 
     /// API key for authentication

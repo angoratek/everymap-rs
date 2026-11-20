@@ -10,6 +10,25 @@ cargo install everymap-cli
 
 Prebuilt binaries for 5 targets (Linux x86_64/ARM64, macOS Intel/Apple Silicon, Windows) are attached to each [GitHub Release](https://github.com/angoratek/everymap-rs/releases).
 
+## Feature flags
+
+Every provider is a cargo feature; the default set carries all of them. Dropping a feature removes the provider crate and its HTTP stack from the binary:
+
+```bash
+# Every provider (default)
+cargo install everymap-cli
+
+# HERE only
+cargo install everymap-cli --no-default-features --features here
+
+# No provider at all; the command surface still answers --help
+cargo build --release --no-default-features -p everymap-cli
+```
+
+Features: `here`, `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `osrm` and `valhalla`.
+
+Measured release binary size, unstripped, on macOS arm64 (2026-11-19): every provider **11.7 MB**, HERE only **9.3 MB**, no provider **2.3 MB**. The exact figures vary by target and toolchain; the comparison is the point.
+
 ## Commands
 
 | Command | Purpose |

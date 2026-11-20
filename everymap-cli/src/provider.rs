@@ -1,4 +1,11 @@
+#[cfg(feature = "radar")]
 use everymap_core::auth::header::HeaderAuthProvider;
+#[cfg(any(
+    feature = "here",
+    feature = "google",
+    feature = "tomtom",
+    feature = "mapbox"
+))]
 use everymap_core::auth::{ApiKeyProvider, AuthProvider};
 use everymap_core::domains::attributes::AttributeProvider;
 use everymap_core::domains::imaging::MapImageProvider;
@@ -11,12 +18,26 @@ use everymap_core::domains::tiling::{RasterTileProvider, VectorTileProvider};
 use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::traffic::TrafficProvider;
 use everymap_core::provider::ProviderDescriptor;
+#[cfg(feature = "mapquest")]
 use everymap_providers_mapquest::{
     MapQuestClient, MapQuestGeocoder, MapQuestProviderConfiguration, MapQuestRasterTileProvider,
     MapQuestRouter, MapQuestTrafficProvider,
 };
+#[cfg(feature = "osrm")]
 use everymap_providers_osrm::{OsrmProviderConfiguration, OsrmRouter};
+#[cfg(feature = "valhalla")]
+#[cfg(feature = "valhalla")]
 use everymap_providers_valhalla::{ValhallaProviderConfiguration, ValhallaRouter};
+#[cfg(any(
+    feature = "here",
+    feature = "google",
+    feature = "tomtom",
+    feature = "mapbox",
+    feature = "radar",
+    feature = "mapquest",
+    feature = "osrm",
+    feature = "valhalla"
+))]
 use std::sync::Arc;
 
 /// Registry that creates trait-object providers for the selected provider.
@@ -39,33 +60,45 @@ pub struct ProviderRegistry {
     image_provider: Box<dyn MapImageProvider>,
 }
 
-/// The providers this binary can construct, in help order.
+/// The providers this binary carries, in help order.
 ///
 /// Each entry is the provider crate's own descriptor, so the keys, credential
 /// names and service roots are stated once per crate rather than in the CLI.
-pub static SUPPORTED_PROVIDER_DESCRIPTORS: [ProviderDescriptor; 8] = [
-    everymap_providers_here::PROVIDER_DESCRIPTOR,
-    everymap_providers_google::PROVIDER_DESCRIPTOR,
-    everymap_providers_tomtom::PROVIDER_DESCRIPTOR,
-    everymap_providers_mapbox::PROVIDER_DESCRIPTOR,
-    everymap_providers_radar::PROVIDER_DESCRIPTOR,
-    everymap_providers_mapquest::PROVIDER_DESCRIPTOR,
-    everymap_providers_osrm::PROVIDER_DESCRIPTOR,
-    everymap_providers_valhalla::PROVIDER_DESCRIPTOR,
-];
+/// A cargo feature decides which crates are linked.
+// The pushes are cfg-gated, so they cannot collapse into a `vec!`.
+#[allow(clippy::vec_init_then_push, unused_mut)]
+pub fn supported_provider_descriptors() -> Vec<ProviderDescriptor> {
+    let mut descriptors = Vec::new();
+    #[cfg(feature = "here")]
+    descriptors.push(everymap_providers_here::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "google")]
+    descriptors.push(everymap_providers_google::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "tomtom")]
+    descriptors.push(everymap_providers_tomtom::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "mapbox")]
+    descriptors.push(everymap_providers_mapbox::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "radar")]
+    descriptors.push(everymap_providers_radar::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "mapquest")]
+    descriptors.push(everymap_providers_mapquest::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "osrm")]
+    descriptors.push(everymap_providers_osrm::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "valhalla")]
+    descriptors.push(everymap_providers_valhalla::PROVIDER_DESCRIPTOR);
+    descriptors
+}
 
 /// The descriptor for `provider`, when this binary can construct it.
 pub fn supported_provider_descriptor(provider: &str) -> Option<ProviderDescriptor> {
-    SUPPORTED_PROVIDER_DESCRIPTORS
-        .iter()
-        .copied()
+    supported_provider_descriptors()
+        .into_iter()
         .find(|descriptor| descriptor.key == provider)
 }
 
 /// The keys of the providers this binary can construct, in help order.
 pub fn supported_provider_keys() -> Vec<&'static str> {
-    SUPPORTED_PROVIDER_DESCRIPTORS
-        .iter()
+    supported_provider_descriptors()
+        .into_iter()
         .map(|descriptor| descriptor.key)
         .collect()
 }
@@ -73,40 +106,64 @@ pub fn supported_provider_keys() -> Vec<&'static str> {
 /// The constructor to run for a supported provider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ProviderKind {
+    #[cfg(feature = "here")]
     Here,
+    #[cfg(feature = "google")]
     Google,
+    #[cfg(feature = "tomtom")]
     TomTom,
+    #[cfg(feature = "mapbox")]
     MapBox,
+    #[cfg(feature = "radar")]
     Radar,
+    #[cfg(feature = "mapquest")]
     MapQuest,
+    #[cfg(feature = "osrm")]
     Osrm,
+    #[cfg(feature = "valhalla")]
     Valhalla,
 }
 
 /// Resolve a provider key to its constructor without repeating the key.
 fn provider_kind(provider: &str) -> Option<ProviderKind> {
+    #[cfg(feature = "here")]
     if provider == everymap_providers_here::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::Here)
-    } else if provider == everymap_providers_google::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::Google)
-    } else if provider == everymap_providers_tomtom::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::TomTom)
-    } else if provider == everymap_providers_mapbox::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::MapBox)
-    } else if provider == everymap_providers_radar::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::Radar)
-    } else if provider == everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::MapQuest)
-    } else if provider == everymap_providers_osrm::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::Osrm)
-    } else if provider == everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key {
-        Some(ProviderKind::Valhalla)
-    } else {
-        None
+        return Some(ProviderKind::Here);
     }
+    #[cfg(feature = "google")]
+    if provider == everymap_providers_google::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::Google);
+    }
+    #[cfg(feature = "tomtom")]
+    if provider == everymap_providers_tomtom::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::TomTom);
+    }
+    #[cfg(feature = "mapbox")]
+    if provider == everymap_providers_mapbox::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::MapBox);
+    }
+    #[cfg(feature = "radar")]
+    if provider == everymap_providers_radar::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::Radar);
+    }
+    #[cfg(feature = "mapquest")]
+    if provider == everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::MapQuest);
+    }
+    #[cfg(feature = "osrm")]
+    if provider == everymap_providers_osrm::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::Osrm);
+    }
+    #[cfg(feature = "valhalla")]
+    if provider == everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key {
+        return Some(ProviderKind::Valhalla);
+    }
+    let _ = provider;
+    None
 }
 
 /// The deployment base URL a keyless provider reads as its credential.
+#[cfg(any(feature = "osrm", feature = "valhalla"))]
 fn deployment_base_url_or_default(credential: String, default_base_url: &str) -> String {
     let trimmed_credential = credential.trim();
     if trimmed_credential.is_empty() {
@@ -120,92 +177,114 @@ fn deployment_base_url_or_default(credential: String, default_base_url: &str) ->
 // Valhalla do not serve: each answers with the documented unsupported error
 // instead of pretending to work. MapQuest serves traffic through its own
 // provider, so no traffic stub exists for it.
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_isoline!(
     MapQuestUnsupportedIsoline,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_matcher!(
     MapQuestUnsupportedRouteMatcher,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_tour!(
     MapQuestUnsupportedTourPlanner,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_positioner!(
     MapQuestUnsupportedPositioner,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_attributes!(
     MapQuestUnsupportedAttributeProvider,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "mapquest")]
 everymap_core::unsupported_image!(
     MapQuestUnsupportedMapImageProvider,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
 
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_geocoder!(
     OsrmUnsupportedGeocoder,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_traffic!(
     OsrmUnsupportedTraffic,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_isoline!(
     OsrmUnsupportedIsoline,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_matcher!(
     OsrmUnsupportedRouteMatcher,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_tour!(
     OsrmUnsupportedTour,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_positioner!(
     OsrmUnsupportedPositioner,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_attributes!(
     OsrmUnsupportedAttributes,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "osrm")]
 everymap_core::unsupported_image!(
     OsrmUnsupportedImage,
     everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
 );
 
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_geocoder!(
     ValhallaUnsupportedGeocoder,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_traffic!(
     ValhallaUnsupportedTraffic,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_isoline!(
     ValhallaUnsupportedIsoline,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_matcher!(
     ValhallaUnsupportedRouteMatcher,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_tour!(
     ValhallaUnsupportedTour,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_positioner!(
     ValhallaUnsupportedPositioner,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_attributes!(
     ValhallaUnsupportedAttributes,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
 );
+#[cfg(feature = "valhalla")]
 everymap_core::unsupported_image!(
     ValhallaUnsupportedImage,
     everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
@@ -221,14 +300,24 @@ impl ProviderRegistry {
         key_param: String,
         verbose: bool,
     ) -> Result<Self, everymap_core::error::EveryMapError> {
+        // A build with no provider features leaves these parameters unused.
+        let _ = (&api_key, &key_param, verbose);
         match provider_kind(provider) {
+            #[cfg(feature = "here")]
             Some(ProviderKind::Here) => Ok(Self::new_here(api_key, key_param, verbose)),
+            #[cfg(feature = "google")]
             Some(ProviderKind::Google) => Ok(Self::new_google(api_key, key_param, verbose)),
+            #[cfg(feature = "tomtom")]
             Some(ProviderKind::TomTom) => Ok(Self::new_tomtom(api_key, key_param, verbose)),
+            #[cfg(feature = "mapbox")]
             Some(ProviderKind::MapBox) => Ok(Self::new_mapbox(api_key, key_param, verbose)),
+            #[cfg(feature = "radar")]
             Some(ProviderKind::Radar) => Ok(Self::new_radar(api_key, verbose)),
+            #[cfg(feature = "mapquest")]
             Some(ProviderKind::MapQuest) => Ok(Self::new_mapquest(api_key, verbose)),
+            #[cfg(feature = "osrm")]
             Some(ProviderKind::Osrm) => Ok(Self::new_osrm(api_key)),
+            #[cfg(feature = "valhalla")]
             Some(ProviderKind::Valhalla) => Ok(Self::new_valhalla(api_key)),
             None => Err(everymap_core::error::EveryMapError::ValidationError(
                 format!("unsupported provider {provider:?}"),
@@ -236,6 +325,7 @@ impl ProviderRegistry {
         }
     }
 
+    #[cfg(feature = "here")]
     fn new_here(api_key: String, key_param: String, verbose: bool) -> Self {
         let auth: Arc<dyn AuthProvider> = Arc::new(ApiKeyProvider::new(api_key, key_param));
         let mut client = everymap_providers_here::client::HereClient::new(auth);
@@ -279,6 +369,7 @@ impl ProviderRegistry {
         }
     }
 
+    #[cfg(feature = "google")]
     fn new_google(api_key: String, key_param: String, verbose: bool) -> Self {
         let auth: Arc<dyn AuthProvider> = Arc::new(ApiKeyProvider::new(api_key, key_param));
         let mut client = everymap_providers_google::client::GoogleClient::new(auth);
@@ -310,6 +401,7 @@ impl ProviderRegistry {
         }
     }
 
+    #[cfg(feature = "tomtom")]
     fn new_tomtom(api_key: String, key_param: String, verbose: bool) -> Self {
         let auth: Arc<dyn AuthProvider> = Arc::new(ApiKeyProvider::new(api_key, key_param));
         let mut client = everymap_providers_tomtom::client::TomTomClient::new(auth);
@@ -345,6 +437,7 @@ impl ProviderRegistry {
         }
     }
 
+    #[cfg(feature = "mapbox")]
     fn new_mapbox(api_key: String, key_param: String, verbose: bool) -> Self {
         let auth: Arc<dyn AuthProvider> = Arc::new(ApiKeyProvider::new(api_key, key_param));
         let mut client = everymap_providers_mapbox::client::MapBoxClient::new(auth);
@@ -378,6 +471,7 @@ impl ProviderRegistry {
         }
     }
 
+    #[cfg(feature = "radar")]
     fn new_radar(api_key: String, verbose: bool) -> Self {
         let auth: Arc<dyn AuthProvider> = Arc::new(HeaderAuthProvider::new(api_key));
         let mut client = everymap_providers_radar::client::RadarClient::new(auth);
@@ -406,6 +500,7 @@ impl ProviderRegistry {
     /// MapQuest: geocoding, routing and traffic; the remaining domains have
     /// no implementation on this service and answer with the unsupported
     /// error.
+    #[cfg(feature = "mapquest")]
     fn new_mapquest(api_key: String, verbose: bool) -> Self {
         let mut client = MapQuestClient::new(MapQuestProviderConfiguration {
             api_key,
@@ -430,6 +525,7 @@ impl ProviderRegistry {
 
     /// OSRM: routing only. The credential, when given, is the deployment's
     /// base URL; an empty one targets the crate's documented local default.
+    #[cfg(feature = "osrm")]
     fn new_osrm(base_url: String) -> Self {
         let router = OsrmRouter::new(OsrmProviderConfiguration {
             base_url: deployment_base_url_or_default(
@@ -454,6 +550,7 @@ impl ProviderRegistry {
     }
 
     /// Valhalla: routing only, addressed like OSRM.
+    #[cfg(feature = "valhalla")]
     fn new_valhalla(base_url: String) -> Self {
         let router = ValhallaRouter::new(ValhallaProviderConfiguration {
             base_url: deployment_base_url_or_default(
@@ -525,13 +622,13 @@ impl ProviderRegistry {
 #[cfg(test)]
 mod tests {
     use super::{
-        provider_kind, supported_provider_descriptor, supported_provider_keys, ProviderRegistry,
-        SUPPORTED_PROVIDER_DESCRIPTORS,
+        provider_kind, supported_provider_descriptor, supported_provider_descriptors,
+        supported_provider_keys, ProviderRegistry,
     };
 
     #[test]
     fn every_supported_descriptor_key_constructs_a_registry() {
-        for descriptor in SUPPORTED_PROVIDER_DESCRIPTORS {
+        for descriptor in supported_provider_descriptors() {
             let credential = if descriptor.credential.requires_credential() {
                 "test-key".to_string()
             } else {
@@ -560,7 +657,7 @@ mod tests {
         let mut keys = supported_provider_keys();
         keys.sort_unstable();
         keys.dedup();
-        assert_eq!(keys.len(), SUPPORTED_PROVIDER_DESCRIPTORS.len());
+        assert_eq!(keys.len(), supported_provider_descriptors().len());
         assert!(keys.iter().all(|key| !key.is_empty()));
     }
 

@@ -31,21 +31,41 @@ fn joined_source() -> String {
     CLI_SOURCE_FILES.map(read_source).join("\n")
 }
 
+/// The source with `feature = "name"` conditions flattened, so a cargo
+/// feature name is never mistaken for a repeated provider key.
+fn source_without_feature_names() -> String {
+    joined_source().replace("feature = \"", "feature = ")
+}
+
+/// The descriptors of the provider crates this build carries.
+// The pushes are cfg-gated, so they cannot collapse into a `vec!`.
+#[allow(clippy::vec_init_then_push, unused_mut)]
+fn built_provider_descriptors() -> Vec<everymap_core::provider::ProviderDescriptor> {
+    let mut descriptors = Vec::new();
+    #[cfg(feature = "here")]
+    descriptors.push(everymap_providers_here::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "google")]
+    descriptors.push(everymap_providers_google::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "tomtom")]
+    descriptors.push(everymap_providers_tomtom::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "mapbox")]
+    descriptors.push(everymap_providers_mapbox::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "radar")]
+    descriptors.push(everymap_providers_radar::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "mapquest")]
+    descriptors.push(everymap_providers_mapquest::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "osrm")]
+    descriptors.push(everymap_providers_osrm::PROVIDER_DESCRIPTOR);
+    #[cfg(feature = "valhalla")]
+    descriptors.push(everymap_providers_valhalla::PROVIDER_DESCRIPTOR);
+    descriptors
+}
+
 #[test]
 fn the_cli_source_repeats_no_provider_key() {
-    let source = joined_source();
-    let descriptors = [
-        everymap_providers_here::PROVIDER_DESCRIPTOR,
-        everymap_providers_google::PROVIDER_DESCRIPTOR,
-        everymap_providers_tomtom::PROVIDER_DESCRIPTOR,
-        everymap_providers_mapbox::PROVIDER_DESCRIPTOR,
-        everymap_providers_radar::PROVIDER_DESCRIPTOR,
-        everymap_providers_mapquest::PROVIDER_DESCRIPTOR,
-        everymap_providers_osrm::PROVIDER_DESCRIPTOR,
-        everymap_providers_valhalla::PROVIDER_DESCRIPTOR,
-    ];
+    let source = source_without_feature_names();
 
-    for descriptor in descriptors {
+    for descriptor in built_provider_descriptors() {
         let quoted_key = format!("\"{}\"", descriptor.key);
         assert!(
             !source.contains(&quoted_key),

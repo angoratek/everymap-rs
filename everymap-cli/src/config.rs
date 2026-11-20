@@ -98,20 +98,20 @@ mod tests {
             .expect("the test configuration parses")
     }
 
+    const CONFIGURED_PROVIDER: &str = "configured-provider";
+
     #[test]
     fn a_provider_section_is_read_by_its_key() {
-        let key = everymap_providers_here::PROVIDER_DESCRIPTOR.key;
-        let config = config_with_one_section(key);
+        let config = config_with_one_section(CONFIGURED_PROVIDER);
         assert_eq!(
-            config.resolve_api_key(&None, key, UNSET_ENVIRONMENT_VARIABLE),
+            config.resolve_api_key(&None, CONFIGURED_PROVIDER, UNSET_ENVIRONMENT_VARIABLE),
             Some("configured".to_string())
         );
     }
 
     #[test]
     fn an_unknown_provider_has_no_section() {
-        let key = everymap_providers_here::PROVIDER_DESCRIPTOR.key;
-        let config = config_with_one_section(key);
+        let config = config_with_one_section(CONFIGURED_PROVIDER);
         assert_eq!(
             config.resolve_api_key(&None, "another-provider", UNSET_ENVIRONMENT_VARIABLE),
             None
