@@ -9,6 +9,14 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- The CLI and the benchmark select every provider the workspace publishes:
+  `--provider photon` for geocoding and reverse geocoding (keyless, with the
+  deployment URL in the credential slot and the public instance as the
+  default), and `--provider url-template-raster|url-template-vector` for
+  `tile` with `--url-template` and `--attribution`. The benchmark gains
+  Photon and both tile-source constructors, selecting the named OpenStreetMap
+  US source for vector tiles when no template is given. The CLI validation and
+  smoke scripts, the crate READMEs and the root README follow.
 - Every credentialed provider crate exports the name its credential travels
   under: `HERE_API_KEY_QUERY_PARAMETER`, `GOOGLE_API_KEY_QUERY_PARAMETER`,
   `TOMTOM_API_KEY_QUERY_PARAMETER`, `MAPBOX_API_KEY_QUERY_PARAMETER` and

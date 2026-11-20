@@ -175,6 +175,30 @@ macro_rules! unsupported_geocoder {
     };
 }
 
+/// Generates an unsupported `Router` stub implementation.
+#[macro_export]
+macro_rules! unsupported_router {
+    ($struct_name:ident, $provider:expr) => {
+        pub struct $struct_name;
+
+        #[async_trait::async_trait]
+        impl everymap_core::domains::routing::Router for $struct_name {
+            async fn calculate_route(
+                &self,
+                _start: &everymap_core::types::Coordinate,
+                _end: &everymap_core::types::Coordinate,
+                _options: &everymap_core::domains::routing::RouteOptions,
+            ) -> everymap_core::error::EveryMapResult<
+                everymap_core::domains::routing::RouteResponse,
+            > {
+                Err(everymap_core::error::EveryMapError::unsupported_domain(
+                    $provider, "routing",
+                ))
+            }
+        }
+    };
+}
+
 /// Generates an unsupported `RouteMatcher` stub implementation.
 #[macro_export]
 macro_rules! unsupported_matcher {

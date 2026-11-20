@@ -12,11 +12,29 @@ use everymap_core::domains::routing::AvoidType as CoreAvoidType;
 use everymap_core::domains::routing::DepartureTime;
 use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
-use everymap_core::domains::tiling::{RasterImageFormat, RasterTileRequest, RasterTileResolution};
+use everymap_core::domains::tiling::{
+    RasterImageFormat, RasterTileProvider, RasterTileRequest, RasterTileResolution,
+    VectorTileEncoding, VectorTileProvider, VectorTileSourceDescriptor,
+};
 use everymap_core::domains::tour::TourOptions;
 use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
+use everymap_providers_url_template_raster::{
+    UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource,
+};
+use everymap_providers_url_template_vector::{
+    UrlTemplateVectorTileProvider, UrlTemplateVectorTileSource,
+};
 use provider::{supported_provider_descriptor, supported_provider_keys, ProviderRegistry};
+
+/// Highest zoom a URL-template source declares when the caller names no span.
+const URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL: u8 = 18;
+
+/// Whether `provider` serves a URL-template source the tile command builds.
+fn is_url_template_provider(provider: &str) -> bool {
+    provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
+        || provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+}
 
 #[derive(Parser)]
 #[command(
@@ -211,6 +229,12 @@ enum Commands {
         /// Output file path (default: tile.png for raster, tile.mvt for vector)
         #[arg(long)]
         output_file: Option<String>,
+        /// `{z}/{x}/{y}` template for a URL-template raster or vector source
+        #[arg(long)]
+        url_template: Option<String>,
+        /// Attribution the tileset's terms require (URL-template sources)
+        #[arg(long)]
+        attribution: Option<String>,
     },
     /// Query road attributes
     Attributes {
@@ -332,6 +356,145 @@ fn exit_with_coord_error(message: &str) -> ! {
 fn exit_with_error(message: &str) -> ! {
     eprintln!("Error: {}", message);
     std::process::exit(1);
+}
+
+/// The tile command's values that a URL-template source needs.
+struct UrlTemplateTileCommand<'a> {
+    provider: &'a str,
+    url_template: &'a str,
+    attribution: &'a str,
+    zoom: u32,
+    tile_x: u32,
+    tile_y: u32,
+    variant: Option<&'a str>,
+    format: Option<&'a str>,
+    resolution: Option<&'a str>,
+    output_file: Option<&'a str>,
+}
+
+/// Fetches one tile from a URL-template source the caller declared.
+///
+/// The provider key chooses the contract, the template chooses the tileset,
+/// and the attribution is recorded on the source declaration so a caller can
+/// display it with the imagery.
+async fn run_url_template_tile(command: UrlTemplateTileCommand<'_>) {
+    let UrlTemplateTileCommand {
+        provider,
+        url_template,
+        attribution,
+        zoom,
+        tile_x,
+        tile_y,
+        variant,
+        format,
+        resolution,
+        output_file,
+    } = command;
+    let zoom_level =
+        u8::try_from(zoom).unwrap_or_else(|_| exit_with_error("Tile zoom must fit in a byte"));
+    let is_raster = provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key;
+    if !is_raster && provider != everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key {
+        exit_with_error(
+            "--url-template requires --provider url-template-raster or url-template-vector",
+        );
+    }
+
+    if is_raster {
+        match variant {
+            None | Some("raster") => {}
+            Some(other) => exit_with_error(&format!(
+                "a URL-template raster source cannot serve the '{other}' variant"
+            )),
+        }
+        let image_format = match format {
+            None | Some("png") => RasterImageFormat::Png,
+            Some("jpeg") | Some("jpg") => RasterImageFormat::Jpeg,
+            Some(other) => {
+                exit_with_error(&format!("Unknown raster format '{other}'; use png or jpeg"))
+            }
+        };
+        let tile_resolution = match resolution {
+            None | Some("standard") => RasterTileResolution::Standard,
+            Some("retina") => RasterTileResolution::Retina,
+            Some(other) => exit_with_error(&format!(
+                "Unknown raster resolution '{other}'; use standard or retina"
+            )),
+        };
+        let source = UrlTemplateRasterTileSource {
+            url_template: url_template.to_string(),
+            source_name: provider.to_string(),
+            attribution_text: attribution.to_string(),
+            terms_text: String::new(),
+            minimum_zoom_level: 0,
+            maximum_zoom_level: URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL,
+            image_format,
+            tile_resolution,
+            subdomains: Vec::new(),
+            headers: Vec::new(),
+            pacing: None,
+        };
+        let tile_provider = UrlTemplateRasterTileProvider::new(source)
+            .unwrap_or_else(|error| exit_with_error(&error.to_string()));
+        let request =
+            RasterTileRequest::new(tile_x, tile_y, zoom_level, image_format, tile_resolution);
+        match tile_provider.fetch_raster_tile(&request).await {
+            Ok(tile) => {
+                let path = output_file.unwrap_or("tile.png");
+                match std::fs::write(path, &tile.image_bytes) {
+                    Ok(()) => println!(
+                        "Saved tile to {} ({}, {} bytes)",
+                        path,
+                        image_format.file_extension(),
+                        tile.image_bytes.len()
+                    ),
+                    Err(error) => eprintln!("Error writing file {}: {}", path, error),
+                }
+            }
+            Err(error) => exit_with_error(&error.to_string()),
+        }
+    } else {
+        match variant {
+            None | Some("vector") => {}
+            Some(other) => exit_with_error(&format!(
+                "a URL-template vector source cannot serve the '{other}' variant"
+            )),
+        }
+        let source = UrlTemplateVectorTileSource {
+            url_template: url_template.to_string(),
+            source_descriptor: VectorTileSourceDescriptor {
+                source_name: provider.to_string(),
+                attribution_text: attribution.to_string(),
+                minimum_zoom_level: 0,
+                maximum_zoom_level: URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL,
+                tile_encoding: VectorTileEncoding::MapboxVectorTile,
+                style_hints: Vec::new(),
+            },
+            terms_text: String::new(),
+            subdomains: Vec::new(),
+            headers: Vec::new(),
+            pacing: None,
+        };
+        let tile_provider = UrlTemplateVectorTileProvider::new(source)
+            .unwrap_or_else(|error| exit_with_error(&error.to_string()));
+        match tile_provider
+            .fetch_vector_tile(tile_x, tile_y, zoom_level)
+            .await
+        {
+            Ok(tile) => {
+                let path = output_file.unwrap_or("tile.mvt");
+                match std::fs::write(path, &tile.tile_bytes) {
+                    Ok(()) => println!(
+                        "Saved tile to {} (vector, {} bytes, {:?})",
+                        path,
+                        tile.tile_bytes.len(),
+                        tile.tile_encoding
+                    ),
+                    Err(error) => eprintln!("Error writing file {}: {}", path, error),
+                }
+            }
+            Err(error) => exit_with_error(&error.to_string()),
+        }
+    }
 }
 
 #[tokio::main]
@@ -686,7 +849,28 @@ async fn run_commands(
             format,
             resolution,
             output_file,
+            url_template,
+            attribution,
         } => {
+            if let Some(template) = url_template {
+                run_url_template_tile(UrlTemplateTileCommand {
+                    provider: &cli.provider,
+                    url_template: template,
+                    attribution: attribution.as_deref().unwrap_or_default(),
+                    zoom: *z,
+                    tile_x: *x,
+                    tile_y: *y,
+                    variant: variant.as_deref(),
+                    format: format.as_deref(),
+                    resolution: resolution.as_deref(),
+                    output_file: output_file.as_deref(),
+                })
+                .await;
+                return;
+            }
+            if is_url_template_provider(&cli.provider) {
+                exit_with_error("a URL-template provider requires --url-template with {z}/{x}/{y}");
+            }
             let zoom_level = u8::try_from(*z)
                 .unwrap_or_else(|_| exit_with_error("Tile zoom must fit in a byte"));
             let variant = match variant.as_deref() {
