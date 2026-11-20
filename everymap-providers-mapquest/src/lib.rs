@@ -64,6 +64,7 @@ pub mod autocomplete;
 pub mod client;
 mod error_mapping;
 pub mod geocoding;
+pub mod imaging;
 mod json_coordinates;
 pub mod matrix;
 pub mod place_search;
@@ -89,6 +90,7 @@ pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
         ServedContract::DistanceMatrix,
         ServedContract::Traffic,
         ServedContract::RasterTiles,
+        ServedContract::Imaging,
     ],
 };
 
@@ -98,6 +100,7 @@ pub use client::{
     DEFAULT_MAPQUEST_USER_AGENT, MAPQUEST_API_KEY_QUERY_PARAMETER, MAPQUEST_PROVIDER_NAME,
 };
 pub use geocoding::MapQuestGeocoder;
+pub use imaging::{MapQuestMapImageProvider, MAXIMUM_IMAGE_DIMENSION, MAXIMUM_IMAGE_ZOOM_LEVEL};
 pub use matrix::MapQuestDistanceMatrix;
 pub use place_search::MapQuestPlaceSearchProvider;
 pub use routing::MapQuestRouter;

@@ -615,6 +615,7 @@ assert_request_out "map-image z18"            ""  $API map-image --lat 52.5 --ln
 OUT="/tmp/everymap-validate-image.png"
 rm -f "$OUT"
 assert_request_out "map-image --output-file"  ""  $API map-image --lat 52.5 --lng 13.3 --output-file "$OUT"
+assert_request_out "map-image --provider mapquest" "" --provider mapquest $API map-image --lat 40.71 --lng=-74.01 --zoom 12
 rm -f "$OUT"
 
 # Global

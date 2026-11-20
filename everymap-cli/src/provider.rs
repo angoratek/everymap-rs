@@ -153,10 +153,6 @@ everymap_core::unsupported_attributes!(
     MapQuestUnsupportedAttributeProvider,
     everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
 );
-everymap_core::unsupported_image!(
-    MapQuestUnsupportedMapImageProvider,
-    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
-);
 
 everymap_core::unsupported_geocoder!(
     OsrmUnsupportedGeocoder,
@@ -552,7 +548,9 @@ impl ProviderRegistry {
             raster_tile_provider: Some(Box::new(MapQuestRasterTileProvider::new(client.clone()))),
             vector_tile_provider: None,
             attribute_provider: Box::new(MapQuestUnsupportedAttributeProvider),
-            image_provider: Box::new(MapQuestUnsupportedMapImageProvider),
+            image_provider: Box::new(everymap_providers_mapquest::MapQuestMapImageProvider::new(
+                client,
+            )),
         }
     }
 

@@ -9,6 +9,15 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- MapQuest's Static Map API as `MapQuestMapImageProvider` (`MapImageProvider`):
+  center, zoom, size, and `png`/`jpg`/`gif` formats, with the core width and
+  height overrides, provider extras passed as documented query parameters, a
+  JSON error envelope mapped to the shared error model, and wiremock contract
+  tests. The CLI and the benchmark use it, and MapQuest's descriptor lists
+  `Imaging`.
+- MapQuest's remaining contract gaps are recorded as intentional: the platform
+  publishes no matching, waypoint-optimization, positioning, attribute or
+  vector-tile service.
 - The CLI and the benchmark select every provider the workspace publishes:
   `--provider photon` for geocoding and reverse geocoding (keyless, with the
   deployment URL in the credential slot and the public instance as the
