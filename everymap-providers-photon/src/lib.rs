@@ -75,6 +75,22 @@ pub const DEFAULT_PHOTON_USER_AGENT: &str =
 /// Name this provider reports in errors and request observations.
 pub const PHOTON_PROVIDER_NAME: &str = "photon";
 
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: everymap_core::provider::ProviderDescriptor =
+    everymap_core::provider::ProviderDescriptor {
+        key: PHOTON_PROVIDER_NAME,
+        display_name: "Photon",
+        credential: everymap_core::provider::CredentialScheme::DeploymentUrl,
+        root: everymap_core::provider::ServiceRoot::Single(DEFAULT_PHOTON_BASE_URL),
+        attribution: None,
+        terms: None,
+        contracts: &[
+            everymap_core::provider::ServedContract::Geocoding,
+            everymap_core::provider::ServedContract::PlaceSearch,
+            everymap_core::provider::ServedContract::Autocomplete,
+        ],
+    };
+
 /// The forward-query endpoint path.
 const SEARCH_ENDPOINT_PATH: &str = "api";
 

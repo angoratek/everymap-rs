@@ -10,6 +10,7 @@ use everymap_core::domains::search::Geocoder;
 use everymap_core::domains::tiling::{RasterTileProvider, VectorTileProvider};
 use everymap_core::domains::tour::TourPlanner;
 use everymap_core::domains::traffic::TrafficProvider;
+use everymap_core::provider::ProviderDescriptor;
 use everymap_providers_mapquest::{
     MapQuestClient, MapQuestGeocoder, MapQuestProviderConfiguration, MapQuestRasterTileProvider,
     MapQuestRouter, MapQuestTrafficProvider,
@@ -38,6 +39,73 @@ pub struct ProviderRegistry {
     image_provider: Box<dyn MapImageProvider>,
 }
 
+/// The providers this binary can construct, in help order.
+///
+/// Each entry is the provider crate's own descriptor, so the keys, credential
+/// names and service roots are stated once per crate rather than in the CLI.
+pub static SUPPORTED_PROVIDER_DESCRIPTORS: [ProviderDescriptor; 8] = [
+    everymap_providers_here::PROVIDER_DESCRIPTOR,
+    everymap_providers_google::PROVIDER_DESCRIPTOR,
+    everymap_providers_tomtom::PROVIDER_DESCRIPTOR,
+    everymap_providers_mapbox::PROVIDER_DESCRIPTOR,
+    everymap_providers_radar::PROVIDER_DESCRIPTOR,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR,
+];
+
+/// The descriptor for `provider`, when this binary can construct it.
+pub fn supported_provider_descriptor(provider: &str) -> Option<ProviderDescriptor> {
+    SUPPORTED_PROVIDER_DESCRIPTORS
+        .iter()
+        .copied()
+        .find(|descriptor| descriptor.key == provider)
+}
+
+/// The keys of the providers this binary can construct, in help order.
+pub fn supported_provider_keys() -> Vec<&'static str> {
+    SUPPORTED_PROVIDER_DESCRIPTORS
+        .iter()
+        .map(|descriptor| descriptor.key)
+        .collect()
+}
+
+/// The constructor to run for a supported provider.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ProviderKind {
+    Here,
+    Google,
+    TomTom,
+    MapBox,
+    Radar,
+    MapQuest,
+    Osrm,
+    Valhalla,
+}
+
+/// Resolve a provider key to its constructor without repeating the key.
+fn provider_kind(provider: &str) -> Option<ProviderKind> {
+    if provider == everymap_providers_here::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Here)
+    } else if provider == everymap_providers_google::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Google)
+    } else if provider == everymap_providers_tomtom::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::TomTom)
+    } else if provider == everymap_providers_mapbox::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::MapBox)
+    } else if provider == everymap_providers_radar::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Radar)
+    } else if provider == everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::MapQuest)
+    } else if provider == everymap_providers_osrm::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Osrm)
+    } else if provider == everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key {
+        Some(ProviderKind::Valhalla)
+    } else {
+        None
+    }
+}
+
 /// The deployment base URL a keyless provider reads as its credential.
 fn deployment_base_url_or_default(credential: String, default_base_url: &str) -> String {
     let trimmed_credential = credential.trim();
@@ -52,30 +120,96 @@ fn deployment_base_url_or_default(credential: String, default_base_url: &str) ->
 // Valhalla do not serve: each answers with the documented unsupported error
 // instead of pretending to work. MapQuest serves traffic through its own
 // provider, so no traffic stub exists for it.
-everymap_core::unsupported_isoline!(MapQuestUnsupportedIsoline, "mapquest");
-everymap_core::unsupported_matcher!(MapQuestUnsupportedRouteMatcher, "mapquest");
-everymap_core::unsupported_tour!(MapQuestUnsupportedTourPlanner, "mapquest");
-everymap_core::unsupported_positioner!(MapQuestUnsupportedPositioner, "mapquest");
-everymap_core::unsupported_attributes!(MapQuestUnsupportedAttributeProvider, "mapquest");
-everymap_core::unsupported_image!(MapQuestUnsupportedMapImageProvider, "mapquest");
+everymap_core::unsupported_isoline!(
+    MapQuestUnsupportedIsoline,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    MapQuestUnsupportedRouteMatcher,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    MapQuestUnsupportedTourPlanner,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    MapQuestUnsupportedPositioner,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    MapQuestUnsupportedAttributeProvider,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    MapQuestUnsupportedMapImageProvider,
+    everymap_providers_mapquest::PROVIDER_DESCRIPTOR.key
+);
 
-everymap_core::unsupported_geocoder!(OsrmUnsupportedGeocoder, "osrm");
-everymap_core::unsupported_traffic!(OsrmUnsupportedTraffic, "osrm");
-everymap_core::unsupported_isoline!(OsrmUnsupportedIsoline, "osrm");
-everymap_core::unsupported_matcher!(OsrmUnsupportedRouteMatcher, "osrm");
-everymap_core::unsupported_tour!(OsrmUnsupportedTour, "osrm");
-everymap_core::unsupported_positioner!(OsrmUnsupportedPositioner, "osrm");
-everymap_core::unsupported_attributes!(OsrmUnsupportedAttributes, "osrm");
-everymap_core::unsupported_image!(OsrmUnsupportedImage, "osrm");
+everymap_core::unsupported_geocoder!(
+    OsrmUnsupportedGeocoder,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_traffic!(
+    OsrmUnsupportedTraffic,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_isoline!(
+    OsrmUnsupportedIsoline,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    OsrmUnsupportedRouteMatcher,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    OsrmUnsupportedTour,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    OsrmUnsupportedPositioner,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    OsrmUnsupportedAttributes,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    OsrmUnsupportedImage,
+    everymap_providers_osrm::PROVIDER_DESCRIPTOR.key
+);
 
-everymap_core::unsupported_geocoder!(ValhallaUnsupportedGeocoder, "valhalla");
-everymap_core::unsupported_traffic!(ValhallaUnsupportedTraffic, "valhalla");
-everymap_core::unsupported_isoline!(ValhallaUnsupportedIsoline, "valhalla");
-everymap_core::unsupported_matcher!(ValhallaUnsupportedRouteMatcher, "valhalla");
-everymap_core::unsupported_tour!(ValhallaUnsupportedTour, "valhalla");
-everymap_core::unsupported_positioner!(ValhallaUnsupportedPositioner, "valhalla");
-everymap_core::unsupported_attributes!(ValhallaUnsupportedAttributes, "valhalla");
-everymap_core::unsupported_image!(ValhallaUnsupportedImage, "valhalla");
+everymap_core::unsupported_geocoder!(
+    ValhallaUnsupportedGeocoder,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_traffic!(
+    ValhallaUnsupportedTraffic,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_isoline!(
+    ValhallaUnsupportedIsoline,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_matcher!(
+    ValhallaUnsupportedRouteMatcher,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_tour!(
+    ValhallaUnsupportedTour,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_positioner!(
+    ValhallaUnsupportedPositioner,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_attributes!(
+    ValhallaUnsupportedAttributes,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
+everymap_core::unsupported_image!(
+    ValhallaUnsupportedImage,
+    everymap_providers_valhalla::PROVIDER_DESCRIPTOR.key
+);
 
 impl ProviderRegistry {
     /// Builds the provider set for one provider key. An unknown key answers a
@@ -87,17 +221,17 @@ impl ProviderRegistry {
         key_param: String,
         verbose: bool,
     ) -> Result<Self, everymap_core::error::EveryMapError> {
-        match provider {
-            "here" => Ok(Self::new_here(api_key, key_param, verbose)),
-            "google" => Ok(Self::new_google(api_key, key_param, verbose)),
-            "tomtom" => Ok(Self::new_tomtom(api_key, key_param, verbose)),
-            "mapbox" => Ok(Self::new_mapbox(api_key, key_param, verbose)),
-            "radar" => Ok(Self::new_radar(api_key, verbose)),
-            "mapquest" => Ok(Self::new_mapquest(api_key, verbose)),
-            "osrm" => Ok(Self::new_osrm(api_key)),
-            "valhalla" => Ok(Self::new_valhalla(api_key)),
-            unknown => Err(everymap_core::error::EveryMapError::ValidationError(
-                format!("unsupported provider {unknown:?}"),
+        match provider_kind(provider) {
+            Some(ProviderKind::Here) => Ok(Self::new_here(api_key, key_param, verbose)),
+            Some(ProviderKind::Google) => Ok(Self::new_google(api_key, key_param, verbose)),
+            Some(ProviderKind::TomTom) => Ok(Self::new_tomtom(api_key, key_param, verbose)),
+            Some(ProviderKind::MapBox) => Ok(Self::new_mapbox(api_key, key_param, verbose)),
+            Some(ProviderKind::Radar) => Ok(Self::new_radar(api_key, verbose)),
+            Some(ProviderKind::MapQuest) => Ok(Self::new_mapquest(api_key, verbose)),
+            Some(ProviderKind::Osrm) => Ok(Self::new_osrm(api_key)),
+            Some(ProviderKind::Valhalla) => Ok(Self::new_valhalla(api_key)),
+            None => Err(everymap_core::error::EveryMapError::ValidationError(
+                format!("unsupported provider {provider:?}"),
             )),
         }
     }
@@ -385,5 +519,58 @@ impl ProviderRegistry {
 
     pub fn image_provider(&self) -> &dyn MapImageProvider {
         self.image_provider.as_ref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        provider_kind, supported_provider_descriptor, supported_provider_keys, ProviderRegistry,
+        SUPPORTED_PROVIDER_DESCRIPTORS,
+    };
+
+    #[test]
+    fn every_supported_descriptor_key_constructs_a_registry() {
+        for descriptor in SUPPORTED_PROVIDER_DESCRIPTORS {
+            let credential = if descriptor.credential.requires_credential() {
+                "test-key".to_string()
+            } else {
+                String::new()
+            };
+            let key_param = descriptor
+                .credential
+                .query_parameter_name()
+                .unwrap_or_default()
+                .to_string();
+            assert!(
+                ProviderRegistry::try_new(descriptor.key, credential, key_param, false).is_ok(),
+                "{} did not construct a registry",
+                descriptor.key
+            );
+            assert_eq!(
+                supported_provider_descriptor(descriptor.key).map(|found| found.key),
+                Some(descriptor.key)
+            );
+            assert!(provider_kind(descriptor.key).is_some());
+        }
+    }
+
+    #[test]
+    fn descriptor_keys_are_unique_and_non_empty() {
+        let mut keys = supported_provider_keys();
+        keys.sort_unstable();
+        keys.dedup();
+        assert_eq!(keys.len(), SUPPORTED_PROVIDER_DESCRIPTORS.len());
+        assert!(keys.iter().all(|key| !key.is_empty()));
+    }
+
+    #[test]
+    fn an_unknown_provider_has_no_descriptor_or_kind() {
+        assert!(supported_provider_descriptor("not-a-provider").is_none());
+        assert!(provider_kind("not-a-provider").is_none());
+        assert!(
+            ProviderRegistry::try_new("not-a-provider", String::new(), String::new(), false)
+                .is_err()
+        );
     }
 }

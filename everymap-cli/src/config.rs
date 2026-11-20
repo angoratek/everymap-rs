@@ -1,33 +1,15 @@
 use serde::Deserialize;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 
 /// Configuration loaded from `~/.everymap/config.toml`.
 #[derive(Debug, Default, Deserialize)]
 pub struct Config {
+    /// Provider sections keyed by the provider's descriptor key, as in
+    /// `[providers.here]`.
     #[serde(default)]
-    pub providers: Providers,
-}
-
-/// Provider-specific configuration sections.
-#[derive(Debug, Default, Deserialize)]
-pub struct Providers {
-    #[serde(default)]
-    pub here: ProviderConfig,
-    #[serde(default)]
-    pub google: ProviderConfig,
-    #[serde(default)]
-    pub tomtom: ProviderConfig,
-    #[serde(default)]
-    pub mapbox: ProviderConfig,
-    #[serde(default)]
-    pub radar: ProviderConfig,
-    #[serde(default)]
-    pub mapquest: ProviderConfig,
-    #[serde(default)]
-    pub osrm: ProviderConfig,
-    #[serde(default)]
-    pub valhalla: ProviderConfig,
+    pub providers: BTreeMap<String, ProviderConfig>,
 }
 
 /// Configuration for a single provider.
@@ -91,24 +73,48 @@ impl Config {
         if cli_key.is_some() {
             return cli_key.clone();
         }
-        // 2. Config file
-        let config_key = match provider {
-            "here" => self.providers.here.api_key.clone(),
-            "google" => self.providers.google.api_key.clone(),
-            "tomtom" => self.providers.tomtom.api_key.clone(),
-            "mapbox" => self.providers.mapbox.api_key.clone(),
-            "radar" => self.providers.radar.api_key.clone(),
-            "mapquest" => self.providers.mapquest.api_key.clone(),
-            // A keyless engine stores its deployment base URL in the same
-            // `api_key` slot.
-            "osrm" => self.providers.osrm.api_key.clone(),
-            "valhalla" => self.providers.valhalla.api_key.clone(),
-            _ => None,
-        };
+        // 2. Config file. A keyless engine stores its deployment base URL or
+        // source declaration in the same `api_key` slot.
+        let config_key = self
+            .providers
+            .get(provider)
+            .and_then(|section| section.api_key.clone());
         if config_key.is_some() {
             return config_key;
         }
         // 3. Environment variable
         std::env::var(env_var).ok()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Config;
+
+    const UNSET_ENVIRONMENT_VARIABLE: &str = "EVERYMAP_TEST_UNSET_CONFIG_VARIABLE";
+
+    fn config_with_one_section(key: &str) -> Config {
+        toml::from_str(&format!("[providers.{key}]\napi_key = \"configured\"\n"))
+            .expect("the test configuration parses")
+    }
+
+    #[test]
+    fn a_provider_section_is_read_by_its_key() {
+        let key = everymap_providers_here::PROVIDER_DESCRIPTOR.key;
+        let config = config_with_one_section(key);
+        assert_eq!(
+            config.resolve_api_key(&None, key, UNSET_ENVIRONMENT_VARIABLE),
+            Some("configured".to_string())
+        );
+    }
+
+    #[test]
+    fn an_unknown_provider_has_no_section() {
+        let key = everymap_providers_here::PROVIDER_DESCRIPTOR.key;
+        let config = config_with_one_section(key);
+        assert_eq!(
+            config.resolve_api_key(&None, "another-provider", UNSET_ENVIRONMENT_VARIABLE),
+            None
+        );
     }
 }

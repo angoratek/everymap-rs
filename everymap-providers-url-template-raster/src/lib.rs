@@ -81,6 +81,18 @@
 mod client;
 pub mod provider;
 
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: everymap_core::provider::ProviderDescriptor =
+    everymap_core::provider::ProviderDescriptor {
+        key: client::URL_TEMPLATE_RASTER_PROVIDER_NAME,
+        display_name: "URL-template raster tiles",
+        credential: everymap_core::provider::CredentialScheme::Source,
+        root: everymap_core::provider::ServiceRoot::Source,
+        attribution: None,
+        terms: None,
+        contracts: &[everymap_core::provider::ServedContract::RasterTiles],
+    };
+
 pub use client::URL_TEMPLATE_RASTER_PROVIDER_NAME;
 pub use everymap_core::tile_source::TileSourcePacing;
 pub use provider::{UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource};

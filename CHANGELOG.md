@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- `everymap_core::provider::ProviderDescriptor`, and one `PROVIDER_DESCRIPTOR`
+  per provider crate: the key, display name, credential scheme, service root,
+  attribution, terms and served contracts in one place. `everymap-cli` now
+  builds its provider table, credential name and unsupported-domain provider
+  names from those descriptors, so it carries no provider key, credential or
+  service URL of its own.
 - Provider parity is tracked in the repository: a `provider-parity` issue
   template with an acceptance criterion, and a contribution rule that every
   contract a provider does not serve is either implemented with
