@@ -67,6 +67,18 @@ pub mod pacing;
 pub mod provider;
 pub mod url_template;
 
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: everymap_core::provider::ProviderDescriptor =
+    everymap_core::provider::ProviderDescriptor {
+        key: client::URL_TEMPLATE_VECTOR_PROVIDER_NAME,
+        display_name: "URL-template vector tiles",
+        credential: everymap_core::provider::CredentialScheme::Source,
+        root: everymap_core::provider::ServiceRoot::Source,
+        attribution: None,
+        terms: None,
+        contracts: &[everymap_core::provider::ServedContract::VectorTiles],
+    };
+
 pub use client::URL_TEMPLATE_VECTOR_PROVIDER_NAME;
 pub use descriptors::{openfreemap_vector_source, openstreetmap_us_vector_source};
 pub use pacing::{TileSourcePacing, DEFAULT_CAPACITY_TOKENS, DEFAULT_REFILL_TOKENS_PER_SECOND};

@@ -78,6 +78,12 @@ waypoints and return one leg per pair; a two-endpoint provider reports
 implement; no provider crate serves them yet. An unsupported capability returns
 `EveryMapError::UnsupportedDomain` — `"google does not support traffic"`.
 
+Each provider crate exports a `PROVIDER_DESCRIPTOR`
+(`everymap_core::provider::ProviderDescriptor`) naming its key, credential
+scheme, service root, attribution, terms and served contracts. A host builds
+its provider table from those descriptors instead of repeating literals;
+`everymap-cli` is the reference consumer.
+
 ## Quick Start
 
 ### Installation

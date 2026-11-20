@@ -3,6 +3,28 @@ pub mod domain;
 mod error_mapping;
 pub mod ext;
 
+use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
+
+/// This crate's cross-domain provider description.
+pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
+    key: error_mapping::TOMTOM_PROVIDER_NAME,
+    display_name: "TomTom",
+    credential: CredentialScheme::QueryParameter("key"),
+    root: ServiceRoot::PerDomain,
+    attribution: None,
+    terms: None,
+    contracts: &[
+        ServedContract::Geocoding,
+        ServedContract::Routing,
+        ServedContract::Traffic,
+        ServedContract::RasterTiles,
+        ServedContract::Isoline,
+        ServedContract::Matching,
+        ServedContract::Tour,
+        ServedContract::Imaging,
+    ],
+};
+
 pub use client::TomTomClient;
 
 // Extension traits

@@ -3,6 +3,12 @@
 ## [Unreleased]
 
 ### Added
+- `everymap_core::provider::ProviderDescriptor`, and one `PROVIDER_DESCRIPTOR`
+  per provider crate: the key, display name, credential scheme, service root,
+  attribution, terms and served contracts in one place. `everymap-cli` now
+  builds its provider table, credential name and unsupported-domain provider
+  names from those descriptors, so it carries no provider key, credential or
+  service URL of its own.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no
