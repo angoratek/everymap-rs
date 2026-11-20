@@ -101,9 +101,7 @@ The table covers the five original providers; the full contract × crate matrix 
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
-MapQuest also serves imaging through `MapQuestMapImageProvider`.
-
-**49 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic and raster tiles; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
+**51 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic, raster tiles and static map images; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
 
 ## Provider crates and the browser
 Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows a direct `reqwest`/`tokio` dependency or reads `std::time` breaks that silently at build time or at runtime in the browser: route the request through `ProviderClient` and read time through `web-time`, and keep the crate in the browser closure in `.github/workflows/ci.yml`.
@@ -150,9 +148,8 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 - Google routing uses Routes API v2: POST JSON body to `routes.googleapis.com/directions/v2:computeRoutes` with camelCase fields, `X-Goog-FieldMask` header required, API key as `key` query param (header alternative documented by Google), durations are `"1234s"` strings
 - Radar Directions `avoid` accepts a comma-separated list of `tolls`, `highways`, `ferries`, `borderCrossings`; `alternatives` is boolean (two-location requests only)
 
-## Known Issues (from comprehensive provider review)
-- **Google matching**: `transport_mode`, `heading`, `departure_time`, `avoid` are all ignored (logged as warnings).
-- **Radar routing avoid**: Tunnels and dirt-roads avoid types have no Radar API counterpart (Radar supports tolls, highways, ferries, borderCrossings) — they log a warning and are dropped.
+## Known Issues
+The options a service cannot express are tracked in the issue tracker under the Option fidelity milestone, starting with Google matching (#51) and Radar's avoid types (#52). Each is either rejected or documented in its crate README with a contract test; do not add a new silent drop.
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.
