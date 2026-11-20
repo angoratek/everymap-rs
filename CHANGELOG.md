@@ -14,6 +14,11 @@
   documented 512-location limit, Google's in-body status mapped onto the shared
   error model, and wiremock contract tests. Google's descriptor now lists
   `Elevation`, and the README matrix and crate docs match.
+- Provider parity is tracked in the repository: a `provider-parity` issue
+  template with an acceptance criterion, and a contribution rule that every
+  contract a provider does not serve is either implemented with
+  committed-fixture contract tests or recorded as an issue and in the crate
+  README and matrix.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no
