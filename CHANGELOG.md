@@ -9,6 +9,12 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Every credentialed provider crate exports the name its credential travels
+  under: `HERE_API_KEY_QUERY_PARAMETER`, `GOOGLE_API_KEY_QUERY_PARAMETER`,
+  `TOMTOM_API_KEY_QUERY_PARAMETER`, `MAPBOX_API_KEY_QUERY_PARAMETER` and
+  `RADAR_AUTHORIZATION_HEADER_NAME`, beside MapQuest's existing
+  `MAPQUEST_API_KEY_QUERY_PARAMETER`. Each descriptor reports its constant, and
+  a test in each crate proves the two agree.
 - Google's Elevation API as `GoogleElevationProvider` (`ElevationProvider`):
   one sample per point in the caller's order, ordered batches above the
   documented 512-location limit, Google's in-body status mapped onto the shared

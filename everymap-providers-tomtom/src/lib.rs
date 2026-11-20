@@ -5,11 +5,14 @@ pub mod ext;
 
 use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
 
+/// The query parameter that carries the TomTom API key.
+pub const TOMTOM_API_KEY_QUERY_PARAMETER: &str = "key";
+
 /// This crate's cross-domain provider description.
 pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     key: error_mapping::TOMTOM_PROVIDER_NAME,
     display_name: "TomTom",
-    credential: CredentialScheme::QueryParameter("key"),
+    credential: CredentialScheme::QueryParameter(TOMTOM_API_KEY_QUERY_PARAMETER),
     root: ServiceRoot::PerDomain,
     attribution: None,
     terms: None,
@@ -75,3 +78,16 @@ pub use domain::imaging::TomTomMapImageProvider;
 
 // Unsupported domains
 pub use domain::unsupported::{TomTomAttributeProvider, TomTomPositioner};
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{PROVIDER_DESCRIPTOR, TOMTOM_API_KEY_QUERY_PARAMETER};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_query_parameter_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential.query_parameter_name(),
+            Some(TOMTOM_API_KEY_QUERY_PARAMETER)
+        );
+    }
+}

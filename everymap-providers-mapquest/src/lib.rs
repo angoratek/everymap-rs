@@ -103,3 +103,16 @@ pub use place_search::MapQuestPlaceSearchProvider;
 pub use routing::MapQuestRouter;
 pub use tiles::{MapQuestRasterTileProvider, DEFAULT_MAPQUEST_TILE_STYLE};
 pub use traffic::MapQuestTrafficProvider;
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{MAPQUEST_API_KEY_QUERY_PARAMETER, PROVIDER_DESCRIPTOR};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_query_parameter_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential.query_parameter_name(),
+            Some(MAPQUEST_API_KEY_QUERY_PARAMETER)
+        );
+    }
+}
