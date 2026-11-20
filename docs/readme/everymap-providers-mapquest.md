@@ -13,8 +13,11 @@
 | Distance matrix | `DistanceMatrixProvider` | `MapQuestDistanceMatrix` |
 | Traffic | `TrafficProvider` | `MapQuestTrafficProvider` |
 | Raster tiles | `RasterTileProvider` | `MapQuestRasterTileProvider` |
+| Imaging | `MapImageProvider` | `MapQuestMapImageProvider` |
 
-Not served: vector tiles, elevation, isoline, matching, tour, positioning, attributes, imaging and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+Not served: vector tiles, elevation, isoline, matching, tour, positioning, attributes and offline routing. Those calls return `EveryMapError::UnsupportedDomain`.
+
+The remaining gaps are deliberate: the MapQuest platform publishes no matching, waypoint-optimization, positioning, attribute or vector-tile service. The Static Map API is served by `MapQuestMapImageProvider`; it takes a center, zoom, size and a `png`, `jpg` or `gif` format, and a JSON error envelope becomes a structured provider error rather than image bytes.
 
 ## Installation
 

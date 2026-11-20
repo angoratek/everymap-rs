@@ -62,22 +62,23 @@ trait.
 | Traffic | `TrafficProvider` | ✅ | — | ✅ | — | — | ✅ | — | — | — | — | — |
 | Raster tiles | `RasterTileProvider` | — | — | ✅ | — | — | ✅ | — | — | — | ✅ | — |
 | Vector tiles | `VectorTileProvider` | ✅ | — | — | ✅ | — | — | — | — | — | — | ✅ |
-| Elevation | `ElevationProvider` | — | — | — | — | — | — | — | — | — | — | — |
+| Elevation | `ElevationProvider` | — | ✅ | — | — | — | — | — | — | — | — | — |
 | Isoline | `IsolineProvider` | ✅ | — | ✅ | ✅ | — | — | — | — | — | — | — |
 | Matching | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — |
 | Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ | — | — | — | — | — | — |
 | Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
 | Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
-| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — | — | — | — |
 | Offline routing | `OfflineRoutingProvider` | — | — | — | — | — | — | — | — | — | — | — |
 
 ¹ Routes two endpoints. MapQuest, OSRM and Valhalla also accept ordered
 waypoints and return one leg per pair; a two-endpoint provider reports
 `UnsupportedDomain` for a longer request rather than dropping the stops.
 
-`ElevationProvider` and `OfflineRoutingProvider` are contracts a host can
-implement; no provider crate serves them yet. An unsupported capability returns
-`EveryMapError::UnsupportedDomain` — `"google does not support traffic"`.
+`OfflineRoutingProvider` is a contract a host can implement; no provider crate
+serves it yet. `ElevationProvider` is served by Google's Elevation API. An
+unsupported capability returns `EveryMapError::UnsupportedDomain` — `"google
+does not support traffic"`.
 
 Each provider crate exports a `PROVIDER_DESCRIPTOR`
 (`everymap_core::provider::ProviderDescriptor`) naming its key, credential
@@ -179,7 +180,7 @@ let route = router
 > **Important:** Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand.
 > Binary commands (`tile`, `map-image`) save to a file instead of printing to stdout. Use `--output-file` to set the path.
 
-The CLI selects eight of the eleven provider crates — HERE, Google, TomTom, MapBox, Radar, MapQuest, OSRM and Valhalla. Photon and the two URL-template crates are library-only. A `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
+The CLI selects every provider crate: HERE, Google, TomTom, MapBox, Radar, MapQuest, Photon, OSRM, Valhalla and the URL-template raster and vector sources. Photon serves `geocode` and `reverse-geocode` keylessly; a URL-template source serves `tile` through `--url-template` and an optional `--attribution`. A `--provider` value the binary does not carry is refused, and a command a provider cannot serve answers with its unsupported-domain error.
 
 Each provider is also a cargo feature: the default build carries every provider, and `cargo install everymap-cli --no-default-features --features here` builds a HERE-only binary. The feature set is `here`, `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `osrm` and `valhalla`. Measured unstripped release size on macOS arm64: 11.7 MB with every provider, 9.3 MB HERE only, 2.3 MB with no provider.
 
@@ -198,6 +199,13 @@ everymap --provider radar --api-key $RADAR_KEY geocode "Berlin"
 
 # MapQuest
 everymap --provider mapquest --api-key $MAPQUEST_KEY geocode "Denver, CO"
+
+# Photon is keyless; the credential slot may carry a deployment base URL
+everymap --provider photon geocode "Berlin"
+
+# URL-template sources take the template and an optional attribution
+everymap --provider url-template-vector tile --z 14 --x 8800 --y 5374 \
+  --url-template "https://tiles.example.com/{z}/{x}/{y}.mvt" --attribution "Map data © example"
 
 # OSRM and Valhalla are keyless: the credential slot carries the deployment
 # base URL, and an empty one reaches the documented local default.
