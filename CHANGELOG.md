@@ -9,6 +9,12 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Every credentialed provider crate exports the name its credential travels
+  under: `HERE_API_KEY_QUERY_PARAMETER`, `GOOGLE_API_KEY_QUERY_PARAMETER`,
+  `TOMTOM_API_KEY_QUERY_PARAMETER`, `MAPBOX_API_KEY_QUERY_PARAMETER` and
+  `RADAR_AUTHORIZATION_HEADER_NAME`, beside MapQuest's existing
+  `MAPQUEST_API_KEY_QUERY_PARAMETER`. Each descriptor reports its constant, and
+  a test in each crate proves the two agree.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no

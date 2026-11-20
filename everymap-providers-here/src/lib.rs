@@ -5,11 +5,14 @@ pub mod util;
 
 use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
 
+/// The query parameter that carries the HERE API key.
+pub const HERE_API_KEY_QUERY_PARAMETER: &str = "apiKey";
+
 /// This crate's cross-domain provider description.
 pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     key: "here",
     display_name: "HERE Technologies",
-    credential: CredentialScheme::QueryParameter("apiKey"),
+    credential: CredentialScheme::QueryParameter(HERE_API_KEY_QUERY_PARAMETER),
     root: ServiceRoot::PerDomain,
     attribution: Some(domain::tiling::HERE_VECTOR_ATTRIBUTION),
     terms: None,
@@ -83,3 +86,16 @@ pub use domain::traffic::HereTraffic;
 pub use ext::{
     HereAttributeExt, HereGeocoderExt, HerePositionerExt, HereTourPlannerExt, HereTrafficExt,
 };
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{HERE_API_KEY_QUERY_PARAMETER, PROVIDER_DESCRIPTOR};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_query_parameter_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential.query_parameter_name(),
+            Some(HERE_API_KEY_QUERY_PARAMETER)
+        );
+    }
+}

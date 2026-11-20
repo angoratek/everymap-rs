@@ -6,11 +6,14 @@ pub mod ext;
 
 use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
 
+/// The HTTP header that carries the Radar API key.
+pub const RADAR_AUTHORIZATION_HEADER_NAME: &str = "Authorization";
+
 /// This crate's cross-domain provider description.
 pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     key: error_mapping::RADAR_PROVIDER_NAME,
     display_name: "Radar",
-    credential: CredentialScheme::Header("Authorization"),
+    credential: CredentialScheme::Header(RADAR_AUTHORIZATION_HEADER_NAME),
     root: ServiceRoot::Single(endpoints::RADAR_API_ROOT),
     attribution: None,
     terms: None,
@@ -65,3 +68,16 @@ pub use ext::{
     RadarChain, RadarGeocoderExt, RadarMatchingExt, RadarPlace, RadarPlaceSearchResponse,
     RadarRouterExt, RadarSearchExt,
 };
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{CredentialScheme, PROVIDER_DESCRIPTOR, RADAR_AUTHORIZATION_HEADER_NAME};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_header_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential,
+            CredentialScheme::Header(RADAR_AUTHORIZATION_HEADER_NAME)
+        );
+    }
+}
