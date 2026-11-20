@@ -37,6 +37,26 @@ jobs:
       - run: chmod +x scripts/check-open-source-hygiene.sh
       - run: ./scripts/check-open-source-hygiene.sh
 
+  dco:
+    # An outside contribution signs the Developer Certificate of Origin;
+    # maintainer commits carry no trailer. This runs only on a pull request
+    # from someone without write access, and checks the commits it adds.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.author_association != 'OWNER' &&
+      github.event.pull_request.author_association != 'MEMBER' &&
+      github.event.pull_request.author_association != 'COLLABORATOR'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: git fetch --no-tags origin "${{ github.base_ref }}"
+      - run: node scripts/check-dco-signoff.mjs --base "origin/${{ github.base_ref }}"
+
   wasm:
     runs-on: ubuntu-latest
     steps:

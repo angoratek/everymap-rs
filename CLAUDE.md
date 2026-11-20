@@ -1,86 +1,42 @@
 # CLAUDE.md — Project Guidance for Claude Code
 
-## Git Rules
+## Git and commit rules
 
 - **Never commit without explicit user approval.** Always ask before committing.
 - Do not push to remote unless explicitly asked.
-- When allowed, create 1-liner commit messages, precise yet concise, e.g. "feat: move validate-cli.sh to scripts/ (374 assertions, timing, CI job), fix clippy redundant_field_names, optimize api_key clone."
-- Never use the Co-author tag in commit messages.
+- **1-liner only** — precise, concise, no body paragraphs. Format `<type>: <imperative description>`; types `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `ci:`, `chore:`.
+- **A maintainer commit carries no trailer**: never `Co-Authored-By`, `Signed-off-by` or any other. An outside contribution submitted through a pull request carries `Signed-off-by:` for the Developer Certificate of Origin, checked by `scripts/check-dco-signoff.mjs`; commits made directly on `main` by the maintainer stay one-line with no trailers.
 
-### Commit Style
+## Parallel workstreams
 
-- **1-liner only** — precise, concise, no body paragraphs
-- **Never** add `Co-Authored-By`, `Signed-off-by`, or any trailer/footer
-- Format: `<type>: <imperative description>`
-- Types: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `ci:`, `chore:`
-- Examples:
-  - `feat: add token-bucket rate limiter to ig-ratelimit`
-  - `fix: map Graph API error code 2534022 to WindowExpired`
-  - `test: add wiremock tests for all API error code mappings`
+- **Prefer parallelism for independent slices.** Give each independent track its own git worktree and branch (`Agent` with `isolation: "worktree"` or `git worktree add`); name branches `feat/<slug>`, `docs/<slug>`, `ci/<slug>`.
+- **One tree per worker.** Never run `git stash`, `git checkout` or history rewrites in the shared tree.
+- **Agree the seam before fan-out.** State method names, event field names, record shapes and file ownership in every brief; two agents must not edit the same file.
+- **Small, justified fans only.** Delegate work that spans many files; do the spine yourself when it is a handful of tool calls.
+- **Integrate deliberately.** Review each diff and verify its gates, then merge or cherry-pick onto `main`; the main session owns the final full gate on the merged tree.
+- **Clean up as you go.** Remove an integrated worktree (`git worktree remove --force <path>`, then `git worktree prune`) and delete its branch; keep `.claude/worktrees/` empty between slices.
+- **Branches stay local by default.** Push a feature branch or open a draft PR only when the owner asks; never merge a PR without owner approval.
 
-## Behavioral Guidelines
+## Behavioral guidelines
 
-Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+1. **Think before coding.** State assumptions, surface tradeoffs, and ask when a requirement is unclear or has multiple interpretations.
+2. **Simplicity first.** Minimum code that solves the problem; no speculative features, abstractions, configurability or impossible-case handling.
+3. **Surgical changes.** Touch only what the request needs, match existing style, remove only imports or variables your change orphaned, and mention unrelated dead code rather than deleting it.
+4. **Goal-driven execution.** Turn each task into a verifiable goal, state a brief plan, and loop until it is verified.
 
-Tradeoff: These guidelines bias toward caution over speed. For trivial tasks, use judgment.
-1. Think Before Coding
+## Work tracking and CHANGELOG.md
 
-Don't assume. Don't hide confusion. Surface tradeoffs.
+- The GitHub issue tracker is the work tracker: every open work item is one issue with a milestone and a label.
+- Each milestone description in GitHub carries its done-when line.
+- `CHANGELOG.md` records meaningful changes; a slice ends with its entry. Keep dates ISO-8601 and released sections newest-first.
 
-Before implementing:
+## Coding conventions
 
-    State your assumptions explicitly. If uncertain, ask.
-    If multiple interpretations exist, present them - don't pick silently.
-    If a simpler approach exists, say so. Push back when warranted.
-    If something is unclear, stop. Name what's confusing. Ask.
-
-2. Simplicity First
-
-Minimum code that solves the problem. Nothing speculative.
-
-    No features beyond what was asked.
-    No abstractions for single-use code.
-    No "flexibility" or "configurability" that wasn't requested.
-    No error handling for impossible scenarios.
-    If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-3. Surgical Changes
-
-Touch only what you must. Clean up only your own mess.
-
-When editing existing code:
-
-    Don't "improve" adjacent code, comments, or formatting.
-    Don't refactor things that aren't broken.
-    Match existing style, even if you'd do it differently.
-    If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-
-    Remove imports/variables/functions that YOUR changes made unused.
-    Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-4. Goal-Driven Execution
-
-Define success criteria. Loop until verified.
-
-Transform tasks into verifiable goals:
-
-    "Add validation" → "Write tests for invalid inputs, then make them pass"
-    "Fix the bug" → "Write a test that reproduces it, then make it pass"
-    "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+1. Use the best known and shared practices for each language.
+2. Follow SOLID: single responsibility, open-closed, Liskov substitution, interface segregation and dependency inversion.
+3. No abbreviations in code; choose concise yet precise names for variables, methods, classes and packages.
+4. Generate meaningful code documentation that automated docs can consume.
+5. **No magic numbers**: every static value used in logic lives in a named, documented constant. Literals are acceptable only for structural math (`0.5` halving, NDC `[0,1]` conversions) and inside tests when local and self-explanatory.
 
 ## Project Overview
 EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. Implements HERE Technologies, Google Maps, TomTom, MapBox, Radar, MapQuest, Photon, OSRM and Valhalla APIs, plus URL-template raster and vector tilesets, behind sixteen core contracts.
@@ -95,7 +51,6 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - **Unsupported domain macros** in `everymap-core/src/unsupported.rs` (7 macros): `unsupported_isoline!`, `unsupported_traffic!`, `unsupported_tour!`, `unsupported_tile!`, `unsupported_positioner!`, `unsupported_attributes!`, `unsupported_image!`
 - **CLI unified dispatch**: `ProviderRegistry` in `everymap-cli/src/provider.rs` holds `Box<dyn Trait>` for each domain. Single `run_commands()` function dispatches all 11 commands.
 - **Each domain module** has its own `types.rs` submodule with provider-specific request/response types.
-- **Shared geo types**: `HereLatLng` in HERE's `domain/geo.rs`, `GoogleLatLng` in Google's `domain/geo.rs`.
 - **Core response types** are rich enough for most use cases, with an optional `raw: Option<serde_json::Value>` escape hatch for provider-specific data.
 - **`From` trait conversions** implemented for all domains.
 - **Explicit re-exports** in `domain/mod.rs` and `lib.rs` to avoid glob conflicts.
@@ -106,31 +61,26 @@ EveryMap-RS is a modular Rust geospatial API wrapper with provider abstraction. 
 - Use `flexpolyline` crate (v1.0) for HERE Flexible Polyline encoding/decoding.
 - Use `wiremock` for contract tests — mock API responses and validate deserialization.
 - Each domain has a `const BASE_URL` for its API endpoint.
-- Provider client wrappers delegate to `everymap_core::client::ProviderClient`.
 - All enums use `#[serde(rename_all = "snake_case")]` or explicit `#[serde(rename = "...")]`.
 - All optional response fields use `#[serde(default)]`.
 - Helper functions (`add_option`, `add_option_ref`) for building query params from optional fields.
-- Binary responses (tiling, imaging) use `response.bytes().await?.to_vec()` for body and `response.headers()` for content-type.
 - Provider-specific rich types live in `types.rs` submodules within each domain.
-- Core traits return enriched types; providers expose rich provider-specific methods alongside the trait impl.
 - Error type `EveryMapError` has structured variants: `HttpError`, `AuthError`, `ProviderError`, `RateLimited`, `UnsupportedDomain`, etc.
 - Core options types have `provider_extra: Option<serde_json::Value>` escape hatch for provider-specific params.
 - Error body truncation in deserialization errors: 256 bytes max.
 - API keys are zeroized on drop via `zeroize` crate (`#[zeroize(drop)]` on `ApiKeyProvider` and `HeaderAuthProvider`).
 - CLI output writes directly to stdout via `serde_json::to_writer` (no intermediate `String` allocation for JSON/Pretty formats).
 - Provider crates define `const PROVIDER_NAME: &str` in their client module for consistent naming in errors and logs.
-- Workspace-level lints configured in root `Cargo.toml` (`[workspace.lints]`): `unsafe_code = "deny"`, clippy `all = warn`.
-- MSRV declared as 1.86 in `[workspace.package]`.
+- Workspace-level lints configured in root `Cargo.toml` (`[workspace.lints]`): `unsafe_code = "deny"`, clippy `all = warn`. MSRV is 1.86.
 - Use `DepartureTime` enum for departure/arrival time fields — never `Option<String>` guessing.
 - All variable names must be full words (no abbreviations). See "What NOT to Do" for the full list.
 
 ## Build & Test Commands
-- `cargo clippy -- -D warnings` — must pass with zero warnings
-- `cargo test` — runs 1022 tests across 102 suites (unit + contract + CLI integration + error cases + bench + doctests); 6 live-service tests stay ignored without a key. The run prints the current count, so never copy this number forward
-- `cargo clippy -p everymap-core -p everymap-providers-here -p everymap-providers-google -p everymap-providers-tomtom -p everymap-providers-mapbox -p everymap-providers-radar -p everymap-providers-mapquest -p everymap-providers-photon -p everymap-providers-osrm -p everymap-providers-valhalla -p everymap-providers-url-template-raster -p everymap-providers-url-template-vector --target wasm32-unknown-unknown --lib -- -D warnings` — the browser closure
-- `cargo build` — verify compilation
+The full local gate before a commit: `cargo fmt --all -- --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --workspace`, the browser-closure clippy below, `scripts/generate-readmes.sh --check`, `scripts/check-provider-transport-isolation.sh`, `scripts/check-open-source-hygiene.sh` and `scripts/validate-cli.sh --quiet`.
+- `cargo clippy -p everymap-core -p everymap-providers-here -p everymap-providers-google -p everymap-providers-tomtom -p everymap-providers-mapbox -p everymap-providers-radar -p everymap-providers-mapquest -p everymap-providers-photon -p everymap-providers-osrm -p everymap-providers-valhalla -p everymap-providers-url-template-raster -p everymap-providers-url-template-vector --target wasm32-unknown-unknown --lib -- -D warnings` — the browser closure; keep it in step with the crate list in `.github/workflows/ci.yml`
+- `cargo test --workspace` prints the current test count; never copy that number into a document. Six live-service tests stay ignored without a key.
 - `cargo run -p everymap-cli -- --help` — run CLI
-- See [TESTING.md](TESTING.md) for comprehensive testing guide (live API smoke testing, contract test patterns, API compatibility notes)
+- See [TESTING.md](TESTING.md) for live API smoke testing, contract-test patterns and API compatibility notes
 
 ## Provider Domain Coverage
 
@@ -175,17 +125,8 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr
 - Binary commands (`tile`, `map-image`) save to a file. Use `--output-file` to set the path (defaults: `tile.png` for raster, `tile.mvt` for vector, `map.png`)
-- `geocode` supports `--limit`, `--language`, `--country` (repeatable), `--bbox`
-- `reverse-geocode` supports `--limit`, `--language`, `--radius`
-- `route` supports `--transport` (car, truck, pedestrian, bicycle, scooter, bus, taxi), `--alternatives`, `--avoid` (repeatable: tolls, ferries, tunnels, highways, dirt-roads), `--departure-time`, `--arrival-time`, `--language`
-- `match-route` supports `--transport` (car, truck, pedestrian, bicycle), `--heading`, `--departure-time`, `--avoid` (repeatable)
-- `tour` supports `--departure` for ISO 8601 departure time (default: now), `--transport`
-- `isoline` supports `--range-type` (distance, time), `--departure-time`, `--avoid` (repeatable)
-- `traffic` supports `--radius`, `--include-incidents`, `--language`
-- `tile` supports `--variant raster|vector`, `--format` (raster: png/jpeg; vector is always MVT) and `--resolution` (standard/retina); with no variant it uses the first tile contract the provider serves. HERE and MapBox serve vector tiles, TomTom and MapQuest raster tiles. HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
-- `attributes` supports `--layer`, `--format`, `--ids`, `--include`, `--language`
-- `map-image` supports `--format`, `--language`, `--width`, `--height`
-- **TomTom coordinate order**: TomTokyo static image uses `lng,lat` for center parameter (not `lat,lng` like HERE)
+- `tile` takes `--variant raster|vector`; with no variant it uses the first tile contract the provider serves. HERE uses its own tiling scheme (Berlin z14: x=4494, y=2832)
+- **TomTom coordinate order**: the static image uses `lng,lat` for `center` (not `lat,lng` like HERE)
 - API key param name defaults: `apiKey` for HERE, `key` for Google/TomTom, `access_token` for MapBox, `Authorization` header for Radar
 - Use `--lng=VALUE` (with `=`) for negative longitudes to avoid CLI arg parsing issues
 - 11 commands: geocode, reverse-geocode, route, traffic, position, isoline, match-route, tour, tile, attributes, map-image
@@ -194,8 +135,8 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 - TomTom reverse geocode returns `addresses` (not `results`), position as `"lat,lon"` string
 - TomTom isoline uses `distanceBudgetInMeters`/`timeBudgetInSec` (not `distance`/`time`)
 - TomTom match-route uses `lon,lat;lon,lat` format (longitude first, semicolon-separated); endpoint is `/snapToRoads/1/snap` (not `/snapToRoads/1`); needs `fields` param for `projectedPoints`
-- TomTokyo tour endpoint is `/routing/waypointoptimization/1`; request body uses `waypoints`; response returns `optimizedOrder`
-- TomTokyo static image `center` parameter uses `lng,lat` order (longitude first); TomTom tile layer names are `basic`/`hybrid`/`labels` (not `base`)
+- TomTom tour endpoint is `/routing/waypointoptimization/1`; request body uses `waypoints`; response returns `optimizedOrder`
+- TomTom static image `center` parameter uses `lng,lat` order (longitude first); TomTom tile layer names are `basic`/`hybrid`/`labels` (not `base`)
 - MapBox search v6 puts data in `properties` (`full_address`, `name`, `coordinates`, `bbox`, `context`), not top-level `place_name`/`text`/`center`
 - MapBox static image URL has no `.png` extension; default style is `streets-v12`
 - Radar routing step fields are `snake_case` (`start_location`) while leg fields are `camelCase` (`startLocation`)
@@ -208,36 +149,6 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 ## Known Issues (from comprehensive provider review)
 - **Google matching**: `transport_mode`, `heading`, `departure_time`, `avoid` are all ignored (logged as warnings).
 - **Radar routing avoid**: Tunnels and dirt-roads avoid types have no Radar API counterpart (Radar supports tolls, highways, ferries, borderCrossings) — they log a warning and are dropped.
-
-## Fixed Issues (previously known)
-- **Silent parameter drops** (Phase 1): 24 locations across all 5 providers now emit `log::warn!` when core option fields are unsupported (Google: limit/radius/arrival_time/avoid/bbox/language; TomTom: avoid/tour/matching/traffic/isoline; MapBox: departure_time/arrival_time/avoid/format/tour; Radar: bounding_box/alternatives/avoid/arrival_time/transport_mode/tour/matching; HERE: reverse radius/traffic language/imaging format).
-- **TomTom routing/isoline avoid** (Phase 2): Core `AvoidType` field now mapped to TomTom API params (Tolls→avoidTollRoads, Ferries→avoidFerries, Tunnels→avoidTunnels, Highways→avoidMotorways, DirtRoads→avoidUnpavedRoads).
-- **HERE reverse geocode radius** (Phase 2): Core `radius` field now passed to HERE reverse geocode API.
-- **HERE imaging format** (Phase 2): Core `format` field now read alongside `provider_extra`.
-- **HERE traffic language** (Phase 2): `lang` param added to flow query from `options.language`.
-- **Radar search bounding_box** (Phase 2): Center point from bounding box now passed as `near` param.
-- **Google geocode limit** (Phase 2): Post-response truncation when `options.limit` is set.
-- **MapBox imaging format** (Phase 2): Read from `options.format` core field.
-- **Radar tour transport_mode** (Phase 2): Now read from `options.transport_mode` core field.
-- **20+ CLI flags** (Phase 3): `--limit`, `--language`, `--country`, `--bbox`, `--radius`, `--alternatives`, `--avoid`, `--departure-time`, `--arrival-time`, `--heading`, `--range-type`, `--format` added across all 11 commands.
-- **Google routing avoid types**: Fixed — removed invalid `indoor` mapping for DirtRoads, removed unsupported Tunnels from avoid parameter list. Uses typed `DepartureTime` match instead of string guessing.
-- **HERE traffic incidents**: Fixed — `include_incidents` now actually fetches incidents (was always returning empty).
-- **CLI Attributes --layer**: Fixed — key changed from singular `"layer"` to plural `"layers"` matching HERE provider.
-- **HERE matching transport modes**: Fixed — Bus→Bus, Scooter→Motorcycle, Taxi→Taxi (were all mapped to Car).
-- **DepartureTime enum**: Fixed — replaced fragile `Option<String>` guessing with typed `DepartureTime` enum (Now, Timestamp, Iso8601) across RouteOptions, MatchingOptions, IsolineOptions.
-- **MapBox reverse geocode radius**: Fixed — now emits warning instead of silently ignoring radius.
-- **Code abbreviations**: Fixed — all 823+ occurrences eliminated (`opts`→`options`, `res`→`response`, `coord`→`coordinate`, etc.).
-- **HERE enum serialization**: Fixed — all 21 enums now use `camelCase` (or `lowercase`) `rename_all` to match HERE API expectations.
-- **HERE search `X-Request-ID`**: Fixed — now sent as HTTP header instead of query parameter.
-- **HERE matching `mode` parameter**: Fixed — now uses compound format `fastest;car;traffic:disabled`.
-- **HERE routing/isoline vehicle options**: Fixed — scooter, truck, ev, fuel, driver, taxi, tolls, max_speed_on_segment now serialized to query params.
-- **MapBox tour**: Fixed — now uses `transport_mode` from `TourOptions` instead of hardcoded `driving`.
-- **MapBox routing language**: Fixed — no longer sends unsupported `language` parameter to Directions API v5 (now emits warning).
-- **TomTom traffic bbox**: Fixed — longitude offset now uses `cos(lat)` correction for meridian convergence.
-- **Google routing Routes API v2**: Migrated from legacy Directions API to `routes.googleapis.com/directions/v2:computeRoutes` (POST + `X-Goog-FieldMask` header); `transport_mode` now populated from `travelMode`; `arrival_time`, avoid Tunnels/DirtRoads warn as unsupported.
-- **TomTom traffic severity**: "moderate" now maps to `IncidentSeverity::Moderate` (no longer downgraded to `Minor`).
-- **Radar routing avoid/alternatives**: Core `avoid` (tolls/highways/ferries) and `alternatives` fields now wired to the Radar Directions API; `provider_extra.avoid`/`alternatives` remain as overrides.
-- **Configurable image size**: Core `ImageOptions.width`/`height` override the `size` argument per-axis; `--width`/`--height` flags added to `map-image`.
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.

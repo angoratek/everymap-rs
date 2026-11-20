@@ -6,7 +6,8 @@ set -euo pipefail
 # Every tracked file in this repository is published (crates.io, GitHub, the
 # generated documentation), so it must not carry a credential, a personal
 # filesystem path or a private note. This gate scans the tracked tree — the
-# planning documents included — for the patterns that have leaked before.
+# repository guide and the generated documents included — for the patterns
+# that have leaked before.
 #
 # False positives are fixed by rewording the file, not by weakening the gate.
 #

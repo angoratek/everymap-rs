@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+### Added
+- A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
+  fails a pull request when a commit's `Signed-off-by:` line does not match its
+  author, and the CI `dco` job runs it. Maintainer commits on `main` carry no
+  trailer.
+
+### Changed
+- `PLAN.md` is retired. Its last open items are GitHub issues #40 (browser
+  runtime proof) and #41 (CLI feature gates), and each milestone carries its
+  done-when line. The design and RFC documents that pointed at it now point at
+  the issue tracker.
+- `CLAUDE.md` is trimmed to project-specific guidance: the fixed-issue history
+  lives in this changelog, the per-command flag lists live in `--help`, and the
+  test count is no longer copied into prose.
+
 ### Fixed
 - `chrono` is gone. The crate carries an unmaintained advisory
   (RUSTSEC-2026-0543) with no safe upgrade, which turned the `audit` job red

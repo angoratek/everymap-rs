@@ -1,6 +1,6 @@
 # One contract surface
 
-**Status:** design, owner ruling 2026-11-05. Work: `PLAN.md` M4.
+**Status:** design, owner ruling 2026-11-05. Shipped in 0.4.0; see `CHANGELOG.md`.
 **Question it answers:** how does the provider set present itself when some
 crates were written before the typed contracts and some after?
 

@@ -290,17 +290,19 @@ Defined in `.config/nextest.toml`:
 
 ## CI Pipeline
 
-The CI runs 9 parallel jobs (`.github/workflows/ci.yml`):
+The CI runs 11 jobs (`.github/workflows/ci.yml`):
 
 1. **fmt**: `cargo fmt --all -- --check`
 2. **clippy**: `cargo clippy --all-targets --all-features -- -D warnings`
-3. **docs**: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`
-4. **audit**: `cargo deny check` (advisories, licenses, bans, sources)
-5. **msrv**: `cargo check --all-features` on toolchain 1.86
-6. **test**: `cargo nextest run --all-features --profile ci` (JUnit XML uploaded on failure)
-7. **build**: `cargo build --release -p everymap-cli`
-8. **check-publish**: `./scripts/check-publish-readiness.sh --verbose`
-9. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (374 CLI assertions)
+3. **dco**: a pull request from outside the repository must sign off every commit (`scripts/check-dco-signoff.mjs`)
+4. **wasm**: build and lint the browser closure for `wasm32-unknown-unknown`
+5. **docs**: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`
+6. **audit**: `cargo deny check` (advisories, licenses, bans, sources)
+7. **msrv**: `cargo check --all-features` on toolchain 1.86
+8. **test**: `cargo nextest run --all-features --profile ci` (JUnit XML uploaded on failure)
+9. **build**: `cargo build --release -p everymap-cli`
+10. **check-publish**: `./scripts/check-publish-readiness.sh --verbose`
+11. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (374 CLI assertions)
 
 ## API Compatibility Notes
 
