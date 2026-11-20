@@ -290,19 +290,34 @@ Defined in `.config/nextest.toml`:
 
 ## CI Pipeline
 
-The CI runs 11 jobs (`.github/workflows/ci.yml`):
+The CI runs 12 jobs (`.github/workflows/ci.yml`):
 
 1. **fmt**: `cargo fmt --all -- --check`
 2. **clippy**: `cargo clippy --all-targets --all-features -- -D warnings`
 3. **dco**: a pull request from outside the repository must sign off every commit (`scripts/check-dco-signoff.mjs`)
 4. **wasm**: build and lint the browser closure for `wasm32-unknown-unknown`
-5. **docs**: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`
-6. **audit**: `cargo deny check` (advisories, licenses, bans, sources)
-7. **msrv**: `cargo check --all-features` on toolchain 1.86
-8. **test**: `cargo nextest run --all-features --profile ci` (JUnit XML uploaded on failure)
-9. **build**: `cargo build --release -p everymap-cli`
-10. **check-publish**: `./scripts/check-publish-readiness.sh --verbose`
-11. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (374 CLI assertions)
+5. **browser-smoke**: Playwright-driven headless Chromium makes one request per provider through the fetch transport (`scripts/browser-smoke.sh`)
+6. **docs**: `RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --all-features`
+7. **audit**: `cargo deny check` (advisories, licenses, bans, sources)
+8. **msrv**: `cargo check --all-features` on toolchain 1.86
+9. **test**: `cargo nextest run --all-features --profile ci` (JUnit XML uploaded on failure)
+10. **build**: `cargo build --release -p everymap-cli`, plus the zero-provider and HERE-only feature sets
+11. **check-publish**: `./scripts/check-publish-readiness.sh --verbose`
+12. **cli-validate**: `./scripts/validate-cli.sh --quiet --json` (374 CLI assertions)
+
+## Browser smoke
+
+The `browser-smoke` job proves the runtime, not just the build: `everymap-browser-smoke` is a `wasm32` cdylib that sends one request per provider through the browser's `fetch` transport and reads the `web-time` clock, and `scripts/browser-smoke.mjs` serves the harness page and its fixtures from one origin, drives it in headless Chromium through Playwright, and fails when a provider's request never reaches the fixture server.
+
+Run it locally with:
+
+```bash
+cargo install wasm-bindgen-cli --version "$(grep -A1 'name = "wasm-bindgen"' Cargo.lock | grep version | cut -d'"' -f2)"
+npm install --no-save --no-package-lock playwright && npx playwright install chromium
+./scripts/browser-smoke.sh
+```
+
+The wasm-bindgen CLI version must match the library version the workspace resolves; the script checks and reports the required version.
 
 ## API Compatibility Notes
 

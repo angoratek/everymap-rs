@@ -15,7 +15,7 @@ Every network provider has one configurable root: HERE, Google, TomTom and MapBo
 
 **Contracts**: geocoding and reverse geocoding, settled place search, type-ahead completion, navigation-grade routing (ordered waypoints, legs, maneuver types, instruction and speech text, lane guidance, geometry), distance matrices, isolines, map matching, tour planning, traffic flow and incidents, network positioning, raster and vector tiles, elevation, geodata attributes, static map images, and offline routing.
 
-**Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown` as well as native targets. Each provider reaches the network only through the shared client's transport seam, which is `reqwest` natively and `window.fetch` in a browser. No provider crate's source names `reqwest` or `tokio`, and CI enforces that; the four keyless crates (OSRM, Valhalla and the two URL-template crates) keep a native-only `reqwest` dependency for the generated builder constructor, and provider test modules use `tokio` as a dev-dependency. The CLI and the benchmark harness are native applications.
+**Targets**: `everymap-core` and every provider crate build for `wasm32-unknown-unknown` as well as native targets. Each provider reaches the network only through the shared client's transport seam, which is `reqwest` natively and `window.fetch` in a browser. No provider crate's source names `reqwest` or `tokio`, and CI enforces that; the four keyless crates (OSRM, Valhalla and the two URL-template crates) keep a native-only `reqwest` dependency for the generated builder constructor, and provider test modules use `tokio` as a dev-dependency. A Playwright-driven headless-Chromium smoke (`scripts/browser-smoke.sh`, the CI `browser-smoke` job) drives one request per provider through the fetch transport against a local fixture server, including a `web-time` clock read. The CLI and the benchmark harness are native applications.
 
 ## Architecture
 
@@ -42,7 +42,8 @@ everymap-rs/
 ├── everymap-providers-url-template-raster/ # Any {z}/{x}/{y} raster source
 ├── everymap-providers-url-template-vector/ # Any {z}/{x}/{y} vector source, with named OSM US and OpenFreeMap sources
 ├── everymap-cli/                           # CLI with 11 commands + unified ProviderRegistry
-└── everymap-bench/                         # Cross-provider benchmark framework
+├── everymap-bench/                         # Cross-provider benchmark framework
+└── everymap-browser-smoke/                 # Headless-browser smoke: one request per provider through fetch
 ```
 
 ## Provider support
@@ -292,7 +293,7 @@ Provider-specific methods are available via extension traits (e.g., `HereGeocode
 ## Build & Test
 
 ```bash
-cargo build                              # Build all 14 workspace members (13 published)
+cargo build                              # Build all 15 workspace members (13 published)
 cargo nextest run --all-features         # Run the full suite (install: cargo install cargo-nextest)
 cargo test                               # Alternative: standard test runner
 cargo clippy -- -D warnings              # Lint (must pass clean)

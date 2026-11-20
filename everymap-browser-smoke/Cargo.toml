@@ -1,0 +1,30 @@
+[package]
+name = "everymap-browser-smoke"
+version.workspace = true
+edition.workspace = true
+description = "Headless-browser smoke test: one request per provider through the fetch transport"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+everymap-core = { workspace = true }
+everymap-providers-here = { workspace = true }
+everymap-providers-google = { workspace = true }
+everymap-providers-tomtom = { workspace = true }
+everymap-providers-mapbox = { workspace = true }
+everymap-providers-radar = { workspace = true }
+everymap-providers-mapquest = { workspace = true }
+everymap-providers-photon = { workspace = true }
+everymap-providers-osrm = { workspace = true }
+everymap-providers-valhalla = { workspace = true }
+everymap-providers-url-template-raster = { workspace = true }
+everymap-providers-url-template-vector = { workspace = true }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+web-time = { workspace = true }
+serde_json = { workspace = true }
+
+[lints]
+workspace = true
