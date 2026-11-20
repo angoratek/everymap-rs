@@ -68,6 +68,13 @@
   test count is no longer copied into prose.
 
 ### Fixed
+- Google matching read a `snapping` key out of `provider_extra` and never sent
+  it, so the option had no effect and said nothing about it. The Roads API
+  `snapToRoads` method takes `path` and `interpolate` only, so the option now
+  warns like the others it cannot express, `GoogleMatchOptions` no longer
+  carries a field that could never be sent, and a contract test asserts the
+  request carries no `mode`, `heading`, `departure_time`, `avoid` or
+  `snapping`.
 - `chrono` is gone. The crate carries an unmaintained advisory
   (RUSTSEC-2026-0543) with no safe upgrade, which turned the `audit` job red
   on every push and every pull request. The three timestamps the workspace

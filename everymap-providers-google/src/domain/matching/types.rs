@@ -1,12 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 /// Options for Google Roads API snapToRoads.
+///
+/// The method accepts `path` and `interpolate` only, so this type carries no
+/// other knob: a core option the method cannot express is reported by the
+/// matcher rather than stored here.
 #[derive(Debug, Clone, Default)]
 pub struct GoogleMatchOptions {
     /// Whether to interpolate the path between snapped points.
     pub interpolate: bool,
-    /// Snapping type (not commonly used, reserved).
-    pub snapping: Option<String>,
 }
 
 /// Response from Google Roads API snapToRoads endpoint.

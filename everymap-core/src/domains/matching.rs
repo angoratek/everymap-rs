@@ -15,7 +15,7 @@ pub struct MatchingOptions {
     pub departure_time: Option<DepartureTime>,
     /// Route restrictions
     pub avoid: Vec<crate::domains::routing::AvoidType>,
-    /// Provider-specific options (HERE: map_match_radius, route_match, vehicle params; Google: interpolation, snapping)
+    /// Provider-specific options (HERE: map_match_radius, route_match, vehicle params; Google: interpolation)
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider_extra: Option<serde_json::Value>,
 }
