@@ -3,6 +3,10 @@ name = "everymap-browser-smoke"
 version.workspace = true
 edition.workspace = true
 description = "Headless-browser smoke test: one request per provider through the fetch transport"
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 publish = false
 
 [lib]
