@@ -104,6 +104,23 @@ jobs:
           -p everymap-providers-url-template-vector
           -- -D warnings
 
+  browser-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      # The wasm-bindgen CLI must match the resolved library version.
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-bindgen-cli@0.2.117
+      - run: npm install --no-save --no-package-lock playwright@1.49.0
+      - run: npx playwright install --with-deps chromium
+      - run: chmod +x scripts/browser-smoke.sh
+      - run: ./scripts/browser-smoke.sh
+
   docs:
     runs-on: ubuntu-latest
     steps:

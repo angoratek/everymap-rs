@@ -425,6 +425,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "everymap-browser-smoke"
+version = "0.4.7"
+dependencies = [
+ "everymap-core",
+ "everymap-providers-google",
+ "everymap-providers-here",
+ "everymap-providers-mapbox",
+ "everymap-providers-mapquest",
+ "everymap-providers-osrm",
+ "everymap-providers-photon",
+ "everymap-providers-radar",
+ "everymap-providers-tomtom",
+ "everymap-providers-url-template-raster",
+ "everymap-providers-url-template-vector",
+ "everymap-providers-valhalla",
+ "serde_json",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-time",
+]
+
+[[package]]
 name = "everymap-cli"
 version = "0.4.7"
 dependencies = [

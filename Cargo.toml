@@ -14,6 +14,7 @@ members = [
     "everymap-providers-mapquest",
     "everymap-providers-photon",
     "everymap-bench",
+    "everymap-browser-smoke",
 ]
 resolver = "2"
 

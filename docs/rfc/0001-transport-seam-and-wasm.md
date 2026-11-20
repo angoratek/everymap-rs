@@ -273,7 +273,7 @@ that carries this change.
 | 3 | Follow-up: every provider crate in the browser closure — the five original providers drop their unused `tokio`/`reqwest` dependencies and HERE reads the wall clock through `web-time` | Complete (`v0.3.2`) |
 | 2–3 | Follow-up: one contract surface — the untyped `TileProvider` is deleted, HERE and MapBox implement `VectorTileProvider`, TomTom implements `RasterTileProvider`, and the README carries one matrix | Complete (`v0.4.0`) |
 | 5 | Switch the SDK: registry, catalog, cache wrappers, native registration and wasm dispatch | In progress in the SDK repository (M66) |
-| 6 | Docs and gates: provider-genericity guide, crate layout, name guard, full platform gates | In progress (everymap-rs issues #38 and #40) |
+| 6 | Docs and gates: provider-genericity guide, crate layout, name guard, full platform gates | In progress: the `browser-smoke` job drives one request per provider through fetch in headless Chromium; issues #38 and #41 remain |
 
 ## Consequences
 

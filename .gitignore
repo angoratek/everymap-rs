@@ -28,6 +28,10 @@ tmp/.env
 # Release artifacts
 release-artifacts/
 
+# Browser smoke: generated wasm-bindgen module and Playwright dependencies
+everymap-browser-smoke/pkg/
+node_modules/
+
 smoke-test-results
 validate-results
 

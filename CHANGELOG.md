@@ -9,6 +9,12 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Runtime browser proof: `everymap-browser-smoke` (a `wasm32` cdylib built with
+  wasm-bindgen) drives one request per provider through the fetch transport in
+  headless Chromium, and `scripts/browser-smoke.mjs` serves the harness page and
+  its fixtures from one origin, runs it through Playwright, and fails when a
+  provider's request never reaches the server or the `web-time` clock read is
+  implausible. The CI `browser-smoke` job runs it.
 - MapQuest's Static Map API as `MapQuestMapImageProvider` (`MapImageProvider`):
   center, zoom, size, and `png`/`jpg`/`gif` formats, with the core width and
   height overrides, provider extras passed as documented query parameters, a
