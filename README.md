@@ -61,7 +61,7 @@ trait.
 | Traffic | `TrafficProvider` | ✅ | — | ✅ | — | — | ✅ | — | — | — | — | — |
 | Raster tiles | `RasterTileProvider` | — | — | ✅ | — | — | ✅ | — | — | — | ✅ | — |
 | Vector tiles | `VectorTileProvider` | ✅ | — | — | ✅ | — | — | — | — | — | — | ✅ |
-| Elevation | `ElevationProvider` | — | — | — | — | — | — | — | — | — | — | — |
+| Elevation | `ElevationProvider` | — | ✅ | — | — | — | — | — | — | — | — | — |
 | Isoline | `IsolineProvider` | ✅ | — | ✅ | ✅ | — | — | — | — | — | — | — |
 | Matching | `RouteMatcher` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — |
 | Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ | — | — | — | — | — | — |
@@ -74,9 +74,10 @@ trait.
 waypoints and return one leg per pair; a two-endpoint provider reports
 `UnsupportedDomain` for a longer request rather than dropping the stops.
 
-`ElevationProvider` and `OfflineRoutingProvider` are contracts a host can
-implement; no provider crate serves them yet. An unsupported capability returns
-`EveryMapError::UnsupportedDomain` — `"google does not support traffic"`.
+`OfflineRoutingProvider` is a contract a host can implement; no provider crate
+serves it yet. `ElevationProvider` is served by Google's Elevation API. An
+unsupported capability returns `EveryMapError::UnsupportedDomain` — `"google
+does not support traffic"`.
 
 Each provider crate exports a `PROVIDER_DESCRIPTOR`
 (`everymap_core::provider::ProviderDescriptor`) naming its key, credential

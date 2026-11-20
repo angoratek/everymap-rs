@@ -5,11 +5,14 @@ pub mod ext;
 
 use everymap_core::provider::{CredentialScheme, ProviderDescriptor, ServedContract, ServiceRoot};
 
+/// The query parameter that carries the MapBox access token.
+pub const MAPBOX_API_KEY_QUERY_PARAMETER: &str = "access_token";
+
 /// This crate's cross-domain provider description.
 pub const PROVIDER_DESCRIPTOR: ProviderDescriptor = ProviderDescriptor {
     key: error_mapping::MAPBOX_PROVIDER_NAME,
     display_name: "MapBox",
-    credential: CredentialScheme::QueryParameter("access_token"),
+    credential: CredentialScheme::QueryParameter(MAPBOX_API_KEY_QUERY_PARAMETER),
     root: ServiceRoot::PerDomain,
     attribution: Some(domain::tiling::MAPBOX_VECTOR_ATTRIBUTION),
     terms: None,
@@ -70,3 +73,16 @@ pub use domain::imaging::MapBoxMapImageProvider;
 
 // Unsupported domains
 pub use domain::unsupported::{MapBoxAttributeProvider, MapBoxPositioner, MapBoxTraffic};
+
+#[cfg(test)]
+mod descriptor_tests {
+    use super::{MAPBOX_API_KEY_QUERY_PARAMETER, PROVIDER_DESCRIPTOR};
+
+    #[test]
+    fn the_descriptor_reports_the_exported_query_parameter_name() {
+        assert_eq!(
+            PROVIDER_DESCRIPTOR.credential.query_parameter_name(),
+            Some(MAPBOX_API_KEY_QUERY_PARAMETER)
+        );
+    }
+}
