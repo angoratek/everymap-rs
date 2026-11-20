@@ -124,6 +124,7 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 ## CLI Usage
 - Global flags (`--provider`, `--api-key`, `--output`, `--verbose`) must come **before** the subcommand
 - `--provider` is one of `here` (default), `google`, `tomtom`, `mapbox`, `radar`, `mapquest`, `photon`, `osrm`, `valhalla`, `url-template-raster` or `url-template-vector`
+- Each provider is a cargo feature in `everymap-cli`; the default carries all of them, and `--no-default-features --features here` builds a HERE-only binary
 - `--api-key` or `EVERYMAP_API_KEY` env var or `~/.everymap/config.toml`
 - `--output json|pretty|summary`
 - `--verbose` / `-v` — show request URL (redacted key), raw response body, timing on stderr

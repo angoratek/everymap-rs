@@ -12,28 +12,58 @@ use everymap_core::domains::routing::AvoidType as CoreAvoidType;
 use everymap_core::domains::routing::DepartureTime;
 use everymap_core::domains::routing::{RouteOptions, TransportMode as CoreTransportMode};
 use everymap_core::domains::search::{GeocodeOptions, ReverseGeocodeOptions};
+#[cfg(feature = "url-template-raster")]
+use everymap_core::domains::tiling::RasterTileProvider;
+use everymap_core::domains::tiling::{RasterImageFormat, RasterTileRequest, RasterTileResolution};
+#[cfg(feature = "url-template-vector")]
 use everymap_core::domains::tiling::{
-    RasterImageFormat, RasterTileProvider, RasterTileRequest, RasterTileResolution,
     VectorTileEncoding, VectorTileProvider, VectorTileSourceDescriptor,
 };
 use everymap_core::domains::tour::TourOptions;
 use everymap_core::domains::traffic::TrafficOptions;
 use everymap_core::types::Coordinate;
+#[cfg(feature = "url-template-raster")]
 use everymap_providers_url_template_raster::{
     UrlTemplateRasterTileProvider, UrlTemplateRasterTileSource,
 };
+#[cfg(feature = "url-template-vector")]
 use everymap_providers_url_template_vector::{
     UrlTemplateVectorTileProvider, UrlTemplateVectorTileSource,
 };
 use provider::{supported_provider_descriptor, supported_provider_keys, ProviderRegistry};
 
 /// Highest zoom a URL-template source declares when the caller names no span.
+#[cfg(any(feature = "url-template-raster", feature = "url-template-vector"))]
 const URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL: u8 = 18;
 
 /// Whether `provider` serves a URL-template source the tile command builds.
+#[cfg(any(feature = "url-template-raster", feature = "url-template-vector"))]
 fn is_url_template_provider(provider: &str) -> bool {
-    provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key
-        || provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key
+    #[cfg(feature = "url-template-raster")]
+    if provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key {
+        return true;
+    }
+    #[cfg(feature = "url-template-vector")]
+    if provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key {
+        return true;
+    }
+    false
+}
+
+/// Whether `provider` serves a URL-template source the tile command builds.
+///
+/// This build carries neither URL-template crate, so no provider does.
+#[cfg(not(any(feature = "url-template-raster", feature = "url-template-vector")))]
+fn is_url_template_provider(_provider: &str) -> bool {
+    false
+}
+
+/// The first provider this binary carries, or an empty default when none is.
+fn default_provider_key() -> &'static str {
+    supported_provider_keys()
+        .first()
+        .copied()
+        .unwrap_or_default()
 }
 
 #[derive(Parser)]
@@ -44,7 +74,7 @@ fn is_url_template_provider(provider: &str) -> bool {
 )]
 struct Cli {
     /// Provider to use
-    #[arg(long, default_value_t = everymap_providers_here::PROVIDER_DESCRIPTOR.key.to_string())]
+    #[arg(long, default_value_t = default_provider_key().to_string())]
     provider: String,
 
     /// API key for authentication
@@ -359,6 +389,7 @@ fn exit_with_error(message: &str) -> ! {
 }
 
 /// The tile command's values that a URL-template source needs.
+#[cfg(any(feature = "url-template-raster", feature = "url-template-vector"))]
 struct UrlTemplateTileCommand<'a> {
     provider: &'a str,
     url_template: &'a str,
@@ -377,6 +408,7 @@ struct UrlTemplateTileCommand<'a> {
 /// The provider key chooses the contract, the template chooses the tileset,
 /// and the attribution is recorded on the source declaration so a caller can
 /// display it with the imagery.
+#[cfg(any(feature = "url-template-raster", feature = "url-template-vector"))]
 async fn run_url_template_tile(command: UrlTemplateTileCommand<'_>) {
     let UrlTemplateTileCommand {
         provider,
@@ -390,15 +422,26 @@ async fn run_url_template_tile(command: UrlTemplateTileCommand<'_>) {
         resolution,
         output_file,
     } = command;
+    // A build with one URL-template crate has no use for the other's knobs.
+    #[cfg(not(feature = "url-template-raster"))]
+    let _ = (format, resolution);
     let zoom_level =
         u8::try_from(zoom).unwrap_or_else(|_| exit_with_error("Tile zoom must fit in a byte"));
+    #[cfg(feature = "url-template-raster")]
     let is_raster = provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key;
-    if !is_raster && provider != everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key {
+    #[cfg(not(feature = "url-template-raster"))]
+    let is_raster = false;
+    #[cfg(feature = "url-template-vector")]
+    let is_vector = provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key;
+    #[cfg(not(feature = "url-template-vector"))]
+    let is_vector = false;
+    if !is_raster && !is_vector {
         exit_with_error(
             "--url-template requires --provider url-template-raster or url-template-vector",
         );
     }
 
+    #[cfg(feature = "url-template-raster")]
     if is_raster {
         match variant {
             None | Some("raster") => {}
@@ -452,7 +495,11 @@ async fn run_url_template_tile(command: UrlTemplateTileCommand<'_>) {
             }
             Err(error) => exit_with_error(&error.to_string()),
         }
-    } else {
+        return;
+    }
+
+    #[cfg(feature = "url-template-vector")]
+    {
         match variant {
             None | Some("vector") => {}
             Some(other) => exit_with_error(&format!(
@@ -852,6 +899,7 @@ async fn run_commands(
             url_template,
             attribution,
         } => {
+            #[cfg(any(feature = "url-template-raster", feature = "url-template-vector"))]
             if let Some(template) = url_template {
                 run_url_template_tile(UrlTemplateTileCommand {
                     provider: &cli.provider,
@@ -867,6 +915,14 @@ async fn run_commands(
                 })
                 .await;
                 return;
+            }
+            #[cfg(not(any(feature = "url-template-raster", feature = "url-template-vector")))]
+            let _ = attribution;
+            #[cfg(not(any(feature = "url-template-raster", feature = "url-template-vector")))]
+            if url_template.is_some() {
+                exit_with_error(
+                    "this build carries no URL-template provider; rebuild with url-template-raster or url-template-vector",
+                );
             }
             if is_url_template_provider(&cli.provider) {
                 exit_with_error("a URL-template provider requires --url-template with {z}/{x}/{y}");

@@ -16,19 +16,45 @@ authors.workspace = true
 name = "everymap"
 path = "src/main.rs"
 
+[features]
+default = [
+    "here",
+    "google",
+    "tomtom",
+    "mapbox",
+    "radar",
+    "mapquest",
+    "photon",
+    "osrm",
+    "valhalla",
+    "url-template-raster",
+    "url-template-vector",
+]
+here = ["dep:everymap-providers-here"]
+google = ["dep:everymap-providers-google"]
+tomtom = ["dep:everymap-providers-tomtom"]
+mapbox = ["dep:everymap-providers-mapbox"]
+radar = ["dep:everymap-providers-radar"]
+mapquest = ["dep:everymap-providers-mapquest"]
+photon = ["dep:everymap-providers-photon"]
+osrm = ["dep:everymap-providers-osrm"]
+valhalla = ["dep:everymap-providers-valhalla"]
+url-template-raster = ["dep:everymap-providers-url-template-raster"]
+url-template-vector = ["dep:everymap-providers-url-template-vector"]
+
 [dependencies]
 everymap-core = { workspace = true }
-everymap-providers-here = { workspace = true }
-everymap-providers-google = { workspace = true }
-everymap-providers-tomtom = { workspace = true }
-everymap-providers-mapbox = { workspace = true }
-everymap-providers-radar = { workspace = true }
-everymap-providers-mapquest = { workspace = true }
-everymap-providers-photon = { workspace = true }
-everymap-providers-osrm = { workspace = true }
-everymap-providers-valhalla = { workspace = true }
-everymap-providers-url-template-raster = { workspace = true }
-everymap-providers-url-template-vector = { workspace = true }
+everymap-providers-here = { workspace = true, optional = true }
+everymap-providers-google = { workspace = true, optional = true }
+everymap-providers-tomtom = { workspace = true, optional = true }
+everymap-providers-mapbox = { workspace = true, optional = true }
+everymap-providers-radar = { workspace = true, optional = true }
+everymap-providers-mapquest = { workspace = true, optional = true }
+everymap-providers-photon = { workspace = true, optional = true }
+everymap-providers-osrm = { workspace = true, optional = true }
+everymap-providers-valhalla = { workspace = true, optional = true }
+everymap-providers-url-template-raster = { workspace = true, optional = true }
+everymap-providers-url-template-vector = { workspace = true, optional = true }
 # The unsupported-domain macros expand to an `async_trait` attribute.
 async-trait = { workspace = true }
 clap = { version = "4", features = ["derive", "env"] }

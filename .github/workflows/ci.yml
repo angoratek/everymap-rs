@@ -163,6 +163,14 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo build --release -p everymap-cli
+      # The feature-gated configurations: no provider at all, and one
+      # provider. Both must build and the minimal binary must answer --help.
+      - name: Build with no providers
+        run: cargo build --release --no-default-features -p everymap-cli
+      - name: Build a HERE-only CLI
+        run: cargo build --release --no-default-features --features here -p everymap-cli
+      - name: Check the HERE-only CLI answers --help
+        run: ./target/release/everymap --help > /dev/null
 
   check-publish:
     runs-on: ubuntu-latest
