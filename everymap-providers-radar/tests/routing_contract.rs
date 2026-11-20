@@ -288,6 +288,50 @@ async fn test_routing_with_core_avoid_unsupported_types() {
     assert_eq!(result.routes.len(), 1);
 }
 
+#[tokio::test]
+async fn test_routing_sends_no_avoid_when_none_is_supported() {
+    let (server, router) = setup_router_mock().await;
+
+    // The method answers whether or not the request carries `avoid`.
+    Mock::given(method("GET"))
+        .and(path("/v1/route/directions"))
+        .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+            "meta": { "code": 200 },
+            "routes": [{
+                "duration": { "value": 120.5, "text": "2h 0m" },
+                "distance": { "value": 250000, "text": "250 km" },
+                "legs": [],
+                "geometry": { "polyline": "w{idcBgiooXfzj~Evd}_T" }
+            }]
+        })))
+        .mount(&server)
+        .await;
+
+    let start = Coordinate::new(52.5163, 13.3777).unwrap();
+    let end = Coordinate::new(48.8566, 2.3522).unwrap();
+    // Radar has no counterpart for either, so nothing is sent.
+    let options = RouteOptions {
+        transport_mode: Some(TransportMode::Car),
+        avoid: vec![AvoidType::Tunnels, AvoidType::DirtRoads],
+        ..Default::default()
+    };
+
+    router
+        .calculate_route(&start, &end, &options)
+        .await
+        .unwrap();
+
+    let requests = server
+        .received_requests()
+        .await
+        .expect("wiremock records requests");
+    let request = requests.last().expect("the router sends one request");
+    assert!(
+        !request.url.query_pairs().any(|(name, _)| name == "avoid"),
+        "an avoid list Radar cannot express must not be sent"
+    );
+}
+
 #[test]
 fn routing_reports_the_modes_and_strategy_it_honours() {
     let auth: Arc<dyn AuthProvider> = Arc::new(everymap_core::auth::HeaderAuthProvider::new(
