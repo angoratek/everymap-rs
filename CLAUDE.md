@@ -148,9 +148,8 @@ Every provider crate builds for `wasm32-unknown-unknown`. A provider that grows 
 - Google routing uses Routes API v2: POST JSON body to `routes.googleapis.com/directions/v2:computeRoutes` with camelCase fields, `X-Goog-FieldMask` header required, API key as `key` query param (header alternative documented by Google), durations are `"1234s"` strings
 - Radar Directions `avoid` accepts a comma-separated list of `tolls`, `highways`, `ferries`, `borderCrossings`; `alternatives` is boolean (two-location requests only)
 
-## Known Issues (from comprehensive provider review)
-- **Google matching**: `transport_mode`, `heading`, `departure_time`, `avoid` are all ignored (logged as warnings).
-- **Radar routing avoid**: Tunnels and dirt-roads avoid types have no Radar API counterpart (Radar supports tolls, highways, ferries, borderCrossings) — they log a warning and are dropped.
+## Known Issues
+The options a service cannot express are tracked in the issue tracker under the Option fidelity milestone, starting with Google matching (#51) and Radar's avoid types (#52). Each is either rejected or documented in its crate README with a contract test; do not add a new silent drop.
 
 ## What NOT to Do
 - Don't leak provider-specific types into `everymap-core`.
