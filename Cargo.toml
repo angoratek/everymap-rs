@@ -19,7 +19,7 @@ members = [
 resolver = "2"
 
 [workspace.package]
-version = "0.4.7"
+version = "0.5.0"
 edition = "2021"
 license = "MIT"
 authors = ["angoratek"]
@@ -62,15 +62,15 @@ web-time = "1"
 jiff = { version = "1.0", default-features = false, features = ["std"] }
 log = "0.4"
 url = "2"
-everymap-core = { path = "everymap-core", version = "0.4.7" }
-everymap-providers-here = { path = "everymap-providers-here", version = "0.4.7" }
-everymap-providers-google = { path = "everymap-providers-google", version = "0.4.7" }
-everymap-providers-tomtom = { path = "everymap-providers-tomtom", version = "0.4.7" }
-everymap-providers-mapbox = { path = "everymap-providers-mapbox", version = "0.4.7" }
-everymap-providers-radar = { path = "everymap-providers-radar", version = "0.4.7" }
-everymap-providers-osrm = { path = "everymap-providers-osrm", version = "0.4.7" }
-everymap-providers-valhalla = { path = "everymap-providers-valhalla", version = "0.4.7" }
-everymap-providers-url-template-raster = { path = "everymap-providers-url-template-raster", version = "0.4.7" }
-everymap-providers-url-template-vector = { path = "everymap-providers-url-template-vector", version = "0.4.7" }
-everymap-providers-mapquest = { path = "everymap-providers-mapquest", version = "0.4.7" }
-everymap-providers-photon = { path = "everymap-providers-photon", version = "0.4.7" }
+everymap-core = { path = "everymap-core", version = "0.5.0" }
+everymap-providers-here = { path = "everymap-providers-here", version = "0.5.0" }
+everymap-providers-google = { path = "everymap-providers-google", version = "0.5.0" }
+everymap-providers-tomtom = { path = "everymap-providers-tomtom", version = "0.5.0" }
+everymap-providers-mapbox = { path = "everymap-providers-mapbox", version = "0.5.0" }
+everymap-providers-radar = { path = "everymap-providers-radar", version = "0.5.0" }
+everymap-providers-osrm = { path = "everymap-providers-osrm", version = "0.5.0" }
+everymap-providers-valhalla = { path = "everymap-providers-valhalla", version = "0.5.0" }
+everymap-providers-url-template-raster = { path = "everymap-providers-url-template-raster", version = "0.5.0" }
+everymap-providers-url-template-vector = { path = "everymap-providers-url-template-vector", version = "0.5.0" }
+everymap-providers-mapquest = { path = "everymap-providers-mapquest", version = "0.5.0" }
+everymap-providers-photon = { path = "everymap-providers-photon", version = "0.5.0" }

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-11-20
+
 ### Added
 - `everymap_core::provider::ProviderDescriptor`, and one `PROVIDER_DESCRIPTOR`
   per provider crate: the key, display name, credential scheme, service root,
