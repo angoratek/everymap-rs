@@ -5,8 +5,14 @@ mod scenarios;
 use clap::Parser;
 use everymap_core::auth::header::HeaderAuthProvider;
 use everymap_core::auth::{ApiKeyProvider, AuthProvider};
+use everymap_core::domains::tiling::{
+    RasterImageFormat, RasterTileResolution, VectorTileEncoding, VectorTileSourceDescriptor,
+};
 use scenarios::ScenarioParams;
 use std::sync::Arc;
+
+/// Highest zoom a URL-template source declares when the caller names no span.
+const URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL: u8 = 18;
 
 #[derive(Parser)]
 #[command(
@@ -23,7 +29,9 @@ struct Cli {
     #[arg(long)]
     list: bool,
 
-    /// Comma-separated list of providers to benchmark (here,google,tomtom,mapbox,radar,mapquest,osrm,valhalla)
+    /// Comma-separated list of providers to benchmark
+    /// (here,google,tomtom,mapbox,radar,mapquest,osrm,valhalla,photon,
+    /// url-template-raster,url-template-vector)
     #[arg(long, default_value = "here,google,tomtom,mapbox,radar")]
     providers: String,
 
@@ -70,6 +78,23 @@ struct Cli {
     /// Valhalla deployment base URL (keyless; the public demo when unset)
     #[arg(long, env = "EVERYMAP_VALHALLA_BASE_URL")]
     valhalla_base_url: Option<String>,
+
+    /// Photon deployment base URL (keyless; the public instance when unset)
+    #[arg(long, env = "EVERYMAP_PHOTON_BASE_URL")]
+    photon_base_url: Option<String>,
+
+    /// `{z}/{x}/{y}` template for the URL-template raster source
+    #[arg(long, env = "EVERYMAP_RASTER_URL_TEMPLATE")]
+    raster_url_template: Option<String>,
+
+    /// `{z}/{x}/{y}` template for the URL-template vector source
+    /// (default: the named OpenStreetMap US source)
+    #[arg(long, env = "EVERYMAP_VECTOR_URL_TEMPLATE")]
+    vector_url_template: Option<String>,
+
+    /// Attribution recorded on a URL-template source
+    #[arg(long, env = "EVERYMAP_TILE_ATTRIBUTION")]
+    tile_attribution: Option<String>,
 
     /// Fallback API key for any provider
     #[arg(long, env = "EVERYMAP_API_KEY")]
@@ -162,6 +187,72 @@ async fn main() {
     // Create BenchProviders for each configured provider
     let mut provider_instances: Vec<benchmark::BenchProviders> = Vec::new();
     for provider in &provider_names {
+        if *provider == everymap_providers_photon::PROVIDER_DESCRIPTOR.key {
+            match benchmark::BenchProviders::new_photon(
+                cli.photon_base_url.clone().unwrap_or_default(),
+            ) {
+                Ok(bp) => provider_instances.push(bp),
+                Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+            }
+            continue;
+        }
+
+        if *provider == everymap_providers_url_template_raster::PROVIDER_DESCRIPTOR.key {
+            let Some(url_template) = cli.raster_url_template.clone() else {
+                eprintln!(
+                    "Skipping {}: set --raster-url-template or EVERYMAP_RASTER_URL_TEMPLATE",
+                    provider
+                );
+                continue;
+            };
+            let source = everymap_providers_url_template_raster::UrlTemplateRasterTileSource {
+                url_template,
+                source_name: provider.to_string(),
+                attribution_text: cli.tile_attribution.clone().unwrap_or_default(),
+                terms_text: String::new(),
+                minimum_zoom_level: 0,
+                maximum_zoom_level: URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL,
+                image_format: RasterImageFormat::Png,
+                tile_resolution: RasterTileResolution::Standard,
+                subdomains: Vec::new(),
+                headers: Vec::new(),
+                pacing: None,
+            };
+            match benchmark::BenchProviders::new_url_template_raster(source) {
+                Ok(bp) => provider_instances.push(bp),
+                Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+            }
+            continue;
+        }
+
+        if *provider == everymap_providers_url_template_vector::PROVIDER_DESCRIPTOR.key {
+            let source = match cli.vector_url_template.clone() {
+                Some(url_template) => {
+                    everymap_providers_url_template_vector::UrlTemplateVectorTileSource {
+                        url_template,
+                        source_descriptor: VectorTileSourceDescriptor {
+                            source_name: provider.to_string(),
+                            attribution_text: cli.tile_attribution.clone().unwrap_or_default(),
+                            minimum_zoom_level: 0,
+                            maximum_zoom_level: URL_TEMPLATE_DEFAULT_MAXIMUM_ZOOM_LEVEL,
+                            tile_encoding: VectorTileEncoding::MapboxVectorTile,
+                            style_hints: Vec::new(),
+                        },
+                        terms_text: String::new(),
+                        subdomains: Vec::new(),
+                        headers: Vec::new(),
+                        pacing: None,
+                    }
+                }
+                None => everymap_providers_url_template_vector::openstreetmap_us_vector_source(),
+            };
+            match benchmark::BenchProviders::new_url_template_vector(source) {
+                Ok(bp) => provider_instances.push(bp),
+                Err(e) => eprintln!("Failed to create provider '{}': {}", provider, e),
+            }
+            continue;
+        }
+
         if *provider == "osrm" || *provider == "valhalla" {
             let base_url = get_provider_key(provider, &cli).unwrap_or_default();
             match benchmark::BenchProviders::new_keyless_router(provider, base_url) {
