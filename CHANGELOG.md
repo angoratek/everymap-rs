@@ -9,6 +9,15 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- MapQuest's Static Map API as `MapQuestMapImageProvider` (`MapImageProvider`):
+  center, zoom, size, and `png`/`jpg`/`gif` formats, with the core width and
+  height overrides, provider extras passed as documented query parameters, a
+  JSON error envelope mapped to the shared error model, and wiremock contract
+  tests. The CLI and the benchmark use it, and MapQuest's descriptor lists
+  `Imaging`.
+- MapQuest's remaining contract gaps are recorded as intentional: the platform
+  publishes no matching, waypoint-optimization, positioning, attribute or
+  vector-tile service.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no

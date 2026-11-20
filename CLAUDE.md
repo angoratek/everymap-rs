@@ -100,6 +100,8 @@ The table covers the five original providers; the full contract × crate matrix 
 | Attributes | `AttributeProvider` | `HereAttributeProvider` | `GoogleAttributeProvider` | stub | stub | stub |
 | Imaging | `MapImageProvider` | `HereMapImageProvider` | `GoogleMapImageProvider` | `TomTomMapImageProvider` | `MapBoxMapImageProvider` | stub |
 
+MapQuest also serves imaging through `MapQuestMapImageProvider`.
+
 **49 real implementations** across eleven provider crates. The five original providers cover the table above; MapQuest serves geocoding, place search, autocomplete, routing, distance matrix, traffic and raster tiles; Photon serves geocoding, place search and type-ahead; OSRM and Valhalla serve routing; the URL-template raster and vector crates serve their tile contract with the named OSM US and OpenFreeMap vector sources.
 
 ## Provider crates and the browser

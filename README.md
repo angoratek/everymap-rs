@@ -67,7 +67,7 @@ trait.
 | Tour | `TourPlanner` | ✅ | — | ✅ | ✅ | ✅ | — | — | — | — | — | — |
 | Positioning | `NetworkPositioner` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
 | Attributes | `AttributeProvider` | ✅ | ✅ | — | — | — | — | — | — | — | — | — |
-| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | — | — | — | — | — | — |
+| Imaging | `MapImageProvider` | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — | — | — | — |
 | Offline routing | `OfflineRoutingProvider` | — | — | — | — | — | — | — | — | — | — | — |
 
 ¹ Routes two endpoints. MapQuest, OSRM and Valhalla also accept ordered

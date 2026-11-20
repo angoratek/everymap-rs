@@ -113,7 +113,7 @@ impl BenchProviders {
                 everymap_providers_mapquest::MapQuestTrafficProvider::new(client.clone()),
             )),
             raster_tile: Some(Box::new(
-                everymap_providers_mapquest::MapQuestRasterTileProvider::new(client),
+                everymap_providers_mapquest::MapQuestRasterTileProvider::new(client.clone()),
             )),
             vector_tile: None,
             isoline: None,
@@ -121,7 +121,9 @@ impl BenchProviders {
             tour_planner: None,
             positioner: None,
             attributes: None,
-            image: None,
+            image: Some(Box::new(
+                everymap_providers_mapquest::MapQuestMapImageProvider::new(client),
+            )),
         })
     }
 

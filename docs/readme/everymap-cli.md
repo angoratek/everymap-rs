@@ -42,7 +42,7 @@ A command a provider cannot serve answers with the documented unsupported-domain
 | `tour` | ✅ | — | ✅ | ✅ | ✅ | — | — | — |
 | `tile` | ✅ vector | — | ✅ raster | ✅ vector | — | ✅ raster | — | — |
 | `attributes` | ✅ | ✅ | — | — | — | — | — | — |
-| `map-image` | ✅ | ✅ | ✅ | ✅ | — | — | — | — |
+| `map-image` | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
 
 `tile` takes `--variant raster|vector`; with no variant it uses the first tile contract the provider serves. A raster request also takes `--format png|jpeg` and `--resolution standard|retina`, while a vector request is always MVT; a provider that does not publish the requested rendition refuses it with a validation error. Photon and the two URL-template crates are library-only and are not selectable with `--provider`.
 
