@@ -9,6 +9,11 @@
   builds its provider table, credential name and unsupported-domain provider
   names from those descriptors, so it carries no provider key, credential or
   service URL of its own.
+- Google's Elevation API as `GoogleElevationProvider` (`ElevationProvider`):
+  one sample per point in the caller's order, ordered batches above the
+  documented 512-location limit, Google's in-body status mapped onto the shared
+  error model, and wiremock contract tests. Google's descriptor now lists
+  `Elevation`, and the README matrix and crate docs match.
 - A Developer Certificate of Origin check: `scripts/check-dco-signoff.mjs`
   fails a pull request when a commit's `Signed-off-by:` line does not match its
   author, and the CI `dco` job runs it. Maintainer commits on `main` carry no
