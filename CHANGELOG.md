@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Fixed
+- `url` is at 2.5.9, which fixes RUSTSEC-2026-0592, a stack overflow in
+  `Url::origin()` on nested `blob:` URLs. The advisory published after the
+  0.5.0 release commit and turned the `audit` job red on `main` and on every
+  open pull request; nothing in the workspace calls `Url::origin()`.
+
 ## [0.5.0] — 2026-11-20
 
 ### Added
@@ -89,7 +95,6 @@
   every release that fixes its own parsing advisory (RUSTSEC-2026-0009,
   patched in 0.3.47) requires rustc 1.88, and every older release carries the
   advisory; `jiff` supports the 1.86 workspace MSRV.
-
 ### Changed
 - The CI workflow cancels a superseded run on the same branch, and the release
   `check` job runs `cargo deny check`, so an advisory-red tree can no longer
